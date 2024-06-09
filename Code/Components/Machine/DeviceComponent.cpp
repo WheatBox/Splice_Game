@@ -11,8 +11,11 @@
 
 #include "../PhysicsWorldComponent.h"
 #include "../RigidbodyComponent.h"
+#include "../SmokeEmitterComponent.h"
 
 REGISTER_ENTITY_COMPONENT(, CDeviceComponent);
+
+std::unordered_set<CDeviceComponent *> CDeviceComponent::s_workingDevices;
 
 Frame::EntityEvent::Flags CDeviceComponent::GetEventFlags() const {
 	return Frame::EntityEvent::EFlag::BeforeUpdate
@@ -46,8 +49,6 @@ void CDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 				m_pGroup->bEngineWorking = !m_pGroup->bEngineWorkingPrevFrame;
 			}
 		}
-
-		Work();
 	}
 	break;
 	case Frame::EntityEvent::EFlag::Render:
@@ -121,9 +122,15 @@ m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceSt
 #undef __SPRITE_ALPHA
 #undef __ADD_SPRITE_LAYER
 #undef __ADD_SPRITE_LAYER_EXT
+
+	s_workingDevices.insert(this);
 }
 
 void CDeviceComponent::OnShutDown() {
+	if(auto it = s_workingDevices.find(this); it != s_workingDevices.end()) {
+		s_workingDevices.erase(it);
+	}
+
 	delete m_pNode;
 	m_pNode = nullptr;
 }
@@ -249,7 +256,7 @@ void CDeviceComponent::DestroyFixtureDefs(const std::vector<b2FixtureDef *> & de
 	}
 }
 
-void CDeviceComponent::Work() {
+void CDeviceComponent::Step(float timeStep) {
 	if(!m_pNode || !m_pNode->pDeviceData || !m_pMachineEntity) {
 		return;
 	}
@@ -264,24 +271,37 @@ void CDeviceComponent::Work() {
 		}
 	}
 	///////////////////////
+
+	//if(deviceType == IDeviceData::Engine) {
+	//	SEngineDeviceData * pData = reinterpret_cast<SEngineDeviceData *>(m_pNode->pDeviceData);
+	//	pData->smoking += m_frametime;
+	//	if(pData->smoking > 0.f && pData->smoking < 100.f) { // 防止意外的死循环
+	//		while(pData->smoking >= pData->smokeMax) {
+	//			CSmokeEmitterComponent::SummonSmokeParticle({ m_pEntity->GetPosition(), 1.f });
+	//			pData->smoking -= pData->smokeMax;
+	//		}
+	//	} else {
+	//		pData->smoking = 0.f;
+	//	}
+	//	return;
+	//}
 	
-	//if(!m_pGroup || !m_pGroup->bEngineWorking) {
 	if(!m_pGroup) {
 		return;
 	}
 
 	/* ---------------------- 计算动力 ---------------------- */
 
-	bool work = false;
+	bool working = false;
 	float power = 0.f;
 	if(m_pGroup->bEngineWorking) {
-		power = static_cast<float>(m_pGroup->engines.size()) / static_cast<float>(m_pGroup->devices.size());
-		work = true;
+		power = m_pGroup->devices.size() != 0 ? (static_cast<float>(m_pGroup->engines.size()) / static_cast<float>(m_pGroup->devices.size())) : 0.f;
+		working = true;
 	}
 
 	// _minPower = 最低运行动力，低于该动力就不会运行
 	// _maxPower = 最高支持动力，高于该动力的动力会被浪费掉
-#define __FORMULA(_minPower, _maxPower) if(power < _minPower) { power = 0.f; work = false; } else if(power > _maxPower) power = _maxPower; break;
+#define __FORMULA(_minPower, _maxPower) if(power < _minPower) { power = 0.f; working = false; } else if(power > _maxPower) power = _maxPower; break;
 
 	switch(deviceType) {
 	case IDeviceData::Propeller: __FORMULA(.4f, 4.f);
@@ -294,7 +314,7 @@ void CDeviceComponent::Work() {
 
 	switch(deviceType) {
 	case IDeviceData::Propeller:
-		if(!work) {
+		if(!working) {
 			break;
 		}
 		if(auto pRigidbodyComp = m_pMachineEntity->GetComponent<CRigidbodyComponent>()) {
@@ -308,12 +328,12 @@ void CDeviceComponent::Work() {
 	{
 		SJetPropellerDeviceData * pData = reinterpret_cast<SJetPropellerDeviceData *>(m_pNode->pDeviceData);
 		if(pData->accumulating < 0.f) {
-			pData->accumulating += m_frametime * 1.f;
+			pData->accumulating += timeStep * 1.f;
 			if(pData->accumulating > 0.f) {
 				pData->accumulating = 0.f;
 			}
 		} else {
-			pData->accumulating += m_frametime * power;
+			pData->accumulating += timeStep * power;
 		}
 		if(pData->accumulating >= pData->accumulationMax) {
 			if(auto pRigidbodyComp = m_pMachineEntity->GetComponent<CRigidbodyComponent>()) {
@@ -324,7 +344,7 @@ void CDeviceComponent::Work() {
 			}
 			pData->accumulating = -.5f;
 		}
-		pData->accumulatingShowing = Lerp(pData->accumulatingShowing, std::max(pData->accumulating, 0.f), m_frametime * 10.f);
+		pData->accumulatingShowing = Lerp(pData->accumulatingShowing, std::max(pData->accumulating, 0.f), timeStep * 10.f);
 	}
 	break;
 	}
@@ -332,12 +352,29 @@ void CDeviceComponent::Work() {
 	/* ---------------------- 其它功能 ---------------------- */
 
 	switch(deviceType) {
-	case IDeviceData::Propeller:
+	case IDeviceData::Engine:
 	{
-		if(!work) {
+		if(!working) {
 			break;
 		}
-		const float rot = m_pSpriteComponent->layers[3].GetRotation() + (1000.f + 600.f * power) * m_frametime;
+		SEngineDeviceData * pData = reinterpret_cast<SEngineDeviceData *>(m_pNode->pDeviceData);
+		pData->smoking += timeStep;
+		if(pData->smoking > 0.f && pData->smoking < 100.f) { // 防止意外的死循环
+			while(pData->smoking >= pData->smokeMax) {
+				CSmokeEmitterComponent::SummonSmokeParticle({ m_pEntity->GetPosition(), 1.f });
+				pData->smoking -= pData->smokeMax;
+			}
+		} else {
+			pData->smoking = 0.f;
+		}
+	}
+	break;
+	case IDeviceData::Propeller:
+	{
+		if(!working) {
+			break;
+		}
+		const float rot = m_pSpriteComponent->layers[3].GetRotation() + (1000.f + 600.f * power) * timeStep;
 		m_pSpriteComponent->layers[3].SetRotation(rot);
 		m_pSpriteComponent->layers[4].SetRotation(rot);
 	}

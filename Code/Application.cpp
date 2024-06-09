@@ -15,8 +15,9 @@
 #include "Texts.h"
 
 void CApplication::Initialize(int, char **) {
-	SetVSync(true);
-	//SetVSync(false); SetMaxFPS(30);
+	//SetVSync(true);
+	SetVSync(false);
+	//SetMaxFPS(60);
 
 	Assets::LoadPermanentAssets();
 	Texts::InitializeTexts(Texts::ELanguage::Chinese);

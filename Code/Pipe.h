@@ -93,7 +93,7 @@ static inline void DrawPipeCross(const PipeNodeT * pPipeNode, const Frame::Vec2 
 
 template<typename PipeNodeT, typename PipeT>
 void DrawPipe(const PipeT & pipeNodes, const Frame::Vec2 & pos, Frame::ColorRGB color, float alpha, float rotation) {
-	std::map<const PipeNodeT *, uint8> pipeNodesMark;
+	std::unordered_map<const PipeNodeT *, uint8> pipeNodesMark;
 
 	for(auto & pPipeNode : pipeNodes) {
 		uint8 markVal = 0;

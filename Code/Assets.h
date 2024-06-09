@@ -3,7 +3,7 @@
 #include <FrameAsset/Sprite.h>
 #include <FrameAsset/Font.h>
 
-#include <map>
+#include <unordered_map>
 
 #include "DevicesData.h"
 
@@ -65,10 +65,19 @@ namespace Assets {
 		jet_propeller_bottom,
 	};
 
-	extern std::map<EGUIStaticSprite, Frame::CStaticSprite *> gGUIStaticSpriteMap;
-	extern std::map<EDeviceStaticSprite, Frame::CStaticSprite *> gDeviceStaticSpriteMap;
+	enum class EOtherStaticSprite {
+		smoke1,
+		smoke2,
+		smoke3,
+		smoke4,
+		smoke5,
+	};
 
-	// 加载永久资产，这类资产因为需要经常使用，因此在游戏开始时就加载进内存中，且在整个游戏运行期间内不会进行释放，直至关闭游戏
+	extern std::unordered_map<EGUIStaticSprite, Frame::CStaticSprite *> gGUIStaticSpriteMap;
+	extern std::unordered_map<EDeviceStaticSprite, Frame::CStaticSprite *> gDeviceStaticSpriteMap;
+	extern std::unordered_map<EOtherStaticSprite, Frame::CStaticSprite *> gOtherStaticSpriteMap;
+
+	// 加载永久资产，这类资产因为需要经常使用，因此在游戏开始时就加载进内存中，且在整个游戏运行期间内不会进行释放
 	void LoadPermanentAssets();
 
 #define DefineFunction_GetStaticSprite(_enum_type_name, _map_name) \
@@ -81,6 +90,7 @@ namespace Assets {
 
 	DefineFunction_GetStaticSprite(EGUIStaticSprite, gGUIStaticSpriteMap)
 	DefineFunction_GetStaticSprite(EDeviceStaticSprite, gDeviceStaticSpriteMap)
+	DefineFunction_GetStaticSprite(EOtherStaticSprite, gOtherStaticSpriteMap)
 
 #undef DefineFunction_GetStaticSprite
 

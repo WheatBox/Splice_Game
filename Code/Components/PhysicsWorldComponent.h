@@ -4,11 +4,17 @@
 
 #include "CameraComponent.h"
 
+namespace std {
+	class thread;
+}
+
 class CPhysicsWorldComponent final : public Frame::IEntityComponent {
 public:
 
 	// 同一时间，仅能存在一个 CPhysicsWorldComponent
 	static CPhysicsWorldComponent * s_pPhysicsWorldComponent;
+
+	static std::thread * s_pPhysicsThread;
 
 	virtual void Initialize() override;
 	virtual void OnShutDown() override;
@@ -34,9 +40,14 @@ public:
 		return m_pCameraComponent;
 	}
 
+	void Step(float timeStep);
+
 private:
 
 	CCameraComponent * m_pCameraComponent = nullptr;
+	
+	Frame::CEntity * m_pSmokeEmitterEntity = nullptr;
+
 	bool m_bEditorWorking = false;
 
 };

@@ -37,6 +37,9 @@ struct SShellDeviceData : public IDeviceData {
 struct SEngineDeviceData : public IDeviceData {
 	SEngineDeviceData() { device = EType::Engine; }
 	virtual ~SEngineDeviceData() = default;
+
+	static constexpr float smokeMax = .03f;
+	float smoking = 0.f;
 };
 
 struct SPropellerDeviceData : public IDeviceData {

@@ -15,6 +15,8 @@ struct SPipeNode;
 class CDeviceComponent final : public Frame::IEntityComponent {
 public:
 
+	static std::unordered_set<CDeviceComponent *> s_workingDevices;
+
 	virtual Frame::EntityEvent::Flags GetEventFlags() const override;
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
 
@@ -40,7 +42,7 @@ public:
 
 	void DrawConnectors() const;
 
-	void Work();
+	void Step(float timeStep);
 
 	static std::vector<b2FixtureDef *> CreateFixtureDefs(IDeviceData::EType deviceType, const Frame::Vec2 & devicePos, float rotation);
 	static void DestroyFixtureDefs(const std::vector<b2FixtureDef *> & defs);

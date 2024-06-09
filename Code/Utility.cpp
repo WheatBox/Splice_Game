@@ -179,6 +179,7 @@ void DrawSpriteBlendedPro(const Frame::SSpriteImage * pSpriteImage, const Frame:
     Frame::Rotate2DVectorsDegree(angleAfterScale, { & tl, & tr, & bl, & br });
 
     vertexBuffer.SetPositions(vPos + tl, vPos + tr, vPos + bl, vPos + br);
+    vertexBuffer.SetTexCoord(pSpriteImage->GetUVLeftTop(), pSpriteImage->GetUVRightBottom());
 
     Frame::gRenderer->DrawTexture(pSpriteImage->GetTextureId(), vertexBuffer);
 }
