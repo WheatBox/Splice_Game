@@ -222,7 +222,7 @@ void CEditorDeviceComponent::DrawConnectors() {
 			+ GetDeviceInterfaceBias(m_deviceType, m_directionIndex, i, 0.f)
 			+ GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_deviceType) + CONNECTOR_HALF_LENGTH * 2.f, m_directionIndex, i)
 			;
-		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::connector)->GetImage(), pos, m_colorSet.connector, std::min(m_alpha, m_neighbors[i]->GetAlpha()), i * 90.f, { 1.f });
+		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::connector)->GetImage(), pos, m_colorSet.connector, std::min(m_alpha, m_neighbors[i]->GetAlpha()), { 1.f }, i * 90.f);
 	}
 }
 

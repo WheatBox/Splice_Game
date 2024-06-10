@@ -1007,7 +1007,7 @@ void CEditorComponent::RenderAndProcessToolbar(const Frame::Vec2 & leftTopPos, c
 		Frame::Vec2 buttonLT = buttonPos, buttonRB = buttonPos + Frame::Vec2 { buttonSize };
 		bool bMouseOn = Frame::PointInRectangle(mousePosInScene, buttonLT, buttonRB - 1.f);
 		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(buttonLT, buttonRB, bMouseOn || arrTools[i] == m_tool ? __GUI_BUTTON_HIGHLIGHT_COLOR : __GUI_BUTTON_COLOR, 1.f);
-		Frame::gRenderer->DrawSpriteAlphaBlended(Assets::GetStaticSprite(arrSprs[i])->GetImage(), buttonLT + buttonSize * .5f, __TOOLBAR_BUTTON_ICON_ALPHA, 0.f, __TOOLBAR_BUTTON_ICON_SCALE);
+		Frame::gRenderer->DrawSpriteAlphaBlended(Assets::GetStaticSprite(arrSprs[i])->GetImage(), buttonLT + buttonSize * .5f, __TOOLBAR_BUTTON_ICON_ALPHA, __TOOLBAR_BUTTON_ICON_SCALE, 0.f);
 		if(bMouseOn) {
 			SetMouseLabel(arrTexts[i]);
 		}
@@ -1093,7 +1093,7 @@ void CEditorComponent::RenderAndProcessPipeMenu(const Frame::Vec2 & leftTopPos) 
 		Frame::Vec2 buttonLT = buttonPos, buttonRB = buttonPos + Frame::Vec2 { buttonSize };
 		bool bMouseOn = Frame::PointInRectangle(mousePosInScene, buttonLT, buttonRB);
 		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(buttonLT, buttonRB, bMouseOn || arrModes[i] == m_pipeToolMode ? __GUI_BUTTON_HIGHLIGHT_COLOR : __GUI_BUTTON_COLOR, 1.f);
-		Frame::gRenderer->DrawSpriteAlphaBlended(Assets::GetStaticSprite(arrSprs[i])->GetImage(), buttonLT + buttonSize * .5f, __TOOLBAR_BUTTON_ICON_ALPHA, 0.f, __TOOLBAR_BUTTON_ICON_SCALE);
+		Frame::gRenderer->DrawSpriteAlphaBlended(Assets::GetStaticSprite(arrSprs[i])->GetImage(), buttonLT + buttonSize * .5f, __TOOLBAR_BUTTON_ICON_ALPHA, __TOOLBAR_BUTTON_ICON_SCALE, 0.f);
 		if(bMouseOn) {
 			SetMouseLabel(arrTexts[i]);
 		}
@@ -1309,8 +1309,8 @@ void CEditorComponent::DrawDevicePreview(IDeviceData::EType type, const Frame::V
 		baseColor = customColor;
 	}
 
-#define __DrawDeviceSprite(_Assets_EDeviceStaticSprite, _color) Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::_Assets_EDeviceStaticSprite)->GetImage(), pos, _color, alpha, rot, scale);
-#define __DrawDeviceSprite_ByPart(_Assets_EDeviceStaticSpritePart, _color) Frame::gRenderer->DrawSpriteBlended(Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::_Assets_EDeviceStaticSpritePart)->GetImage(), pos, _color, alpha, rot, scale);
+#define __DrawDeviceSprite(_Assets_EDeviceStaticSprite, _color) Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::_Assets_EDeviceStaticSprite)->GetImage(), pos, _color, alpha, scale, rot);
+#define __DrawDeviceSprite_ByPart(_Assets_EDeviceStaticSpritePart, _color) Frame::gRenderer->DrawSpriteBlended(Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::_Assets_EDeviceStaticSpritePart)->GetImage(), pos, _color, alpha, scale, rot);
 
 	if(type == IDeviceData::JetPropeller) {
 		__DrawDeviceSprite(jet_propeller_bottom, colorSet.color1);
@@ -1321,12 +1321,12 @@ void CEditorComponent::DrawDevicePreview(IDeviceData::EType type, const Frame::V
 	__DrawDeviceSprite_ByPart(basic, baseColor);
 
 	if(type == IDeviceData::Propeller) {
-		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::propeller_blade_color)->GetImage(), pos + Frame::Vec2 { 20.f, 0.f }.RotateDegree(rot) * scale, colorSet.color2, alpha, rot + 30.f, dirIndex % 2 ? Frame::Vec2 { scale, .3f * scale } : Frame::Vec2 { .3f * scale, scale });
-		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::propeller_blade)->GetImage(), pos + Frame::Vec2 { 20.f, 0.f }.RotateDegree(rot) * scale, baseColor, alpha, rot + 30.f, dirIndex % 2 ? Frame::Vec2 { scale, .3f * scale } : Frame::Vec2 { .3f * scale, scale });
+		DrawSpriteBlendedPro(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::propeller_blade_color)->GetImage(), pos + Frame::Vec2 { 20.f, 0.f }.RotateDegree(rot) * scale, colorSet.color2, alpha, rot + 30.f, dirIndex % 2 ? Frame::Vec2 { scale, .3f * scale } : Frame::Vec2 { .3f * scale, scale }, 0.f);
+		DrawSpriteBlendedPro(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::propeller_blade)->GetImage(), pos + Frame::Vec2 { 20.f, 0.f }.RotateDegree(rot) * scale, baseColor, alpha, rot + 30.f, dirIndex % 2 ? Frame::Vec2 { scale, .3f * scale } : Frame::Vec2 { .3f * scale, scale }, 0.f);
 		__DrawDeviceSprite(propeller_top_color, colorSet.color1);
 		__DrawDeviceSprite(propeller_top, baseColor);
 	} else if(type == IDeviceData::JetPropeller) {
-		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::jet_propeller_needle)->GetImage(), pos + Frame::Vec2 { 32.f, -20.f }.RotateDegree(rot) * scale, baseColor, alpha, rot + 45.f, scale);
+		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::jet_propeller_needle)->GetImage(), pos + Frame::Vec2 { 32.f, -20.f }.RotateDegree(rot) * scale, baseColor, alpha, scale, rot + 45.f);
 	}
 
 #undef __DrawDeviceSprite

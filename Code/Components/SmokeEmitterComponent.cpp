@@ -38,7 +38,7 @@ void CSmokeEmitterComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 		};
 		for(auto it = s_smokePraticles.begin(); it != s_smokePraticles.end();) {
 			const Frame::SSpriteImage * pImage = Assets::GetStaticSprite(sprs[it->smokeSprIndex])->GetImage();
-			Frame::gRenderer->DrawSpriteBlended(pImage, it->pos, 0x444444, it->alpha, it->rotation, it->scale);
+			Frame::gRenderer->DrawSpriteBlended(pImage, it->pos, 0x444444, it->alpha, it->scale, it->rotation);
 
 			it->alpha += it->alphaAdd * m_frametime;
 			it->rotation += it->rotationAdd * m_frametime;

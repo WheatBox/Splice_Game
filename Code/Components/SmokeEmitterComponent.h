@@ -10,7 +10,7 @@ class CSmokeEmitterComponent : public Frame::IEntityComponent {
 public:
 
 	struct SSmokeParticle {
-		SSmokeParticle(const Frame::Vec2 & _pos, const Frame::Vec2 & _scale)
+		SSmokeParticle(const Frame::Vec2 & _pos, float _scale)
 			: pos { _pos }
 			, scale { _scale }
 		{
@@ -26,7 +26,7 @@ public:
 			alphaAdd = -static_cast<float>(rand() % 2) * .1f - .2f;
 		}
 		Frame::Vec2 pos;
-		Frame::Vec2 scale;
+		float scale;
 
 		int smokeSprIndex = 0;
 

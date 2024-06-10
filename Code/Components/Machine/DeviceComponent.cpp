@@ -174,7 +174,7 @@ void CDeviceComponent::DrawConnectors() const {
 			+ GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_pNode->pDeviceData->device) + CONNECTOR_HALF_LENGTH * 2.f, m_directionIndex, i).RotateDegree(rot)
 			;
 		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::connector)->GetImage(), pos, m_colorSet.connector, 1.f,
-			i * 90.f + rot, { 1.f }
+			{ 1.f }, i * 90.f + rot
 		);
 	}
 }

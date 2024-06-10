@@ -27,7 +27,7 @@ void DrawPipeSingleLine(Frame::Vec2 p1, const Frame::Vec2 & p2, Frame::ColorRGB 
 	int i = static_cast<int>(len / jointSpacing);
 	//for(Frame::Vec2 add = dir * jointSpacing * .75f; !(add.x > stop.x || add.x < -stop.x || add.y > stop.y || add.y < -stop.y); add += dir * jointSpacing) {
 	for(Frame::Vec2 add = dir * jointSpacing * .75f; i-- > 0; add += dir * jointSpacing) {
-		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::pipe_joint_color)->GetImage(), p1 + add, color, alpha, degree, 1.f);
-		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::pipe_joint)->GetImage(), p1 + add, 0xFFFFFF, alpha, degree, 1.f);
+		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::pipe_joint_color)->GetImage(), p1 + add, color, alpha, 1.f, degree);
+		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::pipe_joint)->GetImage(), p1 + add, 0xFFFFFF, alpha, 1.f, degree);
 	}
 }
