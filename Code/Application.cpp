@@ -15,8 +15,8 @@
 #include "Texts.h"
 
 void CApplication::Initialize(int, char **) {
-	//SetVSync(true);
-	SetVSync(false);
+	SetVSync(true);
+	//SetVSync(false);
 	//SetMaxFPS(60);
 
 	Assets::LoadPermanentAssets();
@@ -60,7 +60,8 @@ void CApplication::Initialize(int, char **) {
 
 	//Frame::gRenderer->SetBackgroundColor(0x00004F);
 	//Frame::gRenderer->SetBackgroundColor(0xFFFFFF);
-	Frame::gRenderer->SetBackgroundColor(0xDDDDDD);
+	//Frame::gRenderer->SetBackgroundColor(0xDDDDDD);
+	Frame::gRenderer->SetBackgroundColor(0xB1B1C1);
 }
 
 void CApplication::MainLoopPriority() {

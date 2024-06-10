@@ -4,6 +4,8 @@
 
 #include "CameraComponent.h"
 
+#include <queue>
+
 namespace std {
 	class thread;
 }
@@ -15,6 +17,8 @@ public:
 	static CPhysicsWorldComponent * s_pPhysicsWorldComponent;
 
 	static std::thread * s_pPhysicsThread;
+
+	static std::queue<std::function<void ()>> s_physicalizeQueue;
 
 	virtual void Initialize() override;
 	virtual void OnShutDown() override;

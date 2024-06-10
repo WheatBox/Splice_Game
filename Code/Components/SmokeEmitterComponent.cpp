@@ -4,7 +4,6 @@
 #include <FrameCore/Globals.h>
 #include <FrameRender/Renderer.h>
 
-#include "../Assets.h"
 #include "../Depths.h"
 
 REGISTER_ENTITY_COMPONENT(, CSmokeEmitterComponent);
@@ -29,21 +28,17 @@ void CSmokeEmitterComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 		break;
 	case Frame::EntityEvent::EFlag::Render:
 	{
-		constexpr Assets::EOtherStaticSprite sprs[] = {
-			Assets::EOtherStaticSprite::smoke1,
-			Assets::EOtherStaticSprite::smoke2,
-			Assets::EOtherStaticSprite::smoke3,
-			Assets::EOtherStaticSprite::smoke4,
-			Assets::EOtherStaticSprite::smoke5
-		};
 		for(auto it = s_smokePraticles.begin(); it != s_smokePraticles.end();) {
-			const Frame::SSpriteImage * pImage = Assets::GetStaticSprite(sprs[it->smokeSprIndex])->GetImage();
-			Frame::gRenderer->DrawSpriteBlended(pImage, it->pos, 0x444444, it->alpha, it->scale, it->rotation);
+			const Frame::SSpriteImage * pImage = Assets::GetStaticSprite(it->smokeSpr)->GetImage();
+			Frame::gRenderer->DrawSpriteBlended(pImage, it->pos, it->color, it->alpha, it->scale, it->rotation);
 
 			it->alpha += it->alphaAdd * m_frametime;
 			it->rotation += it->rotationAdd * m_frametime;
 			it->pos += it->posAdd * m_frametime;
 			it->scale += it->scaleAdd * m_frametime;
+
+			it->pos += it->impulseDir * it->impulsePower * m_frametime;
+			it->impulsePower = Lerp(it->impulsePower, 0.f, Frame::Clamp(m_frametime * 10.f, 0.f, 1.f));
 
 			if(it->alpha <= 0.f) {
 				it = s_smokePraticles.erase(it);

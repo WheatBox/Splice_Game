@@ -4,6 +4,7 @@
 #include <FrameAsset/Sprite.h>
 
 #include <vector>
+#include <functional>
 
 class CSpriteComponent : public Frame::IEntityComponent {
 
@@ -29,6 +30,7 @@ public:
 			SetAlpha(alpha);
 			SetFrameInterval(frameIntervalSeconds);
 		}
+		virtual ~SLayer() = default;
 
 		void SetSprite(Frame::CStaticSprite * pStaticSprite) {
 			m_pStaticSprite = pStaticSprite;
@@ -105,6 +107,13 @@ public:
 			return m_frameCount;
 		}
 
+		void SetExtraFunction(const std::function<void (float)> & func) {
+			m_extraFunc = func;
+		}
+		const std::function<void (float)> & GetExtraFunction() const {
+			return m_extraFunc;
+		}
+
 	public:
 
 		Frame::CStaticSprite * m_pStaticSprite = nullptr;
@@ -122,9 +131,15 @@ public:
 
 		int m_frameCount = 0;
 		float m_frameIntervalCounting = 0.f;
+
+		//bool m_bExtraFunc = false;
+		std::function<void (float)> m_extraFunc; // 参数：float frameTime
 	};
 
 	std::vector<SLayer> layers {};
 	bool working = true;
+
+private:
+	float frameTime = 0.f;
 
 };

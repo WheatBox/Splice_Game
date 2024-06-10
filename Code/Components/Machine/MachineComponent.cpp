@@ -86,7 +86,7 @@ void CMachineComponent::Initialize(const std::unordered_set<CEditorDeviceCompone
 		}
 	}
 
-	/* -------------------- 物理化装置 -------------------- */
+	/* -------------------- 物理化 -------------------- */
 	
 	{
 		const Frame::Vec2 entPos = PixelToMeterVec2(m_pEntity->GetPosition());
@@ -100,8 +100,6 @@ void CMachineComponent::Initialize(const std::unordered_set<CEditorDeviceCompone
 
 		m_pRigidbodyComponent->Physicalize(bodyDef, fixtureDefs, map_fixtureDefDeviceComp);
 		//m_pRigidbodyComponent->SetEnableRendering(true);
-
-		CDeviceComponent::DestroyFixtureDefs(fixtureDefs);
 	}
 
 	/* --------------------- 创建管道 --------------------- */

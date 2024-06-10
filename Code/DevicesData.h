@@ -48,7 +48,12 @@ struct SPropellerDeviceData : public IDeviceData {
 };
 
 struct SJetPropellerDeviceData : public IDeviceData {
-	SJetPropellerDeviceData() { device = EType::JetPropeller; }
+	SJetPropellerDeviceData() {
+		device = EType::JetPropeller;
+
+		smokeRotation1 = static_cast<float>(rand() % 360);
+		smokeRotation2 = static_cast<float>(rand() % 360);
+	}
 	virtual ~SJetPropellerDeviceData() = default;
 
 	static constexpr float accumulationMax = 2.5f;
@@ -56,6 +61,10 @@ struct SJetPropellerDeviceData : public IDeviceData {
 
 	float accumulating = 0.f;
 	float accumulatingShowing = 0.f;
+	float accumulatingShowingPrev = 0.f;
+
+	float smokeRotation1 = 0.f;
+	float smokeRotation2 = 0.f;
 };
 
 struct SDeviceTreeNode {

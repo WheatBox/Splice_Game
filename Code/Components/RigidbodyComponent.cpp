@@ -7,6 +7,7 @@
 #include "../Application.h"
 
 #include "Machine/DeviceComponent.h"
+#include "PhysicsWorldComponent.h"
 
 REGISTER_ENTITY_COMPONENT(, CRigidbodyComponent);
 
@@ -55,19 +56,32 @@ void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event)
 	}
 }
 
-void CRigidbodyComponent::Physicalize(const b2BodyDef & bodyDef, const b2FixtureDef & fixtureDef) {
+void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, b2FixtureDef fixtureDef) {
+	CPhysicsWorldComponent::s_physicalizeQueue.push(
+		[this, bodyDef, fixtureDef]() {
 	m_pBody = gWorld->CreateBody(& bodyDef);
 	m_fixtures.push_back(m_pBody->CreateFixture(& fixtureDef));
+		}
+	);
 }
 
-void CRigidbodyComponent::Physicalize(const b2BodyDef & bodyDef, const std::vector<b2FixtureDef *> & fixtureDefs) {
+// 运行结束后，会自动释放 fixtureDefs 中的 b2FixtureDef
+void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, std::vector<b2FixtureDef *> fixtureDefs) {
+	CPhysicsWorldComponent::s_physicalizeQueue.push(
+		[this, bodyDef, fixtureDefs]() {
 	m_pBody = gWorld->CreateBody(& bodyDef);
 	for(const auto & fixtureDef : fixtureDefs) {
 		m_fixtures.push_back(m_pBody->CreateFixture(fixtureDef));
 	}
+	CDeviceComponent::DestroyFixtureDefs(fixtureDefs);
+		}
+	);
 }
 
-void CRigidbodyComponent::Physicalize(const b2BodyDef & bodyDef, const std::vector<b2FixtureDef *> & fixtureDefs, const std::unordered_map<b2FixtureDef *, CDeviceComponent *> & map_fixtureDefDeviceComp) {
+// 运行结束后，会自动释放 fixtureDefs 中的 b2FixtureDef
+void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, std::vector<b2FixtureDef *> fixtureDefs, std::unordered_map<b2FixtureDef *, CDeviceComponent *> map_fixtureDefDeviceComp) {
+	CPhysicsWorldComponent::s_physicalizeQueue.push(
+		[this, bodyDef, fixtureDefs, map_fixtureDefDeviceComp]() {
 	m_pBody = gWorld->CreateBody(& bodyDef);
 	for(const auto & fixtureDef : fixtureDefs) {
 		b2Fixture * pFixture = m_pBody->CreateFixture(fixtureDef);
@@ -76,6 +90,9 @@ void CRigidbodyComponent::Physicalize(const b2BodyDef & bodyDef, const std::vect
 			it->second->SetFixture(pFixture);
 		}
 	}
+	CDeviceComponent::DestroyFixtureDefs(fixtureDefs);
+		}
+	);
 }
 
 void CRigidbodyComponent::WeldWith(const CRigidbodyComponent * pRigidbodyComponent) {

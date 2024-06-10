@@ -86,6 +86,36 @@ m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceSt
 		__ADD_SPRITE_LAYER(cabin_logo_background);
 	} else if(deviceType == IDeviceData::JetPropeller) {
 		__ADD_SPRITE_LAYER_EXT(jet_propeller_bottom, color1);
+		{
+			auto & layerTemp = m_pSpriteComponent->layers.back();
+			layerTemp.SetExtraFunction([this](float frameTime) {
+				if(!m_pNode || !m_pNode->pDeviceData) {
+					return;
+				}
+
+				auto pData = reinterpret_cast<SJetPropellerDeviceData *>(m_pNode->pDeviceData);
+
+				const Frame::Vec2 entPos = m_pEntity->GetPosition();
+				const float entRot = m_pEntity->GetRotation();
+
+				const Frame::Vec2 pos = entPos - Frame::Vec2 { 32.f, 0.f }.RotateDegree(entRot);
+				const float alpha = std::min(1.f, pData->accumulatingShowing / pData->accumulationShowingMax) * .35f;
+
+				pData->smokeRotation1 += frameTime * (40.f + 30000.f * (pData->accumulatingShowing - pData->accumulatingShowingPrev));
+				pData->smokeRotation2 += frameTime * (80.f + 60000.f * (pData->accumulatingShowing - pData->accumulatingShowingPrev));
+
+				Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::jet_propeller_bottom)->GetImage(),
+					entPos, 0xFFFFFF, alpha * 2.5f, 1.f, entRot
+				);
+				for(int i = 0; i < CSmokeEmitterComponent::SSmokeParticle::spritesCount; i++) {
+					Frame::gRenderer->DrawSpriteBlended(
+						Assets::GetStaticSprite(CSmokeEmitterComponent::SSmokeParticle::sprites[i])->GetImage(),
+						pos + Frame::Vec2 { 16.f, 0.f }.RotateDegree(static_cast<float>(i * (360 / CSmokeEmitterComponent::SSmokeParticle::spritesCount)) + pData->smokeRotation1), 0xFFFFFF, alpha,
+						{ .75f }, pData->smokeRotation2
+					);
+				}
+			});
+		}
 	}
 
 	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::color1), colorSet.color1, __SPRITE_ALPHA });
@@ -338,12 +368,13 @@ void CDeviceComponent::Step(float timeStep) {
 		if(pData->accumulating >= pData->accumulationMax) {
 			if(auto pRigidbodyComp = m_pMachineEntity->GetComponent<CRigidbodyComponent>()) {
 				pRigidbodyComp->ApplyLinearImpulse(
-					Frame::Vec2 { -4000.f * power, 0.f }.RotateDegree(m_pEntity->GetRotation())
+					Frame::Vec2 { -6000.f * power, 0.f }.RotateDegree(m_pEntity->GetRotation())
 					, m_relativePosition.RotateDegree(m_pMachineEntity->GetRotation()) + m_pMachineEntity->GetPosition()
 				);
 			}
 			pData->accumulating = -.5f;
 		}
+		pData->accumulatingShowingPrev = pData->accumulatingShowing;
 		pData->accumulatingShowing = Lerp(pData->accumulatingShowing, std::max(pData->accumulating, 0.f), timeStep * 10.f);
 	}
 	break;
@@ -387,6 +418,19 @@ void CDeviceComponent::Step(float timeStep) {
 			+ (pData->accumulatingShowing <= pData->accumulationShowingMax ? 0.f : 12.f * -std::sin(30.f * (pData->accumulationShowingMax - pData->accumulatingShowing)))
 			;
 		m_pSpriteComponent->layers[4].SetRotation(rot);
+
+		if(pData->accumulatingShowing > .002f && pData->accumulating < 0.f) {
+			for(int i = 0; i < 4; i++) {
+				CSmokeEmitterComponent::SSmokeParticle particle {
+					m_pEntity->GetPosition() + Frame::Vec2 { 96.f, 0.f }.RotateDegree(m_pEntity->GetRotation()),
+					1.f, 0xFFFFFF, Frame::Vec2 { 4000.f, 0.f }.RotateDegree(m_pEntity->GetRotation() + static_cast<float>(rand() % 41 - 20))
+				};
+				particle.alpha *= -pData->accumulating * 3.f;
+				particle.scaleAdd *= 5.f;
+				particle.alphaAdd *= 1.5f;
+				CSmokeEmitterComponent::SummonSmokeParticle(particle);
+			}
+		}
 	}
 	break;
 	}

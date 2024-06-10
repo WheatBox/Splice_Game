@@ -21,11 +21,12 @@ void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	switch(event.flag) {
 	case Frame::EntityEvent::EFlag::Update:
 	{
+		frameTime = event.params[0].f;
 		for(auto & layer : layers) {
 			if(layer.m_bStatic) {
 				break;
 			}
-			layer.m_frameIntervalCounting += event.params[0].f;
+			layer.m_frameIntervalCounting += frameTime;
 			if(layer.m_frameIntervalCounting >= layer.m_frameInterval) {
 				layer.m_frameIntervalCounting -= layer.m_frameInterval;
 
@@ -51,6 +52,10 @@ void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 			}
 			const Frame::Vec2 pos = m_pEntity->GetPosition() - layer.m_offset.RotateDegree(entityRot);
 			DrawSpriteBlendedPro(pImage, pos, layer.m_color, layer.m_alpha, layer.m_rotation, layer.m_scale, entityRot);
+
+			if(layer.m_extraFunc) {
+				layer.m_extraFunc(frameTime);
+			}
 		}
 	}
 	break;

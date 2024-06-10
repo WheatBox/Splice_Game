@@ -19,6 +19,8 @@ CPhysicsWorldComponent * CPhysicsWorldComponent::s_pPhysicsWorldComponent = null
 
 std::thread * CPhysicsWorldComponent::s_pPhysicsThread = nullptr;
 
+std::queue<std::function<void ()>> CPhysicsWorldComponent::s_physicalizeQueue {};
+
 void CPhysicsWorldComponent::Initialize() {
 	m_pEntity->SetZDepth(Depths::PhysicsWorld);
 
@@ -98,13 +100,14 @@ void CPhysicsWorldComponent::Initialize() {
 	}
 }
 void CPhysicsWorldComponent::OnShutDown() {
-	if(!gWorld)
-		return;
-	delete gWorld;
-	gWorld = nullptr;
-
 	if(s_pPhysicsWorldComponent == this) {
 		s_pPhysicsWorldComponent = nullptr;
+
+		if(gWorld) {
+			b2World * pWorldTemp = gWorld;
+			gWorld = nullptr;
+			delete pWorldTemp;
+		}
 	}
 
 	if(m_pSmokeEmitterEntity) {
@@ -136,8 +139,13 @@ void CPhysicsWorldComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 }
 
 void CPhysicsWorldComponent::Step(float timeStep) {
-	if(!gWorld) {
+	if(!gWorld || gWorld->IsLocked()) {
 		return;
+	}
+
+	while(!s_physicalizeQueue.empty()) {
+		s_physicalizeQueue.front()();
+		s_physicalizeQueue.pop();
 	}
 
 	for(auto & pDevice : CDeviceComponent::s_workingDevices) {

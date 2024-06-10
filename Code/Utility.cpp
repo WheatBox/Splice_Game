@@ -150,13 +150,13 @@ void DrawBlockBackground() {
         blockSize * float(int(camLT.y) / iBlockSize)
     };
     offset -= blockSize * 5.f;
+
     bool firstFlag = bool(int(camLT.x) / iBlockSize % 2) ^ bool(int(camLT.y) / iBlockSize % 2);
     for(int y = 0; y <= over.y; y++) {
         for(int x = 0; x <= over.x; x++) {
             if((x % 2 == y % 2) ^ firstFlag) continue;
             Frame::Vec2 pos { float(x) * blockSize, float(y) * blockSize };
             pos += offset;
-            offset;
             Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(pos, pos + blockSize, 0x000000, .1f, 0.f);
         }
     }
