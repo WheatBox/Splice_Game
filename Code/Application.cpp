@@ -5,7 +5,6 @@
 #include <FrameRender/Renderer.h>
 #include <FrameCore/Camera.h>
 
-#include "Components/TestComponent.h"
 #include "Components/PhysicsWorldComponent.h"
 #include "Components/RigidbodyComponent.h"
 
@@ -66,6 +65,13 @@ void CApplication::Initialize(int, char **) {
 
 void CApplication::MainLoopPriority() {
 	Frame::gCamera->SetViewSize(Frame::gCamera->GetWindowSize());
+}
+
+void CApplication::MainLoopLast() {
+	for(const auto & entId : m_entitiesWillBeRemovedAtTheEndOfThisFrame) {
+		Frame::gEntitySystem->RemoveEntity(entId);
+	}
+	m_entitiesWillBeRemovedAtTheEndOfThisFrame.clear();
 }
 
 CApplication * gApplication = new CApplication {};

@@ -10,10 +10,11 @@
 #include <box2d/b2_world.h>
 #include <box2d/b2_body.h>
 #include <box2d/b2_fixture.h>
-#include <box2d/b2_polygon_shape.h>
 
-//#include <box2d/b2_revolute_joint.h>
-//#include <box2d/b2_weld_joint.h>
+#include <box2d/b2_polygon_shape.h>
+#include <box2d/b2_circle_shape.h>
+
+#include <box2d/b2_revolute_joint.h>
 
 #undef int8
 #undef int16

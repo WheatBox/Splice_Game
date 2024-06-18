@@ -76,7 +76,7 @@ public:
 		static constexpr int spritesCount = 5;
 	};
 
-	static void SummonSmokeParticle(const SSmokeParticle & particle) {
+	static void SummonSmokeParticle(SSmokeParticle particle) {
 		s_smokePraticles.push_front(particle); // 后创建的粒子先绘制
 	}
 	static CSmokeEmitterComponent * s_pSmokeEmitterComponent;

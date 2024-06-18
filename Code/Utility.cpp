@@ -4,6 +4,9 @@
 #include <FrameRender/Renderer.h>
 #include <FrameAsset/Sprite.h>
 
+#include "Components/Editor/EditorDeviceComponent.h"
+#include "Components/Machine/DeviceComponent.h"
+
 const UnicodeString & GetKeyName(Frame::EKeyId keyId) {
 #define __FORMULA(_keyId, _name) { Frame::EKeyId::_keyId, Frame::UTF8Utils::ToUnicode(_name) }
 #define F(_keyId_and_name) __FORMULA(eKI_##_keyId_and_name, #_keyId_and_name)
@@ -182,4 +185,77 @@ void DrawSpriteBlendedPro(const Frame::SSpriteImage * pSpriteImage, const Frame:
     vertexBuffer.SetTexCoord(pSpriteImage->GetUVLeftTop(), pSpriteImage->GetUVRightBottom());
 
     Frame::gRenderer->DrawTexture(pSpriteImage->GetTextureId(), vertexBuffer);
+}
+
+void RecursiveMachinePartEditorDevices(std::unordered_set<CEditorDeviceComponent *> * outSet, CEditorDeviceComponent * pComp) {
+    if(!outSet || !pComp) {
+        return;
+    }
+
+    if(outSet->find(pComp) != outSet->end()) {
+        return;
+    } else {
+        outSet->insert(pComp);
+    }
+
+    for(const auto & pNeighbor : pComp->m_neighbors) {
+        if(!pNeighbor || outSet->find(pNeighbor) != outSet->end()) {
+            continue;
+        }
+        if(IsMachinePartJoint(pNeighbor->GetDeviceType())) {
+            continue;
+        }
+        RecursiveMachinePartEditorDevices(outSet, pNeighbor);
+    }
+}
+
+void RecursiveMachinePartEditorDevices(std::unordered_set<CEditorDeviceComponent *> * outSet, std::unordered_set<CEditorDeviceComponent *> * outJointSet, CEditorDeviceComponent * pComp, const std::unordered_set<CEditorDeviceComponent *> & ignore) {
+    if(!outSet || !outJointSet || !pComp) {
+        return;
+    }
+
+    if(outSet->find(pComp) != outSet->end() || ignore.find(pComp) != ignore.end()) {
+        return;
+    } else {
+        outSet->insert(pComp);
+    }
+
+    if(IsMachinePartJoint(pComp->GetDeviceType())) {
+        outJointSet->insert(pComp);
+
+        // 当后面的装置不为关节类装置 或 后方的关节类装置与自己背靠背连接
+        if(auto pBack = pComp->m_neighbors[GetRevDirIndex(pComp->GetDirIndex())]; pBack && (!IsMachinePartJoint(pBack->GetDeviceType()) || pComp == pBack->m_neighbors[GetRevDirIndex(pBack->GetDirIndex())])) {
+            RecursiveMachinePartEditorDevices(outSet, outJointSet, pBack, ignore);
+        }
+        return;
+    }
+
+    for(const auto & pNeighbor : pComp->m_neighbors) {
+        if(!pNeighbor || outSet->find(pNeighbor) != outSet->end() || ignore.find(pNeighbor) != ignore.end()) {
+            continue;
+        }
+        if(IsMachinePartJoint(pNeighbor->GetDeviceType())) {
+            if(outJointSet->find(pNeighbor) == outJointSet->end()) {
+                outJointSet->insert(pNeighbor);
+            }
+            continue;
+        }
+        RecursiveMachinePartEditorDevices(outSet, outJointSet, pNeighbor, ignore);
+    }
+}
+
+int GetMachinePartJointDevicePointDirIndex(CEditorDeviceComponent * pEDComp) {
+    if(!pEDComp) {
+        return 0;
+    }
+    for(int i = 0; i < 4; i++) {
+        if(i == GetRevDirIndex(pEDComp->GetDirIndex())) {
+            continue;
+        }
+
+        if(pEDComp->m_neighbors[i]) {
+            return i;
+        }
+    }
+    return 0;
 }

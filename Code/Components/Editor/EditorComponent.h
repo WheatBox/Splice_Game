@@ -181,7 +181,8 @@ public: // 一是懒了，二是感觉对于这个组件来说没有太大必要
 
 	void GetAvailablePipeInterfaces(std::vector<SPipeInterface> * outToPushBack, CEditorDeviceComponent * pEDComp) const;
 	void FindAvailablePipeInterfaces();
-	void ClearAvailablePipeInterfaces();
+	void FindAvailablePipeInterfacesMachinePart(SPipeInterface pipeInterface);
+	void FindAvailablePipeInterfacesMachinePart(CEditorDeviceComponent * _pEDComp);
 
 	Frame::Vec2 GetWillPutPos(const SInterface & interface) const;
 
@@ -286,7 +287,6 @@ public: // 一是懒了，二是感觉对于这个组件来说没有太大必要
 
 	void PipeToolCleanUp() {
 		if(m_tool == ETool::Pipe && (m_pipeToolMode == EPipeToolMode::Pencil || m_pipeToolMode == EPipeToolMode::Insert)) {
-			ClearAvailablePipeInterfaces();
 			FindAvailablePipeInterfaces();
 		}
 		CancelPipeNodesEditing();
@@ -319,6 +319,8 @@ public: // 一是懒了，二是感觉对于这个组件来说没有太大必要
 	void DrawOperationPrompt(const Frame::Vec2 & leftBottom);
 
 	void ButtonEnd(const Frame::Vec2 & rightBottom);
+
+	void SummonMachine();
 
 	bool m_bWorking = true;
 

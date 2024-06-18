@@ -3,7 +3,7 @@
 #include <FrameInput/Input.h>
 
 #include "../SpriteComponent.h"
-#include "MachineComponent.h"
+#include "MachinePartComponent.h"
 
 #include "../../DevicesData.h"
 
@@ -24,17 +24,24 @@ public:
 		type.SetGUID("{EC3F8403-9ADC-4AA2-BCA9-527240A20CDC}");
 	}
 
-	void Initialize(Frame::CEntity * pMachineEntity, IDeviceData::EType deviceType, Frame::EKeyId keyId, int dirIndex, const SColorSet & colorSet);
+	void Initialize(Frame::CEntity * pMachinePartEntity, IDeviceData::EType deviceType, Frame::EKeyId keyId, int dirIndex, const SColorSet & colorSet);
 	virtual void OnShutDown() override;
+
+	IDeviceData::EType GetDeviceType() const {
+		if(m_pNode && m_pNode->pDeviceData) {
+			return m_pNode->pDeviceData->device;
+		}
+		return IDeviceData::EType::Unset;
+	}
 
 	std::unordered_set<SPipeNode *> & GetPipeNodes() {
 		return m_pipeNodes;
 	}
 
-	void SetGroup(CMachineComponent::SGroup * pGroup) {
+	void SetGroup(CMachinePartComponent::SGroup * pGroup) {
 		m_pGroup = pGroup;
 	}
-	CMachineComponent::SGroup * GetGroup() const {
+	CMachinePartComponent::SGroup * GetGroup() const {
 		return m_pGroup;
 	}
 
@@ -52,8 +59,8 @@ private:
 	Frame::Vec2 m_relativePosition {};
 	float m_relativeRotation = 0.f;
 
-	Frame::CEntity * m_pMachineEntity = nullptr;
-	CMachineComponent::SGroup * m_pGroup = nullptr;
+	Frame::CEntity * m_pMachinePartEntity = nullptr;
+	CMachinePartComponent::SGroup * m_pGroup = nullptr;
 
 	b2Fixture * m_pFixture = nullptr;
 
@@ -61,6 +68,8 @@ private:
 
 	CSpriteComponent * m_pSpriteComponent = nullptr;
 	
+	// VS 的鼠标悬停提示会显示类型为 PipeT，但是注意该变量的类型并不表示 PipeT
+	// 也就是说存储的并非一条管道，而是直接附着于该装置上的管道节点
 	std::unordered_set<SPipeNode *> m_pipeNodes;
 
 	int m_directionIndex = 0;
@@ -74,6 +83,10 @@ public:
 	void SetRelativePositionRotation(const Frame::Vec2 & pos, float rot) {
 		m_relativePosition = pos;
 		m_relativeRotation = rot;
+	}
+
+	Frame::CEntity * GetMachinePartEntity() const {
+		return m_pMachinePartEntity;
 	}
 
 	void SetFixture(b2Fixture * pFixture) {

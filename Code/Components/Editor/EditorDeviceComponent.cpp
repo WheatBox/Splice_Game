@@ -17,10 +17,7 @@ Frame::EntityEvent::Flags CEditorDeviceComponent::GetEventFlags() const {
 
 void CEditorDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
-	if(!m_pEditorComponent || !m_pEditorComponent->GetWorking()) {
-		if(m_pSpriteComponent) {
-			m_pSpriteComponent->working = false;
-		}
+	if(!m_bWorking || !m_pEditorComponent) {
 		return;
 	}
 
@@ -82,22 +79,27 @@ m_colorUpdatesInSpriteLayers.push_back(nullptr);
 m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), 0xFFFFFF, 1.f }); \
 m_colorUpdatesInSpriteLayers.push_back(& SColorSet::__colorSetMemberVariable);
 
+	bool bSkipColor2OfMainPart = false;
+
 	if(type == IDeviceData::Cabin) {
 		__ADD_SPRITE_LAYER(cabin_logo_background);
 	} else if(type == IDeviceData::JetPropeller) {
 		__ADD_SPRITE_LAYER_EXT(jet_propeller_bottom, color1);
+	} else if(type == IDeviceData::Joint) {
+		__ADD_SPRITE_LAYER_EXT(joint_bottom, color2);
+		bSkipColor2OfMainPart = true;
 	}
 
 	m_colorUpdatesInSpriteLayers.push_back(& SColorSet::color1);
-	m_colorUpdatesInSpriteLayers.push_back(& SColorSet::color2);
+	if(!bSkipColor2OfMainPart) m_colorUpdatesInSpriteLayers.push_back(& SColorSet::color2);
 	m_colorUpdatesInSpriteLayers.push_back(nullptr);
 #if !__DEBUG_COLLIDER
 	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color1), 0xFFFFFF, 1.f });
-	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color2), 0xFFFFFF, 1.f });
+	if(!bSkipColor2OfMainPart) m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color2), 0xFFFFFF, 1.f });
 	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::basic), 0xFFFFFF, 1.f });
 #else
 	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color1), 0xFFFFFF, .5f });
-	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color2), 0xFFFFFF, .5f });
+	if(!bSkipColor2OfMainPart) m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color2), 0xFFFFFF, .5f });
 	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::basic), 0xFFFFFF, .5f });
 #endif
 
@@ -126,6 +128,11 @@ m_colorUpdatesInSpriteLayers.push_back(& SColorSet::__colorSetMemberVariable);
 			layerTemp.SetOffset({ -32.f, 20.f });
 			layerTemp.SetRotation(45.f);
 		}
+	} else if(type == IDeviceData::Joint) {
+		m_pSpriteComponent->layers[1].SetRotation(180.f);
+		m_pSpriteComponent->layers[2].SetRotation(180.f);
+		__ADD_SPRITE_LAYER_EXT(joint_top_color, color2);
+		__ADD_SPRITE_LAYER(joint_top);
 	}
 
 #undef __ADD_SPRITE_LAYER
@@ -170,6 +177,9 @@ if(m_neighbors[dirIndex] == nullptr) { \
 		__FORMULA(GetLeftDirIndex(m_directionIndex))
 		__FORMULA(GetRightDirIndex(m_directionIndex))
 		break;
+	case IDeviceData::Joint:
+		__FORMULA(m_directionIndex)
+		__FORMULA(GetRevDirIndex(m_directionIndex))
 	}
 
 #undef __FORMULA
@@ -200,7 +210,7 @@ void CEditorDeviceComponent::GetPipeInterfaces(std::vector<CEditorComponent::SPi
 #undef __FORMULA
 }
 
-bool CEditorDeviceComponent::DeviceTreeNodeConnectWith(CEditorDeviceComponent * pEDComp, int dirIndex) {
+bool CEditorDeviceComponent::ConnectWith(CEditorDeviceComponent * pEDComp, int dirIndex) {
 	if(!pEDComp) {
 		return false;
 	}

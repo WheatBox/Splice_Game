@@ -6,6 +6,8 @@
 #include "Application.h"
 #include "Utility.h"
 
+class CDeviceComponent;
+
 constexpr float CONNECTOR_LENGTH = 32.f;
 constexpr float CONNECTOR_HALF_LENGTH = CONNECTOR_LENGTH / 2.f;
 constexpr float PIPE_CROSS_SIZE = 32.f;
@@ -20,8 +22,44 @@ struct IDeviceData {
 		Engine,
 		Propeller,
 		JetPropeller,
+		Joint,
 		END
 	} device = EType::Unset;
+};
+
+struct SDeviceDataMachinePartJoint : public IDeviceData {
+
+	SDeviceDataMachinePartJoint() = default;
+	virtual ~SDeviceDataMachinePartJoint() = default;
+
+	void Initialize(CDeviceComponent * pPointComp, CDeviceComponent * pBehindComp, float rotationAdd, int dirIndexPointTo_pComp) {
+		m_pPointMachinePartDeviceComponent = pPointComp;
+		m_pBehindMachinePartDeviceComponent = pBehindComp;
+		m_rotationAdd = rotationAdd;
+		m_dirIndexPointTo_pAnotherMachinePartDeviceComponent = dirIndexPointTo_pComp;
+	}
+
+	// 会检查存储的 CDeviceComponent * 在 CDeviceComponent::s_workingDevices 是否还存在
+	// 若存在，则正常返回，若不存在，则返回 nullptr
+	CDeviceComponent * GetPointMachinePartDeviceComponent() const;
+
+	// 会检查存储的 CDeviceComponent * 在 CDeviceComponent::s_workingDevices 是否还存在
+	// 若存在，则正常返回，若不存在，则返回 nullptr
+	CDeviceComponent * GetBehindMachinePartDeviceComponent() const;
+
+	float GetRotationAdd() const {
+		return m_rotationAdd;
+	}
+
+	int GetPointDirIndex() const {
+		return m_dirIndexPointTo_pAnotherMachinePartDeviceComponent;
+	}
+
+protected:
+	CDeviceComponent * m_pPointMachinePartDeviceComponent = nullptr;
+	CDeviceComponent * m_pBehindMachinePartDeviceComponent = nullptr;
+	float m_rotationAdd = 0.f;
+	int m_dirIndexPointTo_pAnotherMachinePartDeviceComponent = 0;
 };
 
 struct SCabinDeviceData : public IDeviceData {
@@ -67,6 +105,11 @@ struct SJetPropellerDeviceData : public IDeviceData {
 	float smokeRotation2 = 0.f;
 };
 
+struct SJointDeviceData : public SDeviceDataMachinePartJoint {
+	SJointDeviceData() { device = EType::Joint; }
+	virtual ~SJointDeviceData() = default;
+};
+
 struct SDeviceTreeNode {
 	SDeviceTreeNode(IDeviceData::EType type) {
 		switch(type) {
@@ -75,6 +118,7 @@ struct SDeviceTreeNode {
 		case IDeviceData::EType::Engine: pDeviceData = new SEngineDeviceData {}; break;
 		case IDeviceData::EType::Propeller: pDeviceData = new SPropellerDeviceData {}; break;
 		case IDeviceData::EType::JetPropeller: pDeviceData = new SJetPropellerDeviceData {}; break;
+		case IDeviceData::EType::Joint: pDeviceData = new SJointDeviceData {}; break;
 		}
 	}
 	virtual ~SDeviceTreeNode() {
@@ -85,6 +129,14 @@ struct SDeviceTreeNode {
 	IDeviceData * pDeviceData = nullptr;
 };
 
+constexpr bool IsMachinePartJoint(IDeviceData::EType type) {
+	switch(type) {
+	case IDeviceData::Joint:
+		return true;
+	}
+	return false;
+}
+
 // 该函数仅用于需要粗略知道装置大致尺寸的应用场景，例如编辑器中获取位于装置边缘处的接口位置
 static inline const Frame::Vec2 & GetDevicePixelSize(IDeviceData::EType device) {
 	static const Frame::Vec2 results[] = {
@@ -94,6 +146,7 @@ static inline const Frame::Vec2 & GetDevicePixelSize(IDeviceData::EType device) 
 		{ 96.f }, // Engine
 		{ 96.f, 240.f }, // Propeller
 		{ 184.f, 96.f }, // Jet Propeller
+		{ 96.f }, // Joint
 	};
 	return device > IDeviceData::EType::Unset && device < IDeviceData::EType::END ? results[device] : results[0];
 }

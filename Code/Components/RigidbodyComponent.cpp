@@ -15,7 +15,7 @@ void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event)
 	switch(event.flag) {
 	case Frame::EntityEvent::Render:
 	{
-		if(!bRender) {
+		if(!bRender || !m_pBody) {
 			break;
 		}
 
@@ -27,9 +27,10 @@ void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event)
 			case b2Shape::Type::e_polygon:
 			{
 				b2PolygonShape * pPolygonShape = reinterpret_cast<b2PolygonShape *>(pShape);
-				
+
+				Frame::Vec2 posAdd { m_pBody->GetPosition().x, m_pBody->GetPosition().y };
+
 				for(int i = 2; i < pPolygonShape->m_count; i++) {
-					Frame::Vec2 posAdd { m_pBody->GetPosition().x, m_pBody->GetPosition().y };
 					Frame::gRenderer->pShapeRenderer->DrawTriangleBlended(
 						MeterToPixelVec2(posAdd + Frame::Vec2 { pPolygonShape->m_vertices[0].x, pPolygonShape->m_vertices[0].y }.Rotate(m_pBody->GetAngle())),
 						MeterToPixelVec2(posAdd + Frame::Vec2 { pPolygonShape->m_vertices[i].x, pPolygonShape->m_vertices[i].y }.Rotate(m_pBody->GetAngle())),
@@ -38,7 +39,6 @@ void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event)
 					);
 				}
 				for(int i = 0; i < pPolygonShape->m_count; i++) {
-					Frame::Vec2 posAdd { m_pBody->GetPosition().x, m_pBody->GetPosition().y };
 					b2Vec2 pos = pPolygonShape->m_vertices[i];
 					b2Vec2 posPrev = (i == 0 ? pPolygonShape->m_vertices[pPolygonShape->m_count - 1] : pPolygonShape->m_vertices[i - 1]);
 					Frame::gRenderer->pShapeRenderer->DrawLineBlended(
@@ -49,6 +49,43 @@ void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event)
 				}
 			}
 			break;
+			case b2Shape::Type::e_circle:
+			{
+				b2CircleShape * pCircleShape = reinterpret_cast<b2CircleShape *>(pShape);
+				
+				Frame::Vec2 posAdd = Frame::Vec2 { m_pBody->GetPosition().x, m_pBody->GetPosition().y } + Frame::Vec2 { pCircleShape->m_p.x, pCircleShape->m_p.y }.Rotate(m_pBody->GetAngle());
+				constexpr int vertCount = 12;
+				constexpr float angleAdd = Frame::DegToRad(360.f / static_cast<float>(vertCount));
+
+				float angle = 2.f * angleAdd;
+				b2Vec2 posPrev { std::cos(angleAdd) * pCircleShape->m_radius, std::sin(angleAdd) * pCircleShape->m_radius };
+				b2Vec2 posFirst { pCircleShape->m_radius, 0.f };
+				for(int i = 2; i < vertCount; i++) {
+					b2Vec2 pos { std::cos(angle) * pCircleShape->m_radius, std::sin(angle) * pCircleShape->m_radius };
+					Frame::gRenderer->pShapeRenderer->DrawTriangleBlended(
+						MeterToPixelVec2(posAdd + Frame::Vec2 { posFirst.x, posFirst.y }),
+						MeterToPixelVec2(posAdd + Frame::Vec2 { pos.x, pos.y }),
+						MeterToPixelVec2(posAdd + Frame::Vec2 { posPrev.x, posPrev.y }),
+						color, .5f
+					);
+					posPrev = pos;
+					angle += angleAdd;
+				}
+
+				angle = 0.f;
+				posPrev = { std::cos(-angleAdd) * pCircleShape->m_radius, std::sin(-angleAdd) * pCircleShape->m_radius };
+				for(int i = 0; i < vertCount; i++) {
+					b2Vec2 pos { std::cos(angle) * pCircleShape->m_radius, std::sin(angle) * pCircleShape->m_radius };
+					Frame::gRenderer->pShapeRenderer->DrawLineBlended(
+						MeterToPixelVec2(posAdd + Frame::Vec2 { posPrev.x, posPrev.y }),
+						MeterToPixelVec2(posAdd + Frame::Vec2 { pos.x, pos.y }),
+						color, 1.f
+					);
+					posPrev = pos;
+					angle += angleAdd;
+				}
+			}
+			break;
 			}
 		}
 	}
@@ -56,62 +93,101 @@ void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event)
 	}
 }
 
+void CRigidbodyComponent::OnShutDown() {
+	if(b2Body * pBody = m_pBody) {
+		CPhysicsWorldComponent::s_physicalizeQueue.push(
+			[pBody]() { gWorld->DestroyBody(pBody); }
+		);
+	}
+}
+
 void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, b2FixtureDef fixtureDef) {
+	Frame::EntityId myEntityId = m_pEntity->GetId();
 	CPhysicsWorldComponent::s_physicalizeQueue.push(
-		[this, bodyDef, fixtureDef]() {
-	m_pBody = gWorld->CreateBody(& bodyDef);
-	m_fixtures.push_back(m_pBody->CreateFixture(& fixtureDef));
+		[myEntityId, bodyDef, fixtureDef]() {
+			if(Frame::CEntity * pEntity = Frame::gEntitySystem->GetEntity(myEntityId)) {
+				if(CRigidbodyComponent * pComp = pEntity->GetComponent<CRigidbodyComponent>()) {
+					if(b2Body * pBody = gWorld->CreateBody(& bodyDef)) {
+						pComp->SetBody(pBody);
+						pComp->GetFixtures().push_back(pBody->CreateFixture(& fixtureDef));
+					}
+				}
+			}
 		}
 	);
 }
 
-// 运行结束后，会自动释放 fixtureDefs 中的 b2FixtureDef
 void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, std::vector<b2FixtureDef *> fixtureDefs) {
+	Frame::EntityId myEntityId = m_pEntity->GetId();
 	CPhysicsWorldComponent::s_physicalizeQueue.push(
-		[this, bodyDef, fixtureDefs]() {
-	m_pBody = gWorld->CreateBody(& bodyDef);
-	for(const auto & fixtureDef : fixtureDefs) {
-		m_fixtures.push_back(m_pBody->CreateFixture(fixtureDef));
-	}
-	CDeviceComponent::DestroyFixtureDefs(fixtureDefs);
+		[myEntityId, bodyDef, fixtureDefs]() {
+			if(Frame::CEntity * pEntity = Frame::gEntitySystem->GetEntity(myEntityId)) {
+				if(CRigidbodyComponent * pComp = pEntity->GetComponent<CRigidbodyComponent>()) {
+					if(b2Body * pBody = gWorld->CreateBody(& bodyDef)) {
+						pComp->SetBody(pBody);
+						for(const auto & fixtureDef : fixtureDefs) {
+							pComp->GetFixtures().push_back(pBody->CreateFixture(fixtureDef));
+						}
+					}
+				}
+			}
+			CDeviceComponent::DestroyFixtureDefs(fixtureDefs);
 		}
 	);
 }
 
-// 运行结束后，会自动释放 fixtureDefs 中的 b2FixtureDef
 void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, std::vector<b2FixtureDef *> fixtureDefs, std::unordered_map<b2FixtureDef *, CDeviceComponent *> map_fixtureDefDeviceComp) {
+	Frame::EntityId myEntityId = m_pEntity->GetId();
 	CPhysicsWorldComponent::s_physicalizeQueue.push(
-		[this, bodyDef, fixtureDefs, map_fixtureDefDeviceComp]() {
-	m_pBody = gWorld->CreateBody(& bodyDef);
-	for(const auto & fixtureDef : fixtureDefs) {
-		b2Fixture * pFixture = m_pBody->CreateFixture(fixtureDef);
-		m_fixtures.push_back(pFixture);
-		if(auto it = map_fixtureDefDeviceComp.find(fixtureDef); it != map_fixtureDefDeviceComp.end()) {
-			it->second->SetFixture(pFixture);
-		}
-	}
-	CDeviceComponent::DestroyFixtureDefs(fixtureDefs);
+		[myEntityId, bodyDef, fixtureDefs, map_fixtureDefDeviceComp]() {
+			if(Frame::CEntity * pEntity = Frame::gEntitySystem->GetEntity(myEntityId)) {
+				if(CRigidbodyComponent * pComp = pEntity->GetComponent<CRigidbodyComponent>()) {
+					if(b2Body * pBody = gWorld->CreateBody(& bodyDef)) {
+						pComp->SetBody(pBody);
+						for(const auto & fixtureDef : fixtureDefs) {
+							b2Fixture * pFixture = pBody->CreateFixture(fixtureDef);
+							pComp->GetFixtures().push_back(pFixture);
+
+							if(auto it = map_fixtureDefDeviceComp.find(fixtureDef); it != map_fixtureDefDeviceComp.end()) {
+								it->second->SetFixture(pFixture);
+							}
+						}
+					}
+				}
+			}
+			CDeviceComponent::DestroyFixtureDefs(fixtureDefs);
 		}
 	);
 }
 
-void CRigidbodyComponent::WeldWith(const CRigidbodyComponent * pRigidbodyComponent) {
-	if(!pRigidbodyComponent) {
-		return;
+bool CRigidbodyComponent::CreateJointWith(Frame::EntityId entityId, std::function<b2JointDef * (b2Body *, b2Body *)> funcCreateJointDef, std::function<void (b2JointDef *)> funcDestroyJointDef) {
+	Frame::EntityId myEntityId = m_pEntity->GetId();
+
+	if(myEntityId == entityId) {
+		return false;
 	}
-	//b2Body * pAnotherBody = pRigidbodyComponent->GetBody();
-	/*
-	b2RevoluteJointDef rjd;
-	//rjd.collideConnected = true;
-	rjd.Initialize(pAnotherBody, m_pBody, m_pBody->GetWorldCenter());
-	gWorld->CreateJoint(& rjd);
-	rjd.Initialize(pAnotherBody, m_pBody, pAnotherBody->GetWorldCenter());
-	gWorld->CreateJoint(& rjd);
-	*/
-	/*
-	b2WeldJointDef wjd;
-	const b2Vec2 anotherPos = pAnotherBody->GetPosition(), myPos = m_pBody->GetPosition();
-	wjd.Initialize(pAnotherBody, m_pBody, anotherPos + b2Vec2 { (myPos.x - anotherPos.x) * .5f, (myPos.y - anotherPos.y) * .5f });
-	gWorld->CreateJoint(& wjd);
-	*/
+	
+	CPhysicsWorldComponent::s_physicalizeQueue.push(
+		[myEntityId, entityId, funcCreateJointDef, funcDestroyJointDef]() {
+			b2Body * pMyBody = nullptr, * pAnotherBody = nullptr;
+			if(Frame::CEntity * pEntity = Frame::gEntitySystem->GetEntity(myEntityId)) {
+				if(CRigidbodyComponent * pComp = pEntity->GetComponent<CRigidbodyComponent>()) {
+					pMyBody = pComp->GetBody();
+				}
+			}
+			if(Frame::CEntity * pEntity = Frame::gEntitySystem->GetEntity(entityId)) {
+				if(CRigidbodyComponent * pComp = pEntity->GetComponent<CRigidbodyComponent>()) {
+					pAnotherBody = pComp->GetBody();
+				}
+			}
+
+			if(pMyBody && pAnotherBody) {
+				auto pDef = funcCreateJointDef(pMyBody, pAnotherBody);
+				gWorld->CreateJoint(pDef);
+				funcDestroyJointDef(pDef);
+			}
+		}
+	);
+
+	return true;
 }

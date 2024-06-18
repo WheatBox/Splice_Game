@@ -8,6 +8,8 @@
 #include "../box2dIncluded.h"
 #include "../Application.h"
 
+#include <functional>
+
 class CDeviceComponent;
 
 class CRigidbodyComponent : public Frame::IEntityComponent {
@@ -22,19 +24,30 @@ public:
 		type.SetGUID("{CDA353C9-A3BE-456F-BF3F-71F1CC2D4BF2}");
 	}
 
+	virtual void OnShutDown() override;
+
 	void Physicalize(b2BodyDef bodyDef, b2FixtureDef fixtureDef);
+	// 运行结束后，会自动释放 fixtureDefs 中的 b2FixtureDef
 	void Physicalize(b2BodyDef bodyDef, std::vector<b2FixtureDef *> fixtureDefs);
+	// 运行结束后，会自动释放 fixtureDefs 中的 b2FixtureDef
 	void Physicalize(b2BodyDef bodyDef, std::vector<b2FixtureDef *> fixtureDefs, std::unordered_map<b2FixtureDef *, CDeviceComponent *> map_fixtureDefDeviceComp);
 
 	void SetEnableRendering(bool enable) {
 		bRender = enable;
 	}
 
-	// TODO
-	void WeldWith(const CRigidbodyComponent * pRigidbodyComponent);
+	// 如果要连接的实体与该组件所在实体为同一实体，返回 false，否则返回 true
+	bool CreateJointWith(Frame::EntityId entityId, std::function<b2JointDef * (b2Body *, b2Body *)> funcCreateJointDef, std::function<void (b2JointDef *)> funcDestroyJointDef);
 
 	b2Body * GetBody() const {
 		return m_pBody;
+	}
+	void SetBody(b2Body * pBody) {
+		m_pBody = pBody;
+	}
+
+	std::vector<b2Fixture *> & GetFixtures() {
+		return m_fixtures;
 	}
 
 	Frame::Vec2 GetPosition() const {

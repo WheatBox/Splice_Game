@@ -38,9 +38,9 @@ void CDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		break;
 	case Frame::EntityEvent::AfterUpdate:
 	{
-		if(m_pMachineEntity) {
-			const float machineRot = m_pMachineEntity->GetRotation();
-			m_pEntity->SetPosition(m_pMachineEntity->GetPosition() + m_relativePosition.RotateDegree(machineRot));
+		if(m_pMachinePartEntity) {
+			const float machineRot = m_pMachinePartEntity->GetRotation();
+			m_pEntity->SetPosition(m_pMachinePartEntity->GetPosition() + m_relativePosition.RotateDegree(machineRot));
 			m_pEntity->SetRotation(machineRot + m_relativeRotation);
 		}
 
@@ -57,14 +57,14 @@ void CDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	}
 }
 
-void CDeviceComponent::Initialize(Frame::CEntity * pMachineEntity, IDeviceData::EType deviceType, Frame::EKeyId keyId, int dirIndex, const SColorSet & colorSet) {
+void CDeviceComponent::Initialize(Frame::CEntity * pMachinePartEntity, IDeviceData::EType deviceType, Frame::EKeyId keyId, int dirIndex, const SColorSet & colorSet) {
 	if(deviceType <= IDeviceData::EType::Unset || deviceType >= IDeviceData::EType::END) {
 		return;
 	}
 
 	m_pEntity->SetZDepth(Depths::Device);
 
-	m_pMachineEntity = pMachineEntity;
+	m_pMachinePartEntity = pMachinePartEntity;
 
 	m_pNode = new SDeviceTreeNode { deviceType };
 
@@ -86,40 +86,14 @@ m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceSt
 		__ADD_SPRITE_LAYER(cabin_logo_background);
 	} else if(deviceType == IDeviceData::JetPropeller) {
 		__ADD_SPRITE_LAYER_EXT(jet_propeller_bottom, color1);
-		{
-			auto & layerTemp = m_pSpriteComponent->layers.back();
-			layerTemp.SetExtraFunction([this](float frameTime) {
-				if(!m_pNode || !m_pNode->pDeviceData) {
-					return;
-				}
-
-				auto pData = reinterpret_cast<SJetPropellerDeviceData *>(m_pNode->pDeviceData);
-
-				const Frame::Vec2 entPos = m_pEntity->GetPosition();
-				const float entRot = m_pEntity->GetRotation();
-
-				const Frame::Vec2 pos = entPos - Frame::Vec2 { 32.f, 0.f }.RotateDegree(entRot);
-				const float alpha = std::min(1.f, pData->accumulatingShowing / pData->accumulationShowingMax) * .35f;
-
-				pData->smokeRotation1 += frameTime * (40.f + 30000.f * (pData->accumulatingShowing - pData->accumulatingShowingPrev));
-				pData->smokeRotation2 += frameTime * (80.f + 60000.f * (pData->accumulatingShowing - pData->accumulatingShowingPrev));
-
-				Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::jet_propeller_bottom)->GetImage(),
-					entPos, 0xFFFFFF, alpha * 2.5f, 1.f, entRot
-				);
-				for(int i = 0; i < CSmokeEmitterComponent::SSmokeParticle::spritesCount; i++) {
-					Frame::gRenderer->DrawSpriteBlended(
-						Assets::GetStaticSprite(CSmokeEmitterComponent::SSmokeParticle::sprites[i])->GetImage(),
-						pos + Frame::Vec2 { 16.f, 0.f }.RotateDegree(static_cast<float>(i * (360 / CSmokeEmitterComponent::SSmokeParticle::spritesCount)) + pData->smokeRotation1), 0xFFFFFF, alpha,
-						{ .75f }, pData->smokeRotation2
-					);
-				}
-			});
-		}
+	} else if(deviceType == IDeviceData::Joint) {
+		__ADD_SPRITE_LAYER_EXT(joint_bottom, color2);
 	}
 
 	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::color1), colorSet.color1, __SPRITE_ALPHA });
-	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::color2), colorSet.color2, __SPRITE_ALPHA });
+	if(deviceType != IDeviceData::Joint) {
+		m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::color2), colorSet.color2, __SPRITE_ALPHA });
+	}
 	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::basic), 0xFFFFFF, __SPRITE_ALPHA });
 
 	if(deviceType == IDeviceData::Propeller) {
@@ -147,11 +121,51 @@ m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceSt
 			layerTemp.SetOffset({ -32.f, 20.f });
 			layerTemp.SetRotation(45.f);
 		}
+	} else if(deviceType == IDeviceData::Joint) {
+		m_pSpriteComponent->layers[1].SetRotation(180.f);
+		m_pSpriteComponent->layers[2].SetRotation(180.f);
+		__ADD_SPRITE_LAYER_EXT(joint_top_color, color2);
+		__ADD_SPRITE_LAYER(joint_top);
 	}
 
 #undef __SPRITE_ALPHA
 #undef __ADD_SPRITE_LAYER
 #undef __ADD_SPRITE_LAYER_EXT
+
+	switch(deviceType) {
+	case IDeviceData::JetPropeller:
+		m_pSpriteComponent->layers[0].SetExtraFunction([this](float frameTime) {
+			if(!m_pNode || !m_pNode->pDeviceData) {
+				return;
+			}
+
+			auto pData = reinterpret_cast<SJetPropellerDeviceData *>(m_pNode->pDeviceData);
+
+			const Frame::Vec2 entPos = m_pEntity->GetPosition();
+			const float entRot = m_pEntity->GetRotation();
+
+			const Frame::Vec2 pos = entPos - Frame::Vec2 { 32.f, 0.f }.RotateDegree(entRot);
+			const float alpha = std::min(1.f, pData->accumulatingShowing / pData->accumulationShowingMax) * .35f;
+
+			pData->smokeRotation1 += frameTime * (40.f + 30000.f * (pData->accumulatingShowing - pData->accumulatingShowingPrev));
+			pData->smokeRotation2 += frameTime * (80.f + 60000.f * (pData->accumulatingShowing - pData->accumulatingShowingPrev));
+
+			Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::jet_propeller_bottom)->GetImage(),
+				entPos, 0xFFFFFF, alpha * 2.5f, 1.f, entRot
+			);
+			for(int i = 0; i < CSmokeEmitterComponent::SSmokeParticle::spritesCount; i++) {
+				Frame::gRenderer->DrawSpriteBlended(
+					Assets::GetStaticSprite(CSmokeEmitterComponent::SSmokeParticle::sprites[i])->GetImage(),
+					pos + Frame::Vec2 { 16.f, 0.f }.RotateDegree(static_cast<float>(i * (360 / CSmokeEmitterComponent::SSmokeParticle::spritesCount)) + pData->smokeRotation1), 0xFFFFFF, alpha,
+					{ .75f }, pData->smokeRotation2
+				);
+			}
+		});
+		break;
+	//case IDeviceData::Joint:
+		// 写在 CMachineComponent::Initialize() 里了
+		//break;
+	}
 
 	s_workingDevices.insert(this);
 }
@@ -161,6 +175,10 @@ void CDeviceComponent::OnShutDown() {
 		s_workingDevices.erase(it);
 	}
 
+	if(CMachinePartComponent * pMachinePartComp = m_pMachinePartEntity->GetComponent<CMachinePartComponent>()) {
+		pMachinePartComp->OnDeviceShutDown(this, m_pipeNodes, m_pGroup);
+	}
+	
 	delete m_pNode;
 	m_pNode = nullptr;
 }
@@ -190,22 +208,66 @@ void CDeviceComponent::WeldWith(CDeviceComponent * pDeviceComp, int dirIndex) {
 	pAnotherNode->nodes[GetRevDirIndex(dirIndex)] = m_pNode;
 }
 
+static void __DrawConnector(const Frame::Vec2 & entityPos, const SDeviceTreeNode * m_pNode, int m_directionIndex, int drawDirIndex, float rot, const SColorSet & m_colorSet) {
+	Frame::Vec2 pos = entityPos
+		+ GetDeviceInterfaceBias(m_pNode->pDeviceData->device, m_directionIndex, drawDirIndex, rot)
+		+ GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_pNode->pDeviceData->device) + CONNECTOR_HALF_LENGTH * 2.f, m_directionIndex, drawDirIndex).RotateDegree(rot)
+		;
+	Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::connector)->GetImage(), pos, m_colorSet.connector, 1.f,
+		{ 1.f }, drawDirIndex * 90.f + rot
+	);
+}
+
 void CDeviceComponent::DrawConnectors() const {
 	if(!m_pNode || !m_pNode->pDeviceData) {
 		return;
 	}
-	const float rot = m_pEntity->GetRotation() - m_relativeRotation;
+
+	const Frame::Vec2 entityPos = m_pEntity->GetPosition();
+	const float entityRot = m_pEntity->GetRotation();
+	const float baseRot = entityRot - m_relativeRotation;
+
+	if(IsMachinePartJoint(m_pNode->pDeviceData->device)) {
+		goto ForMachinePartJoints;
+	}
+
 	for(int i = 0; i < 2; i++) {
 		if(!m_pNode->nodes[i]) {
 			continue;
 		}
-		Frame::Vec2 pos = m_pEntity->GetPosition()
-			+ GetDeviceInterfaceBias(m_pNode->pDeviceData->device, m_directionIndex, i, rot)
-			+ GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_pNode->pDeviceData->device) + CONNECTOR_HALF_LENGTH * 2.f, m_directionIndex, i).RotateDegree(rot)
-			;
-		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::connector)->GetImage(), pos, m_colorSet.connector, 1.f,
-			{ 1.f }, i * 90.f + rot
-		);
+		__DrawConnector(entityPos, m_pNode, m_directionIndex, i, baseRot, m_colorSet);
+	}
+
+	return;
+ForMachinePartJoints:
+
+	for(int i = 0; i < 4; i++) {
+		float rot = baseRot;
+
+		//auto pData = reinterpret_cast<SDeviceDataMachinePartJoint *>(reinterpret_cast<char *>(m_pNode->pDeviceData) + sizeof(IDeviceData));
+		auto pData = reinterpret_cast<SJointDeviceData *>(m_pNode->pDeviceData);
+
+		CDeviceComponent * pAnotherDevice = nullptr;
+		if(i < 2 && i == GetRevDirIndex(GetDirIndex())) {
+			pAnotherDevice = pData->GetBehindMachinePartDeviceComponent();
+		} else if(i == pData->GetPointDirIndex()) {
+			pAnotherDevice = pData->GetPointMachinePartDeviceComponent();
+			if(pAnotherDevice) {
+				rot += (pAnotherDevice->GetEntity()->GetPosition() - entityPos).Degree() - entityRot + pData->GetRotationAdd();
+			}
+		}
+
+		if(!pAnotherDevice) {
+			continue;
+		}
+
+		if(i >= 2) {
+			if(IsMachinePartJoint(pAnotherDevice->GetDeviceType())) {
+				continue;
+			}
+		}
+
+		__DrawConnector(entityPos, m_pNode, m_directionIndex, i, rot, m_colorSet);
 	}
 }
 
@@ -247,6 +309,17 @@ std::vector<b2FixtureDef *> CDeviceComponent::CreateFixtureDefs(IDeviceData::ETy
 		defs.push_back(def2);
 	}
 	break;
+	case IDeviceData::EType::Joint:
+	{
+		b2CircleShape * shape = new b2CircleShape {};
+		shape->m_p = { devicePosMeter.x, devicePosMeter.y };
+		shape->m_radius = F(36.f);
+
+		b2FixtureDef * def = new b2FixtureDef {};
+		def->shape = shape;
+		defs.push_back(def);
+	}
+	break;
 	}
 
 	constexpr float shellDensity = 1.f; // 以 Shell 的密度为基准密度
@@ -255,6 +328,7 @@ std::vector<b2FixtureDef *> CDeviceComponent::CreateFixtureDefs(IDeviceData::ETy
 	case IDeviceData::EType::Cabin:
 	case IDeviceData::EType::Shell:
 	case IDeviceData::EType::Engine:
+	case IDeviceData::EType::Joint:
 		defs[0]->density = shellDensity;
 		defs[0]->friction = .5f;
 		defs[0]->restitution = 0.f;
@@ -287,13 +361,14 @@ void CDeviceComponent::DestroyFixtureDefs(const std::vector<b2FixtureDef *> & de
 }
 
 void CDeviceComponent::Step(float timeStep) {
-	if(!m_pNode || !m_pNode->pDeviceData || !m_pMachineEntity) {
+	if(!m_pNode || !m_pNode->pDeviceData || !m_pMachinePartEntity) {
 		return;
 	}
+
+	const IDeviceData::EType deviceType = m_pNode->pDeviceData->device;
 	
 	///////////////////////
-	// TODO - 这部分就随便一写，仅作为临时测试用，包括也没考虑多人情况
-	const IDeviceData::EType deviceType = m_pNode->pDeviceData->device;
+	// TODO - 这部分就随便一写，仅作为临时测试用，包括也没考虑多人情况d
 	if(deviceType == IDeviceData::EType::Cabin) {
 		if(CCameraComponent * pCamComp = CPhysicsWorldComponent::s_pPhysicsWorldComponent->GetCameraComponent()) {
 			pCamComp->FollowEntity(m_pEntity, true);
@@ -302,7 +377,7 @@ void CDeviceComponent::Step(float timeStep) {
 	}
 	///////////////////////
 
-	//if(deviceType == IDeviceData::Engine) {
+	//if(deviceType == IDeviceData::Engine) { // 这段代码是测试烟雾特效用的，作用是让所有的发动机装置无需发动就自动冒烟
 	//	SEngineDeviceData * pData = reinterpret_cast<SEngineDeviceData *>(m_pNode->pDeviceData);
 	//	pData->smoking += m_frametime;
 	//	if(pData->smoking > 0.f && pData->smoking < 100.f) { // 防止意外的死循环
@@ -317,123 +392,144 @@ void CDeviceComponent::Step(float timeStep) {
 	//}
 	
 	if(!m_pGroup) {
-		return;
+		goto ForThoseDevicesHasNoGroup;
 	}
 
-	/* ---------------------- 计算动力 ---------------------- */
-
-	bool working = false;
-	float power = 0.f;
-	if(m_pGroup->bEngineWorking) {
-		power = m_pGroup->devices.size() != 0 ? (static_cast<float>(m_pGroup->engines.size()) / static_cast<float>(m_pGroup->devices.size())) : 0.f;
-		working = true;
-	}
-
-	// _minPower = 最低运行动力，低于该动力就不会运行
-	// _maxPower = 最高支持动力，高于该动力的动力会被浪费掉
-#define __FORMULA(_minPower, _maxPower) if(power < _minPower) { power = 0.f; working = false; } else if(power > _maxPower) power = _maxPower; break;
-
-	switch(deviceType) {
-	case IDeviceData::Propeller: __FORMULA(.4f, 4.f);
-	case IDeviceData::JetPropeller: __FORMULA(.1f, 2.f);
-	}
-
-#undef __FORMULA
-
-	/* ---------------------- 运行装置 ---------------------- */
-
-	switch(deviceType) {
-	case IDeviceData::Propeller:
-		if(!working) {
-			break;
-		}
-		if(auto pRigidbodyComp = m_pMachineEntity->GetComponent<CRigidbodyComponent>()) {
-			pRigidbodyComp->ApplyForce(
-				Frame::Vec2 { -1200.f * power, 0.f }.RotateDegree(m_pEntity->GetRotation())
-				, m_relativePosition.RotateDegree(m_pMachineEntity->GetRotation()) + m_pMachineEntity->GetPosition()
-			);
-		}
-		break;
-	case IDeviceData::JetPropeller:
 	{
-		SJetPropellerDeviceData * pData = reinterpret_cast<SJetPropellerDeviceData *>(m_pNode->pDeviceData);
-		if(pData->accumulating < 0.f) {
-			pData->accumulating += timeStep * 1.f;
-			if(pData->accumulating > 0.f) {
-				pData->accumulating = 0.f;
-			}
-		} else {
-			pData->accumulating += timeStep * power;
+		/* ---------------------- 计算动力 ---------------------- */
+
+		bool working = false;
+		float power = 0.f;
+		if(m_pGroup->bEngineWorking) {
+			power = m_pGroup->devices.size() != 0 ? (static_cast<float>(m_pGroup->engines.size()) / static_cast<float>(m_pGroup->devices.size())) : 0.f;
+			working = true;
 		}
-		if(pData->accumulating >= pData->accumulationMax) {
-			if(auto pRigidbodyComp = m_pMachineEntity->GetComponent<CRigidbodyComponent>()) {
-				pRigidbodyComp->ApplyLinearImpulse(
-					Frame::Vec2 { -6000.f * power, 0.f }.RotateDegree(m_pEntity->GetRotation())
-					, m_relativePosition.RotateDegree(m_pMachineEntity->GetRotation()) + m_pMachineEntity->GetPosition()
+
+		// _minPower = 最低运行动力，低于该动力就不会运行
+		// _maxPower = 最高支持动力，高于该动力的动力会被浪费掉
+	#define __FORMULA(_minPower, _maxPower) if(power < _minPower) { power = 0.f; working = false; } else if(power > _maxPower) power = _maxPower; break;
+
+		switch(deviceType) {
+		case IDeviceData::Propeller: __FORMULA(.4f, 4.f);
+		case IDeviceData::JetPropeller: __FORMULA(.1f, 2.f);
+		}
+
+	#undef __FORMULA
+
+		/* ---------------------- 运行装置 ---------------------- */
+
+		switch(deviceType) {
+		case IDeviceData::Propeller:
+			if(!working) {
+				break;
+			}
+			if(auto pRigidbodyComp = m_pMachinePartEntity->GetComponent<CRigidbodyComponent>()) {
+				pRigidbodyComp->ApplyForce(
+					Frame::Vec2 { -1200.f * power, 0.f }.RotateDegree(m_pEntity->GetRotation())
+					, m_relativePosition.RotateDegree(m_pMachinePartEntity->GetRotation()) + m_pMachinePartEntity->GetPosition()
 				);
 			}
-			pData->accumulating = -.5f;
+			break;
+		case IDeviceData::JetPropeller:
+		{
+			SJetPropellerDeviceData * pData = reinterpret_cast<SJetPropellerDeviceData *>(m_pNode->pDeviceData);
+			if(pData->accumulating < 0.f) {
+				pData->accumulating += timeStep * 1.f;
+				if(pData->accumulating > 0.f) {
+					pData->accumulating = 0.f;
+				}
+			} else {
+				pData->accumulating += timeStep * power;
+			}
+			if(pData->accumulating >= pData->accumulationMax) {
+				if(auto pRigidbodyComp = m_pMachinePartEntity->GetComponent<CRigidbodyComponent>()) {
+					pRigidbodyComp->ApplyLinearImpulse(
+						Frame::Vec2 { -6000.f * power, 0.f }.RotateDegree(m_pEntity->GetRotation())
+						, m_relativePosition.RotateDegree(m_pMachinePartEntity->GetRotation()) + m_pMachinePartEntity->GetPosition()
+					);
+				}
+				pData->accumulating = -.5f;
+			}
+			pData->accumulatingShowingPrev = pData->accumulatingShowing;
+			pData->accumulatingShowing = Lerp(pData->accumulatingShowing, std::max(pData->accumulating, 0.f), timeStep * 10.f);
 		}
-		pData->accumulatingShowingPrev = pData->accumulatingShowing;
-		pData->accumulatingShowing = Lerp(pData->accumulatingShowing, std::max(pData->accumulating, 0.f), timeStep * 10.f);
-	}
-	break;
+		break;
+		}
+
+		/* ---------------------- 其它功能 ---------------------- */
+
+		switch(deviceType) {
+		case IDeviceData::Engine:
+		{
+			if(!working) {
+				break;
+			}
+			SEngineDeviceData * pData = reinterpret_cast<SEngineDeviceData *>(m_pNode->pDeviceData);
+			pData->smoking += timeStep;
+			if(pData->smoking > 0.f && pData->smoking < 100.f) { // 防止意外的死循环
+				while(pData->smoking >= pData->smokeMax) {
+					CSmokeEmitterComponent::SummonSmokeParticle({ m_pEntity->GetPosition(), 1.f });
+					pData->smoking -= pData->smokeMax;
+				}
+			} else {
+				pData->smoking = 0.f;
+			}
+		}
+		break;
+		case IDeviceData::Propeller:
+		{
+			if(!working) {
+				break;
+			}
+			const float rot = m_pSpriteComponent->layers[3].GetRotation() + (1000.f + 600.f * power) * timeStep;
+			m_pSpriteComponent->layers[3].SetRotation(rot);
+			m_pSpriteComponent->layers[4].SetRotation(rot);
+		}
+		break;
+		case IDeviceData::JetPropeller:
+		{
+			SJetPropellerDeviceData * pData = reinterpret_cast<SJetPropellerDeviceData *>(m_pNode->pDeviceData);
+			const float rot = 45.f
+				+ 270.f * Frame::Clamp(pData->accumulatingShowing, 0.f, pData->accumulationShowingMax) / pData->accumulationShowingMax
+				+ (pData->accumulatingShowing <= pData->accumulationShowingMax ? 0.f : 12.f * -std::sin(30.f * (pData->accumulationShowingMax - pData->accumulatingShowing)))
+				;
+			m_pSpriteComponent->layers[4].SetRotation(rot);
+
+			if(pData->accumulatingShowing > .002f && pData->accumulating < 0.f) {
+				for(int i = 0; i < 4; i++) {
+					CSmokeEmitterComponent::SSmokeParticle particle {
+						m_pEntity->GetPosition() + Frame::Vec2 { 96.f, 0.f }.RotateDegree(m_pEntity->GetRotation()),
+						1.f, 0xFFFFFF, Frame::Vec2 { 4000.f, 0.f }.RotateDegree(m_pEntity->GetRotation() + static_cast<float>(rand() % 41 - 20))
+					};
+					particle.alpha *= -pData->accumulating * 3.f;
+					particle.scaleAdd *= 5.f;
+					particle.alphaAdd *= 1.5f;
+					CSmokeEmitterComponent::SummonSmokeParticle(particle);
+				}
+			}
+		}
+		break;
+		}
+
+		/* ----------------------------------------------------- */
 	}
 
-	/* ---------------------- 其它功能 ---------------------- */
+	return;
+ForThoseDevicesHasNoGroup:
 
 	switch(deviceType) {
-	case IDeviceData::Engine:
+	case IDeviceData::Joint:
 	{
-		if(!working) {
-			break;
-		}
-		SEngineDeviceData * pData = reinterpret_cast<SEngineDeviceData *>(m_pNode->pDeviceData);
-		pData->smoking += timeStep;
-		if(pData->smoking > 0.f && pData->smoking < 100.f) { // 防止意外的死循环
-			while(pData->smoking >= pData->smokeMax) {
-				CSmokeEmitterComponent::SummonSmokeParticle({ m_pEntity->GetPosition(), 1.f });
-				pData->smoking -= pData->smokeMax;
-			}
-		} else {
-			pData->smoking = 0.f;
-		}
-	}
-	break;
-	case IDeviceData::Propeller:
-	{
-		if(!working) {
-			break;
-		}
-		const float rot = m_pSpriteComponent->layers[3].GetRotation() + (1000.f + 600.f * power) * timeStep;
-		m_pSpriteComponent->layers[3].SetRotation(rot);
-		m_pSpriteComponent->layers[4].SetRotation(rot);
-	}
-	break;
-	case IDeviceData::JetPropeller:
-	{
-		SJetPropellerDeviceData * pData = reinterpret_cast<SJetPropellerDeviceData *>(m_pNode->pDeviceData);
-		const float rot = 45.f
-			+ 270.f * Frame::Clamp(pData->accumulatingShowing, 0.f, pData->accumulationShowingMax) / pData->accumulationShowingMax
-			+ (pData->accumulatingShowing <= pData->accumulationShowingMax ? 0.f : 12.f * -std::sin(30.f * (pData->accumulationShowingMax - pData->accumulatingShowing)))
-			;
-		m_pSpriteComponent->layers[4].SetRotation(rot);
-
-		if(pData->accumulatingShowing > .002f && pData->accumulating < 0.f) {
-			for(int i = 0; i < 4; i++) {
-				CSmokeEmitterComponent::SSmokeParticle particle {
-					m_pEntity->GetPosition() + Frame::Vec2 { 96.f, 0.f }.RotateDegree(m_pEntity->GetRotation()),
-					1.f, 0xFFFFFF, Frame::Vec2 { 4000.f, 0.f }.RotateDegree(m_pEntity->GetRotation() + static_cast<float>(rand() % 41 - 20))
-				};
-				particle.alpha *= -pData->accumulating * 3.f;
-				particle.scaleAdd *= 5.f;
-				particle.alphaAdd *= 1.5f;
-				CSmokeEmitterComponent::SummonSmokeParticle(particle);
+		auto pData = reinterpret_cast<SJointDeviceData *>(m_pNode->pDeviceData);
+		if(CDeviceComponent * pAnotherComp = pData->GetPointMachinePartDeviceComponent()) {
+			if(const Frame::Vec2 anotherPos = pAnotherComp->GetEntity()->GetPosition(), myPos = m_pEntity->GetPosition(); anotherPos != myPos) {
+				float rot = (anotherPos - myPos).Degree() - m_pEntity->GetRotation() + pData->GetRotationAdd();
+				m_pSpriteComponent->layers[0].SetRotation(rot);
+				m_pSpriteComponent->layers[3].SetRotation(rot);
+				m_pSpriteComponent->layers[4].SetRotation(rot);
 			}
 		}
 	}
 	break;
 	}
-
-	/* ----------------------------------------------------- */
 }

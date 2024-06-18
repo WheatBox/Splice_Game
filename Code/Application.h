@@ -2,8 +2,11 @@
 
 #include <FrameCore/IApplication.h>
 #include <FrameMath/Vector2.h>
+#include <FrameEntity/Entity.h>
 
 #include "box2dIncluded.h"
+
+#include <list>
 
 class CApplication final : public Frame::IApplication {
 
@@ -12,6 +15,16 @@ protected:
 	virtual void Initialize(int argc, char ** argv) override;
 
 	virtual void MainLoopPriority() override;
+	virtual void MainLoopLast() override;
+
+public:
+
+	void RemoveEntityAtTheEndOfThisFrame(Frame::EntityId entityId) {
+		m_entitiesWillBeRemovedAtTheEndOfThisFrame.push_back(entityId);
+	}
+
+private:
+	std::list<Frame::EntityId> m_entitiesWillBeRemovedAtTheEndOfThisFrame;
 
 };
 
@@ -37,3 +50,9 @@ static inline Frame::Vec2 PixelToMeterVec2(const Frame::Vec2 & pixel) {
 
 extern CApplication * gApplication;
 extern b2World * gWorld;
+
+static inline void RemoveEntityAtTheEndOfThisFrame(Frame::EntityId entityId) {
+	if(gApplication) {
+		gApplication->RemoveEntityAtTheEndOfThisFrame(entityId);
+	}
+}

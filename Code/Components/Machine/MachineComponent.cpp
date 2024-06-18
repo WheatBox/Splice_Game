@@ -2,185 +2,263 @@
 
 #include <FrameCore/Globals.h>
 #include <FrameEntity/EntitySystem.h>
+#include <FrameInput/Input.h>
 
-#include "DeviceComponent.h"
+#include "MachinePartComponent.h"
 #include "../Editor/EditorDeviceComponent.h"
-#include "DeviceConnectorRendererComponent.h"
-#include "../RigidbodyComponent.h"
-
-#include "../../Depths.h"
-#include "../../Pipe.h"
+#include "../../Application.h"
 
 REGISTER_ENTITY_COMPONENT(, CMachineComponent);
 
 Frame::EntityEvent::Flags CMachineComponent::GetEventFlags() const {
-	return Frame::EntityEvent::EFlag::Update
-		| Frame::EntityEvent::EFlag::Render;
+	return Frame::EntityEvent::EFlag::Update;
 }
 
 void CMachineComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	switch(event.flag) {
 	case Frame::EntityEvent::Update:
-		if(m_pRigidbodyComponent) {
-			m_pEntity->SetPosition(m_pRigidbodyComponent->GetPosition());
-			m_pEntity->SetRotation(m_pRigidbodyComponent->GetRotation());
+	{
+		// 临时测试用的
+		if(Frame::gInput->pKeyboard->GetPressed(Frame::EKeyId::eKI_Escape)) {
+			for(auto & [_,pEntity] : Frame::gEntitySystem->GetEntities()) {
+				if(auto pEditor = pEntity->GetComponent<CEditorComponent>()) {
+					pEditor->SetWorking(true);
+					break;
+				}
+			}
+			RemoveEntityAtTheEndOfThisFrame(m_pEntity->GetId());
 		}
-		break;
-	case Frame::EntityEvent::Render:
-		for(const auto & pipe : m_pipes) {
-			DrawPipe<SPipeNode>(pipe, m_pEntity->GetPosition(), m_colorSet.pipe, 1.f, m_pEntity->GetRotation());
-		}
-		break;
+	}
+	break;
 	}
 }
 
-void CMachineComponent::Initialize(const std::unordered_set<CEditorDeviceComponent *> & editorDeviceComps, const std::vector<std::vector<SEditorPipeNode *>> & pipes, const SColorSet & colorSet) {
+static bool __HasConnected(const std::unordered_map<CEditorDeviceComponent *, std::unordered_set<CEditorDeviceComponent *>> & connectedEDComps, CEditorDeviceComponent * pEDComp1, CEditorDeviceComponent * pEDComp2) {
+	if(!pEDComp1 || !pEDComp2) {
+		return false;
+	}
 
-	m_pEntity->SetZDepth(Depths::Machine);
-
-	m_colorSet = colorSet;
-
-	m_pRigidbodyComponent = m_pEntity->CreateComponent<CRigidbodyComponent>();
-	std::vector<b2FixtureDef *> fixtureDefs;
-	std::unordered_map<b2FixtureDef *, CDeviceComponent *> map_fixtureDefDeviceComp;
-
-	/* --------------------- 创建装置 --------------------- */
-
-	std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> map_EDCompDeviceComp;
-
-	for(const auto & pEDComp : editorDeviceComps) {
-		if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
-			if(CDeviceComponent * pComp = pEntity->CreateComponent<CDeviceComponent>()) {
-				Frame::CEntity * pEDCompEnt = pEDComp->GetEntity();
-				const Frame::Vec2 devicePos = pEDCompEnt->GetPosition();
-				const float deviceRot = pEDCompEnt->GetRotation();
-				pEntity->SetPosition(devicePos);
-				pEntity->SetRotation(deviceRot);
-
-				pComp->Initialize(m_pEntity, pEDComp->GetDeviceType(), pEDComp->GetKeyId(), pEDComp->GetDirIndex(), colorSet);
-				pComp->SetRelativePositionRotation(devicePos, deviceRot);
-
-				auto defs = CDeviceComponent::CreateFixtureDefs(pEDComp->GetDeviceType(), devicePos, deviceRot);
-				fixtureDefs.insert(fixtureDefs.end(), defs.begin(), defs.end());
-				for(auto def : defs) {
-					map_fixtureDefDeviceComp.insert({ def, pComp });
-				}
-
-				map_EDCompDeviceComp.insert({ pEDComp, pComp });
-				m_deviceComponents.insert(pComp);
-			} else {
-				Frame::gEntitySystem->RemoveEntity(pEntity->GetId());
-			}
+	for(auto pEDComp = pEDComp1, pEDCompAnother = pEDComp2; pEDComp != nullptr; pEDCompAnother = pEDComp1, (pEDComp = (pEDComp == pEDComp1) ? pEDComp2 : nullptr)) {
+		auto it = connectedEDComps.find(pEDComp);
+		if(it == connectedEDComps.end()) {
+			continue;
+		}
+		if(it->second.find(pEDCompAnother) != it->second.end()) {
+			return true;
 		}
 	}
 
-	for(const auto & [pEDComp, pComp] : map_EDCompDeviceComp) {
-		for(int i = 0; i < 4; i++) {
-			if(!pEDComp->m_neighbors[i]) {
-				continue;
-			}
+	return false;
+};
 
-			if(auto it = map_EDCompDeviceComp.find(pEDComp->m_neighbors[i]); it != map_EDCompDeviceComp.end()) {
-				pComp->WeldWith(it->second, i);
-			}
+static void __Connect(std::unordered_map<CEditorDeviceComponent *, std::unordered_set<CEditorDeviceComponent *>> & connectedEDComps, const std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> & map_EDCompDeviceComp, CEditorDeviceComponent * pEDComp1, CEditorDeviceComponent * pEDComp2) {
+	if(!pEDComp1 || !pEDComp2) {
+		return;
+	}
+
+	for(auto pEDComp = pEDComp1, pEDCompAnother = pEDComp2; pEDComp != nullptr; pEDCompAnother = pEDComp1, (pEDComp = (pEDComp == pEDComp1) ? pEDComp2 : nullptr)) {
+		if(auto it = connectedEDComps.find(pEDComp); it == connectedEDComps.end()) {
+			connectedEDComps.insert({ pEDComp, { pEDCompAnother, nullptr } });
+		} else {
+			it->second.insert(pEDCompAnother);
 		}
 	}
 
-	/* -------------------- 物理化 -------------------- */
-	
-	{
-		const Frame::Vec2 entPos = PixelToMeterVec2(m_pEntity->GetPosition());
-
-		b2BodyDef bodyDef;
-		bodyDef.type = b2_dynamicBody;
-		bodyDef.position.Set(entPos.x, entPos.y);
-		bodyDef.angle = Frame::DegToRad(m_pEntity->GetRotation());
-		bodyDef.linearDamping = 1.f;
-		bodyDef.angularDamping = 1.f;
-
-		m_pRigidbodyComponent->Physicalize(bodyDef, fixtureDefs, map_fixtureDefDeviceComp);
-		//m_pRigidbodyComponent->SetEnableRendering(true);
-	}
-
-	/* --------------------- 创建管道 --------------------- */
-
-	std::unordered_map<SEditorPipeNode *, SPipeNode *> map_EPNodePNode;
-
-	for(const auto & editorPipe : pipes) {
-		std::unordered_set<SPipeNode *> pipe;
-		for(const auto & pEditorPipeNode : editorPipe) {
-			SPipeNode * pPipeNode = new SPipeNode { pEditorPipeNode->pos };
-			pPipeNode->dirIndexForDevice = pEditorPipeNode->dirIndexForDevice;
-			if(pEditorPipeNode->pDevice) {
-				pPipeNode->pDevice = map_EDCompDeviceComp[pEditorPipeNode->pDevice];
-				pPipeNode->pDevice->GetPipeNodes().insert(pPipeNode);
-			}
-			pipe.insert(pPipeNode);
-			map_EPNodePNode.insert({ pEditorPipeNode, pPipeNode });
-		}
-		m_pipes.push_back(pipe);
-	}
-
-	for(const auto & [pEPNode, pPipeNode] : map_EPNodePNode) {
-		for(int i = 0; i < 4; i++) {
-			if(pEPNode->nodes[i]) {
-				pPipeNode->nodes[i] = map_EPNodePNode[pEPNode->nodes[i]];
-			}
-		}
-	}
-
-	/* --------------------- 分组装置 --------------------- */
-
-	std::unordered_set<SPipeNode *> pipeNodesRecursived;
-	for(const auto & pipe : m_pipes) {
-		bool bAlreadyHasGroup = false;
-		for(const auto & pPipeNode : pipe) {
-			if(pPipeNode->pDevice && pPipeNode->pDevice->GetGroup()) {
-				bAlreadyHasGroup = true;
-				break;
-			}
-		}
-		if(bAlreadyHasGroup) {
+	for(auto pEDComp = pEDComp1; pEDComp != nullptr; pEDComp = (pEDComp == pEDComp1) ? pEDComp2 : nullptr) {
+		CEditorDeviceComponent * pJointEDComp = pEDComp;
+		CDeviceComponent * pJointDevice = nullptr;
+		if(auto it = map_EDCompDeviceComp.find(pJointEDComp); it != map_EDCompDeviceComp.end()) {
+			pJointDevice = it->second;
+		} else {
 			continue;
 		}
 
-		std::vector<SPipeNode *> pipeNodesOnDevice;
-		PipeRecursion(& pipeNodesRecursived, * pipe.begin(), 2, & pipeNodesOnDevice);
+		switch(pJointDevice->GetDeviceType()) {
+		case IDeviceData::EType::Joint:
+		{
+			auto pData = reinterpret_cast<SJointDeviceData *>(pJointDevice->GetNode()->pDeviceData);
 
-		SGroup * pGroup = new SGroup {};
-		for(auto & pPipeNode : pipeNodesOnDevice) {
-			pGroup->InsertAndBind(pPipeNode->pDevice);
+			if(!pData) {
+				break;
+			}
+
+			int dirIndexToAnotherEDComp = GetMachinePartJointDevicePointDirIndex(pJointEDComp);
+
+			auto pAnotherEDComp = pJointEDComp->m_neighbors[dirIndexToAnotherEDComp];
+			auto pBehindEDComp = pJointEDComp->m_neighbors[GetRevDirIndex(pJointEDComp->GetDirIndex())];
+
+			auto itAnotherEDComp = map_EDCompDeviceComp.find(pAnotherEDComp);
+			auto itBehindEDComp = map_EDCompDeviceComp.find(pBehindEDComp);
+			Frame::Vec2 myPos = pJointDevice->GetEntity()->GetPosition();
+			Frame::Vec2 anotherPos = myPos;
+			if(itAnotherEDComp != map_EDCompDeviceComp.end()) {
+				anotherPos = itAnotherEDComp->second->GetEntity()->GetPosition();
+			}
+			pData->Initialize(
+				itAnotherEDComp == map_EDCompDeviceComp.end() ? nullptr : itAnotherEDComp->second,
+				itBehindEDComp == map_EDCompDeviceComp.end() ? nullptr : itBehindEDComp->second,
+				anotherPos != myPos ? 0.f : ((anotherPos - myPos).Degree() - pJointDevice->GetEntity()->GetRotation()),
+				dirIndexToAnotherEDComp
+			);
 		}
-		m_groups.insert(pGroup);
+		break;
+		}
+	}
+}
+
+static bool __ConnectMachinePartsByDevices(
+	const std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> & map_EDCompDeviceComp,
+	CEditorDeviceComponent * pEDComp1,
+	CEditorDeviceComponent * pEDComp2
+) {
+	CDeviceComponent * pDevice1 = nullptr, * pDevice2 = nullptr;
+	if(auto it = map_EDCompDeviceComp.find(pEDComp1); it != map_EDCompDeviceComp.end()) {
+		pDevice1 = it->second;
+	}
+	if(auto it = map_EDCompDeviceComp.find(pEDComp2); it != map_EDCompDeviceComp.end()) {
+		pDevice2 = it->second;
+	}
+	if(!pDevice1 || !pDevice2) {
+		return false;
 	}
 
-	/* --------------------------------------------------- */
+	CMachinePartComponent * pBasicMachinePart = nullptr;
+	if(auto pEnt = pDevice1->GetMachinePartEntity()) {
+		pBasicMachinePart = pEnt->GetComponent<CMachinePartComponent>();
+	}
+	if(!pBasicMachinePart) {
+		return false;
+	}
 
-	m_pDeviceConnectorRendererEntity = Frame::gEntitySystem->SpawnEntity();
-	if(m_pDeviceConnectorRendererEntity) {
-		if(CDeviceConnectorRendererComponent * pDeviceConnectorRendererComponent = m_pDeviceConnectorRendererEntity->CreateComponent<CDeviceConnectorRendererComponent>()) {
-			pDeviceConnectorRendererComponent->Initialize(& m_deviceComponents);
+	CMachinePartComponent * pAnotherMachinePart = nullptr;
+	if(auto pEnt = pDevice2->GetMachinePartEntity()) {
+		pAnotherMachinePart = pEnt->GetComponent<CMachinePartComponent>();
+	}
+	if(!pAnotherMachinePart) {
+		return false;
+	}
+
+	return pBasicMachinePart->CreateJointWith(pAnotherMachinePart, pDevice1);
+}
+
+void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const std::vector<std::vector<SEditorPipeNode *>> & pipes, const SColorSet & colorSet) {
+
+	std::unordered_set<CEditorDeviceComponent *> ignoreDevices; // 已经建立的装置
+	std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> map_EDCompDeviceComp;
+
+	// 递归创建各个机器部分
+	std::function<void (CEditorDeviceComponent *)> recursive = [&](CEditorDeviceComponent * pEDComp) {
+
+		if(!pEDComp) {
+			return;
 		}
+
+		if(ignoreDevices.find(pEDComp) != ignoreDevices.end()) {
+			return;
+		}
+
+		std::unordered_set<CEditorDeviceComponent *> currentPartDevices;
+		std::unordered_set<CEditorDeviceComponent *> jointDevices;
+
+		RecursiveMachinePartEditorDevices(& currentPartDevices, & jointDevices, pEDComp, ignoreDevices);
+
+		std::unordered_set<const std::vector<SEditorPipeNode *> *> pipesForThisMachinePart;
+
+		for(auto & pNotJointDevice : currentPartDevices) {
+			const auto & pipeNodes = pNotJointDevice->GetPipeNodes();
+			for(auto & pPipeNodeOfCurrentDevice : pipeNodes) {
+				for(auto & pipe : pipes) {
+					for(auto & pPipeNode : pipe) {
+						if(pPipeNode == pPipeNodeOfCurrentDevice) {
+							pipesForThisMachinePart.insert(& pipe);
+							goto NextPipeNodeOfCurrentDevice;
+						}
+					}
+				}
+			NextPipeNodeOfCurrentDevice: {}
+			}
+		}
+
+		for(auto & pJointEDComp : jointDevices) {
+			if(currentPartDevices.find(pJointEDComp->m_neighbors[GetRevDirIndex(pJointEDComp->GetDirIndex())]) != currentPartDevices.end()) {
+				currentPartDevices.insert(pJointEDComp);
+			}
+		}
+
+		if(currentPartDevices.empty()) {
+			return;
+		}
+
+		if(auto pEnt = Frame::gEntitySystem->SpawnEntity()) {
+			if(auto pComp = pEnt->CreateComponent<CMachinePartComponent>()) {
+				m_machineParts.insert(pComp);
+
+				std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> mapTemp;
+				pComp->Initialize(& mapTemp, this, currentPartDevices, pipesForThisMachinePart, colorSet);
+				map_EDCompDeviceComp.insert(mapTemp.begin(), mapTemp.end());
+			}
+		}
+
+		ignoreDevices.insert(currentPartDevices.begin(), currentPartDevices.end());
+
+		if(jointDevices.empty()) {
+			return;
+		}
+
+		for(auto & pJointEDComp : jointDevices) {
+			recursive(pJointEDComp->m_neighbors[GetRevDirIndex(pJointEDComp->GetDirIndex())]);
+			recursive(pJointEDComp->m_neighbors[GetMachinePartJointDevicePointDirIndex(pJointEDComp)]);
+		}
+	};
+	recursive(pDeviceCabin);
+
+	std::unordered_map<CEditorDeviceComponent *, std::unordered_set<CEditorDeviceComponent *>> connectedEDComps;
+	
+	for(auto & pJointEDComp : ignoreDevices) {
+		if(!pJointEDComp || !IsMachinePartJoint(pJointEDComp->GetDeviceType())) {
+			continue;
+		}
+
+		/*
+		首先检查前方的装置是否已经与自己建立过连接
+			若否，与之建立连接
+		检查后方的装置是否已经与自己建立过连接 // 好像没必要，因为在 __ConnectMachinePartsByDevices() 要调用的 CMachinePartComponent::CreateJointWith() 中有相关验证
+			若否，检查该装置与自己是否在同一个机器部分
+				若否，与之建立连接
+		*/
+
+		do {
+			CEditorDeviceComponent * pEDComp = pJointEDComp->m_neighbors[GetMachinePartJointDevicePointDirIndex(pJointEDComp)];
+			if(!pEDComp) {
+				break;
+			}
+			if(__HasConnected(connectedEDComps, pJointEDComp, pEDComp)) {
+				break;
+			}
+
+			if(__ConnectMachinePartsByDevices(map_EDCompDeviceComp, pJointEDComp, pEDComp)) {
+				__Connect(connectedEDComps, map_EDCompDeviceComp, pJointEDComp, pEDComp);
+			}
+		} while(false);
+
+		do {
+			CEditorDeviceComponent * pEDComp = pJointEDComp->m_neighbors[GetRevDirIndex(pJointEDComp->GetDirIndex())];
+			if(!pEDComp) {
+				break;
+			}
+			if(__HasConnected(connectedEDComps, pJointEDComp, pEDComp)) {
+				break;
+			}
+
+			if(__ConnectMachinePartsByDevices(map_EDCompDeviceComp, pEDComp, pJointEDComp)) {
+				__Connect(connectedEDComps, map_EDCompDeviceComp, pEDComp, pJointEDComp);
+			}
+		} while(false);
 	}
 }
 
 void CMachineComponent::OnShutDown() {
-	// TODO - 清除所有 SPipeNode
-	// TODO - 清除所有 SGroup
-
-	if(m_pDeviceConnectorRendererEntity) {
-		Frame::gEntitySystem->RemoveEntity(m_pDeviceConnectorRendererEntity->GetId());
+	for(auto & pMachinePartComp : m_machineParts) {
+		Frame::gEntitySystem->RemoveEntity(pMachinePartComp->GetEntity()->GetId());
 	}
-}
-
-void CMachineComponent::SGroup::InsertAndBind(CDeviceComponent * pDeviceComp) {
-	if(!pDeviceComp) {
-		return;
-	}
-	auto pNode = pDeviceComp->GetNode();
-	if(!pNode || !pNode->pDeviceData) {
-		return;
-	}
-	(pNode->pDeviceData->device == IDeviceData::Engine ? engines : devices).insert(pDeviceComp);
-	pDeviceComp->SetGroup(this);
 }

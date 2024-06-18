@@ -6,6 +6,8 @@
 #include <FrameInput/Input.h>
 #include <FrameMath/ColorMath.h>
 
+#include <unordered_set>
+
 static inline Frame::Vec2 GetMousePosInScene() {
 	return Frame::gInput->pMouse->GetPositionInScene();
 }
@@ -90,3 +92,14 @@ void DrawSpriteBlendedPro(const Frame::SSpriteImage * pSpriteImage, const Frame:
 constexpr float Lerp(float a, float b, float t) {
 	return a + (b - a) * t;
 }
+
+class CEditorDeviceComponent;
+class CDeviceComponent;
+
+// 递归获取在同一机器部分中的装置
+void RecursiveMachinePartEditorDevices(std::unordered_set<CEditorDeviceComponent *> * outSet, CEditorDeviceComponent * pComp);
+
+// 递归获取在同一机器部分中的装置
+void RecursiveMachinePartEditorDevices(std::unordered_set<CEditorDeviceComponent *> * outSet, std::unordered_set<CEditorDeviceComponent *> * outJointSet, CEditorDeviceComponent * pComp, const std::unordered_set<CEditorDeviceComponent *> & ignore);
+
+int GetMachinePartJointDevicePointDirIndex(CEditorDeviceComponent * pEDComp);

@@ -29,7 +29,7 @@ public:
 		return m_deviceType;
 	}
 
-	bool DeviceTreeNodeConnectWith(CEditorDeviceComponent * pEDComp, int dirIndex);
+	bool ConnectWith(CEditorDeviceComponent * pEDComp, int dirIndex);
 
 	void UpdateColor(const SColorSet & colorSet) {
 		m_colorSet = colorSet;
@@ -73,11 +73,20 @@ public:
 	const SColorSet & GetColorSet() const {
 		return m_colorSet;
 	}
+
+	void SetWorking(bool b) {
+		m_bWorking = b;
+		if(m_pSpriteComponent) {
+			m_pSpriteComponent->working = b;
+		}
+	}
 	
 	CEditorDeviceComponent * m_neighbors[4] {};
 	std::unordered_set<SEditorPipeNode *> m_pipeNodes;
 
 private:
+	bool m_bWorking = true;
+
 	CEditorComponent * m_pEditorComponent = nullptr;
 
 	CSpriteComponent * m_pSpriteComponent = nullptr;

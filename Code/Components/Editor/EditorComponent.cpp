@@ -10,6 +10,7 @@
 #include "EditorDeviceComponent.h"
 #include "../CameraComponent.h"
 #include "../Machine/DeviceConnectorRendererComponent.h"
+#include "../Machine/MachinePartComponent.h"
 #include "../Machine/MachineComponent.h"
 #include "../PhysicsWorldComponent.h"
 
@@ -205,9 +206,11 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
 		const float camZoomBeforeGUI = Frame::gCamera->GetZoom();
 		const Frame::Vec2 camPosBeforeGUI = Frame::gCamera->GetPos();
+		const float camRotBeforeGUI = Frame::gCamera->GetRotation();
 		Frame::gCamera->SetZoom(1.f);
 		const Frame::Vec2 viewSize = Frame::Vec2Cast(Frame::gCamera->GetViewSize());
 		Frame::gCamera->SetPos(viewSize * .5f);
+		Frame::gCamera->SetRotation(0.f);
 
 		if(m_bMouseOnGUI) {
 			m_bMBLeftPressed = bMBLeftPressed;
@@ -246,6 +249,7 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
 		Frame::gCamera->SetZoom(camZoomBeforeGUI);
 		Frame::gCamera->SetPos(camPosBeforeGUI);
+		Frame::gCamera->SetRotation(camRotBeforeGUI);
 
 		/* --------------------------------------------------- */
 	}
@@ -341,7 +345,7 @@ void CEditorComponent::Pencil() {
 						if(& olderInterface == & interface
 							|| PointDistance(newerInterface.pos, olderInterface.pos) > 32.f)
 							continue;
-						if(newerInterface.pEditorDeviceComponent->DeviceTreeNodeConnectWith(olderInterface.pEditorDeviceComponent, newerInterface.directionIndex)) {
+						if(newerInterface.pEditorDeviceComponent->ConnectWith(olderInterface.pEditorDeviceComponent, newerInterface.directionIndex)) {
 							break;
 						}
 					}
@@ -535,6 +539,7 @@ void CEditorComponent::Pipe_PencilMode() {
 	const SPipeInterface * pPipeInterfaceMouseOn = nullptr;
 	{
 		size_t i = 0;
+		bool bSelectOver = false;
 		for(auto & interface : m_pipeInterfaces) {
 			if(m_pipeInterfaceSelectingIndex == i
 				|| (IsSelectingPipeInterface() && GetSelectingPipeInterface().pEditorDeviceComponent == m_pipeInterfaces[i].pEditorDeviceComponent)
@@ -547,7 +552,7 @@ void CEditorComponent::Pipe_PencilMode() {
 			constexpr float sizeHalf = __PIPE_BUTTON_SIZE_HALF;
 			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(pos - sizeHalf, pos + sizeHalf, __PENCIL_BUTTON_COLOR, __PENCIL_BUTTON_ALPHA);
 			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(pos - sizeHalf, pos + sizeHalf, __PENCIL_BUTTON_EDGE_COLOR, __PENCIL_BUTTON_ALPHA, 1.f);
-			if(Frame::PointInRectangle(mousePosInScene, pos - sizeHalf, pos + sizeHalf)) {
+			if(!bSelectOver && Frame::PointInRectangle(mousePosInScene, pos - sizeHalf, pos + sizeHalf)) {
 				pPipeInterfaceMouseOn = & interface;
 
 				if(m_bMBLeftPressed && !IsSelectingPipeInterface() && m_pipeInsertData.pipeIndex == SIZE_MAX) {
@@ -557,9 +562,16 @@ void CEditorComponent::Pipe_PencilMode() {
 					
 					m_bMBLeftPressed = false;
 					m_bMBRightPressed = false;
+
+					bSelectOver = true;
 				}
 			}
 			i++;
+		}
+
+		if(bSelectOver) {
+			FindAvailablePipeInterfacesMachinePart(GetSelectingPipeInterface());
+			return;
 		}
 	}
 
@@ -580,7 +592,7 @@ void CEditorComponent::Pipe_PencilMode() {
 				return;
 			}
 			CancelPipeNodesEditing();
-			DeselectPipeInterface();
+			FindAvailablePipeInterfaces();
 			goto _RightClickToUndo_Over;
 		}
 
@@ -689,7 +701,6 @@ void CEditorComponent::Pipe_PencilMode() {
 				} else {
 					MovePipeNodesEditingToPipeNodes();
 
-					ClearAvailablePipeInterfaces();
 					FindAvailablePipeInterfaces();
 				}
 			}
@@ -851,6 +862,13 @@ void CEditorComponent::Pipe_InsertMode() {
 					}
 
 					m_pipeToolMode = EPipeToolMode::Pencil;
+
+					for(auto & _pPipeNode : m_pipeNodesEditing) {
+						if(_pPipeNode->pDevice) {
+							FindAvailablePipeInterfacesMachinePart(_pPipeNode->pDevice);
+							break;
+						}
+					}
 				}
 
 				ind = siz;
@@ -893,14 +911,40 @@ void CEditorComponent::GetAvailablePipeInterfaces(std::vector<SPipeInterface> * 
 }
 
 void CEditorComponent::FindAvailablePipeInterfaces() {
+	DeselectPipeInterface();
+	m_pipeInterfaces.clear();
 	for(auto & pEDComp : m_editorDeviceComponents) {
 		GetAvailablePipeInterfaces(& m_pipeInterfaces, pEDComp);
 	}
 }
 
-void CEditorComponent::ClearAvailablePipeInterfaces() {
+// 注意该函数的参数不要在未来优化的时候给改成引用传参了！
+void CEditorComponent::FindAvailablePipeInterfacesMachinePart(SPipeInterface pipeInterface) {
+	FindAvailablePipeInterfacesMachinePart(pipeInterface.pEditorDeviceComponent);
+
+	size_t i = 0;
+	for(auto & pipeInterfaceAfter : m_pipeInterfaces) {
+		if(pipeInterfaceAfter.pos == pipeInterface.pos) {
+			m_pipeInterfaceSelectingIndex = i;
+			break;
+		}
+		i++;
+	}
+}
+
+void CEditorComponent::FindAvailablePipeInterfacesMachinePart(CEditorDeviceComponent * _pEDComp) {
+	if(!_pEDComp) {
+		return;
+	}
+
 	DeselectPipeInterface();
 	m_pipeInterfaces.clear();
+
+	std::unordered_set<CEditorDeviceComponent *> machinePartEDComps;
+	RecursiveMachinePartEditorDevices(& machinePartEDComps, _pEDComp);
+	for(auto & pEDComp : machinePartEDComps) {
+		GetAvailablePipeInterfaces(& m_pipeInterfaces, pEDComp);
+	}
 }
 
 Frame::Vec2 CEditorComponent::GetWillPutPos(const SInterface & interface) const {
@@ -926,7 +970,7 @@ Frame::Vec2 CEditorComponent::GetWillPutPos(const SInterface & interface) const 
 CEditorDeviceComponent * CEditorComponent::Put(const CEditorComponent::SInterface & interface) {
 	Frame::Vec2 putPos = GetWillPutPos(interface);
 	if(CEditorDeviceComponent * pEDComp = Put(putPos, interface.directionIndex)) {
-		interface.pEditorDeviceComponent->DeviceTreeNodeConnectWith(pEDComp, interface.directionIndex);
+		interface.pEditorDeviceComponent->ConnectWith(pEDComp, interface.directionIndex);
 		//if(interface.pEditorDeviceComponent->GetDeviceType() == IDeviceData::EType::Engine && pEDComp->GetDeviceType() == IDeviceData::EType::Engine) {
 			// TODO or not - 当放置两个相邻的引擎时自动连接二者的管道
 		//}
@@ -1043,6 +1087,7 @@ void CEditorComponent::RenderAndProcessPencilMenu(const Frame::Vec2 & leftTopPos
 		case IDeviceData::Engine: spriteScale = .8f; break;
 		case IDeviceData::Propeller: spriteScale = .4f; break;
 		case IDeviceData::JetPropeller: spriteScale = .5f; break;
+		case IDeviceData::Joint: spriteScale = .8f; break;
 		}
 		Frame::Vec2 pos = leftTopPos + Frame::Vec2 { buttonSize * .5f, buttonSize * (static_cast<float>(type - IDeviceData::Shell) + .5f) };
 		
@@ -1314,11 +1359,17 @@ void CEditorComponent::DrawDevicePreview(IDeviceData::EType type, const Frame::V
 
 	if(type == IDeviceData::JetPropeller) {
 		__DrawDeviceSprite(jet_propeller_bottom, colorSet.color1);
+	} else if(type == IDeviceData::Joint) {
+		__DrawDeviceSprite(joint_bottom, colorSet.color2);
+		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::joint_color)->GetImage(), pos, colorSet.color1, alpha, scale, rot + 180.f);
+		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::joint)->GetImage(), pos, baseColor, alpha, scale, rot + 180.f);
 	}
 
-	__DrawDeviceSprite_ByPart(color1, colorSet.color1);
-	__DrawDeviceSprite_ByPart(color2, colorSet.color2);
-	__DrawDeviceSprite_ByPart(basic, baseColor);
+	if(type != IDeviceData::Joint) {
+		__DrawDeviceSprite_ByPart(color1, colorSet.color1);
+		__DrawDeviceSprite_ByPart(color2, colorSet.color2);
+		__DrawDeviceSprite_ByPart(basic, baseColor);
+	}
 
 	if(type == IDeviceData::Propeller) {
 		DrawSpriteBlendedPro(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::propeller_blade_color)->GetImage(), pos + Frame::Vec2 { 20.f, 0.f }.RotateDegree(rot) * scale, colorSet.color2, alpha, rot + 30.f, dirIndex % 2 ? Frame::Vec2 { scale, .3f * scale } : Frame::Vec2 { .3f * scale, scale }, 0.f);
@@ -1327,6 +1378,9 @@ void CEditorComponent::DrawDevicePreview(IDeviceData::EType type, const Frame::V
 		__DrawDeviceSprite(propeller_top, baseColor);
 	} else if(type == IDeviceData::JetPropeller) {
 		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::jet_propeller_needle)->GetImage(), pos + Frame::Vec2 { 32.f, -20.f }.RotateDegree(rot) * scale, baseColor, alpha, scale, rot + 45.f);
+	} else if(type == IDeviceData::Joint) {
+		__DrawDeviceSprite(joint_top_color, colorSet.color2);
+		__DrawDeviceSprite(joint_top, baseColor);
 	}
 
 #undef __DrawDeviceSprite
@@ -1377,12 +1431,23 @@ void CEditorComponent::ButtonEnd(const Frame::Vec2 & rightBottom) {
 		m_bMouseOnGUI = true;
 		if(m_bMBLeftPressed) {
 			SetWorking(false);
+			SummonMachine();
+		}
+	}
+}
 
-			if(auto pEnt = Frame::gEntitySystem->SpawnEntity()) {
-				if(auto pComp = pEnt->CreateComponent<CMachineComponent>()) {
-					pComp->Initialize(m_editorDeviceComponents, m_pipes, GetCurrentColorSet());
-				}
-			}
+void CEditorComponent::SummonMachine() {
+	auto it = std::find_if(m_editorDeviceComponents.begin(), m_editorDeviceComponents.end(),
+		[](CEditorDeviceComponent * pEDComp) {
+			return pEDComp && pEDComp->GetDeviceType() == IDeviceData::EType::Cabin;
+		}
+	);
+	if(it == m_editorDeviceComponents.end()) {
+		return;
+	}
+	if(auto pEnt = Frame::gEntitySystem->SpawnEntity()) {
+		if(auto pComp = pEnt->CreateComponent<CMachineComponent>()) {
+			pComp->Initialize(* it, m_pipes, GetCurrentColorSet());
 		}
 	}
 }
@@ -1396,6 +1461,9 @@ void CEditorComponent::SetWorking(bool b) {
 		if(auto pComp = m_pDeviceConnectorRendererEntity->GetComponent<CDeviceConnectorRendererComponent>()) {
 			pComp->SetWorking(b);
 		}
+	}
+	for(auto & pEDComp : m_editorDeviceComponents) {
+		pEDComp->SetWorking(b);
 	}
 }
 

@@ -63,6 +63,11 @@ namespace Assets {
 		jet_propeller_color2,
 		jet_propeller_needle,
 		jet_propeller_bottom,
+		joint,
+		joint_color,
+		joint_top,
+		joint_top_color,
+		joint_bottom,
 	};
 
 	enum class EOtherStaticSprite {
@@ -120,6 +125,9 @@ namespace Assets {
 			EDeviceStaticSprite::jet_propeller, // Jet Propeller
 			EDeviceStaticSprite::jet_propeller_color1,
 			EDeviceStaticSprite::jet_propeller_color2,
+			EDeviceStaticSprite::joint, // Joint
+			EDeviceStaticSprite::joint_color,
+			EDeviceStaticSprite::joint,
 			EDeviceStaticSprite::UNKNOWN, // END
 			EDeviceStaticSprite::UNKNOWN,
 			EDeviceStaticSprite::UNKNOWN,

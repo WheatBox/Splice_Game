@@ -132,7 +132,7 @@ void DrawPipe(const PipeT & pipeNodes, const Frame::Vec2 & pos, Frame::ColorRGB 
 
 // 关于 mode：
 // 0 : 常规
-// 1 : 此次递归是为了擦除这一段管道而运行的，递归会在T字或十字路口停下，并将该节点从路口节点的连接中移除
+// 1 : 此次递归是为了擦除这一段管道而运行的，递归会在T字或十字路口停下，并将该节点从路口节点的连接中移除，但是注意，该模式下并不会对内存进行释放（因为有时候要用即将擦除的管道去做一些别的事情）
 // 2 : 此次递归会穿透装置，也就是说对管道连接着的装置所连接着的其它管道也会进行递归遍历，最后一个参数填入一个 std::vector<PipeNodeT *> *，用以保存此次递归得到的所有与装置相连的节点
 template<typename PipeNodeT>
 void PipeRecursion(std::unordered_set<PipeNodeT *> * outSet, PipeNodeT * pNode, int mode, void * pExtraDataForModes = nullptr) {
