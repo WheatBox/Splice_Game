@@ -18,12 +18,15 @@
 
 REGISTER_ENTITY_COMPONENT(, CEditorComponent);
 
-constexpr float __PENCIL_BUTTON_WIDTH_HALF = 16.f;
-constexpr float __PENCIL_BUTTON_HEIGHT_HALF = 40.f;
+constexpr float __INTERFACESET_BUTTON_SIZE_HALF = 48.f;
+constexpr float __INTERFACE_SIGN_WIDTH_HALF = 8.f;
+constexpr float __INTERFACE_SIGN_HEIGHT_HALF = 32.f;
 constexpr float __ERASER_BUTTON_SIZE_HALF = 40.f;
 constexpr float __PIPE_BUTTON_SIZE_HALF = 14.f;
 
-constexpr float __PENCIL_BUTTON_ALPHA = .5f;
+constexpr float __PENCIL_BUTTON_ALPHA = .7f;
+constexpr float __INTERFACESET_BUTTON_ALPHA = __PENCIL_BUTTON_ALPHA * .5f;
+constexpr float __ERASER_BUTTON_ALPHA = .5f;
 constexpr float __CONTROLLER_BUTTON_ALPHA = .7f;
 constexpr float __CONTROLLER_BUTTON_TEXT_ALPHA = .85f;
 constexpr int __PENCIL_BUTTON_COLOR = 0xFF7400;
@@ -556,69 +559,88 @@ void CEditorComponent::RenderAndProcessSwatchesMenu(const Frame::Vec2 & leftTopP
 }
 
 void CEditorComponent::Pencil() {
-	bool bMouseHasAlreadyOnAInterface = false;
 	bool bPutFinished = false;
 	const Frame::Vec2 mousePos = GetMousePosInScene();
-	for(auto & interface : m_interfaces) {
-		if(interface.pEditorDeviceComponent == nullptr) {
-			continue;
-		}
-		//Frame::Vec2 entityPos = interface.pEditorDeviceComponent->GetEntity()->GetPosition();
-		const Frame::Vec2 buttonSizeHalf =
-			interface.directionIndex % 2
-			? Frame::Vec2 { __PENCIL_BUTTON_HEIGHT_HALF, __PENCIL_BUTTON_WIDTH_HALF }
-		: Frame::Vec2 { __PENCIL_BUTTON_WIDTH_HALF, __PENCIL_BUTTON_HEIGHT_HALF };
-		const Frame::Vec2 lt = interface.pos - buttonSizeHalf, rb = interface.pos + buttonSizeHalf;
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __PENCIL_BUTTON_COLOR, __PENCIL_BUTTON_ALPHA);
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __PENCIL_BUTTON_EDGE_COLOR, __PENCIL_BUTTON_ALPHA, 1.f);
-		if(bPutFinished) {
-			continue;
-		}
-		bool bMouseOn = !m_bMouseOnGUI && Frame::PointInRectangle(mousePos, lt, rb);
-		if(bMouseOn && !bMouseHasAlreadyOnAInterface) {
-			bMouseHasAlreadyOnAInterface = true;
+	const SInterfaceSet * pInterfaceSetMouseOn = nullptr;
+	const SInterface * pInterfaceMouseOn = nullptr;
+	for(auto & interfaceSet : m_interfaces) {
+		const Frame::Vec2 lt = interfaceSet.pos - __INTERFACESET_BUTTON_SIZE_HALF;
+		const Frame::Vec2 rb = interfaceSet.pos + __INTERFACESET_BUTTON_SIZE_HALF;
+		if(!m_bMouseOnGUI && !pInterfaceMouseOn && Frame::PointInRectangle(mousePos, lt, rb)) {
+			pInterfaceSetMouseOn = & interfaceSet;
 
-			const Frame::Vec2 willPutPos = GetWillPutPos(interface);
-
-			if(!m_pInterfaceMouseOn) {
-				m_pInterfaceMouseOn = & interface;
-
-				if(Frame::CEntity * pEnt = Frame::gEntitySystem->SpawnEntity()) {
-					if(CColliderComponent * pComp = pEnt->CreateComponent<CColliderComponent>()) {
-						CEditorDeviceComponent::GetEditorDeviceColliders(pComp, m_pencilDevice, interface.directionIndex);
-						pComp->GetEntity()->SetPosition(willPutPos);
-						m_bInterfaceCanPut = pComp->Collide().empty();
-					}
-					Frame::gEntitySystem->RemoveEntity(pEnt->GetId());
+			float minRad = 999999.f;
+			for(auto & interface : interfaceSet.interfaces) {
+				if(float rad = std::abs(GetDirPosAdd(interface.directionIndex).IncludedAngle(interfaceSet.pos - GetMousePosInScene())); rad < minRad) {
+					minRad = rad;
+					pInterfaceMouseOn = & interface;
 				}
 			}
 
-			//DrawDevicePreview(m_pencilDevice, willPutPos, __PENCIL_BUTTON_ALPHA, interface.directionIndex, 1.f, 0xFF0000, !m_bInterfaceCanPut);
-			DrawDevicePreview(m_pencilDevice, willPutPos, __PENCIL_BUTTON_ALPHA, interface.directionIndex, 1.f, m_bInterfaceCanPut ? 0xFFFFFF : 0xFF0000);
-		}
-		if(m_bMBLeftHolding && bMouseOn && m_bInterfaceCanPut) {
-			if(CEditorDeviceComponent * pEDComp = Put(interface)) {
+			if(pInterfaceMouseOn) {
+				if(m_pInterfaceMouseOn != pInterfaceMouseOn) {
+					m_pInterfaceMouseOn = pInterfaceMouseOn;
+					RefreshInterfaceCanPut(* pInterfaceMouseOn);
+				}
 
-				//////////// 检查新放置的装置的接口与此前已有接口的距离，若距离过近则进行连接
-				std::vector<CEditorComponent::SInterface> v;
-				pEDComp->GetAvailableInterfaces(& v);
-				for(auto & newerInterface : v) {
-					for(auto & olderInterface : m_interfaces) {
-						if(& olderInterface == & interface
-							|| PointDistance(newerInterface.pos, olderInterface.pos) > 32.f)
-							continue;
-						if(newerInterface.pEditorDeviceComponent->ConnectWith(olderInterface.pEditorDeviceComponent, newerInterface.directionIndex)) {
-							break;
+				//DrawDevicePreview(m_pencilDevice, GetWillPutPos(* pInterfaceMouseOn), __PENCIL_BUTTON_ALPHA, interface.directionIndex, 1.f, 0xFF0000, !m_bInterfaceCanPut);
+				DrawDevicePreview(m_pencilDevice, GetWillPutPos(* pInterfaceMouseOn), __PENCIL_BUTTON_ALPHA, pInterfaceMouseOn->directionIndex, 1.f, m_bInterfaceCanPut ? 0xFFFFFF : 0xFF0000);
+			}
+		}
+		if(pInterfaceSetMouseOn != & interfaceSet) {
+			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __PENCIL_BUTTON_COLOR, __INTERFACESET_BUTTON_ALPHA);
+			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __PENCIL_BUTTON_EDGE_COLOR, __INTERFACESET_BUTTON_ALPHA, 1.f);
+		}
+	}
+
+	for(auto & interfaceSet : m_interfaces) {
+		for(auto & interface : interfaceSet.interfaces) {
+			if(interface.pEditorDeviceComponent == nullptr) {
+				continue;
+			}
+			//Frame::Vec2 entityPos = interface.pEditorDeviceComponent->GetEntity()->GetPosition();
+		
+			Frame::Vec2 p1 { __INTERFACE_SIGN_WIDTH_HALF, __INTERFACE_SIGN_HEIGHT_HALF };
+			Frame::Vec2 p2 { __INTERFACE_SIGN_WIDTH_HALF, -__INTERFACE_SIGN_HEIGHT_HALF };
+			Frame::Vec2 p3 { -__INTERFACE_SIGN_WIDTH_HALF, 0.f };
+			Frame::Rotate2DVectorsDegree(-GetDegreeByDirIndex(interface.directionIndex), { & p1, & p2, & p3 });
+			p1 += interface.pos;
+			p2 += interface.pos;
+			p3 += interface.pos;
+			Frame::gRenderer->pShapeRenderer->DrawTriangleBlended(p1, p2, p3, __PENCIL_BUTTON_COLOR, __PENCIL_BUTTON_ALPHA);
+			Frame::gRenderer->pShapeRenderer->DrawTriangleBlended(p1, p2, p3, __PENCIL_BUTTON_EDGE_COLOR, __PENCIL_BUTTON_ALPHA, 1.f);
+			if(bPutFinished) {
+				continue;
+			}
+
+			const bool bMouseOn = pInterfaceMouseOn == & interface;
+
+			if(m_bMBLeftHolding && bMouseOn && m_bInterfaceCanPut) {
+				if(CEditorDeviceComponent * pEDComp = Put(interface)) {
+
+					//////////// 检查新放置的装置的接口与此前已有接口的距离，若距离过近则进行连接
+					std::vector<SInterface> v;
+					pEDComp->GetAvailableInterfaces(& v);
+					for(SInterface & newerInterface : v) {
+						for(const SInterfaceSet & olderInterfaceSet : m_interfaces) {
+							for(const SInterface & olderInterface : olderInterfaceSet.interfaces) {
+								if(& olderInterface == & interface
+									|| PointDistance(newerInterface.pos, olderInterface.pos) > 32.f)
+									continue;
+								if(newerInterface.pEditorDeviceComponent->ConnectWith(olderInterface.pEditorDeviceComponent, newerInterface.directionIndex)) {
+									break;
+								}
+							}
 						}
 					}
-				}
-				//////////////////////////////////
+					//////////////////////////////////
 
-				bPutFinished = true;
-				// 直接这么写的话，在放置装置的时候，按钮会闪烁一下，所以换了种写法（见下文中的 注1）
-				//ClearAvailableInterfaces();
-				//FindAvailableInterfaces();
-				//break;
+					bPutFinished = true;
+					// 直接这么写的话，在放置装置的时候，按钮会闪烁一下，所以换了种写法（见下文中的 注1）
+					//ClearAvailableInterfaces();
+					//FindAvailableInterfaces();
+					//break;
+				}
 			}
 		}
 	}
@@ -628,7 +650,7 @@ void CEditorComponent::Pencil() {
 		FindAvailableInterfaces();
 	}
 
-	if(!bMouseHasAlreadyOnAInterface) {
+	if(!pInterfaceMouseOn) {
 		m_pInterfaceMouseOn = nullptr;
 		m_bInterfaceCanPut = false;
 	}
@@ -646,8 +668,8 @@ void CEditorComponent::Eraser() {
 
 		const Frame::Vec2 pos = (* it)->GetEntity()->GetPosition();
 		const Frame::Vec2 lt = pos - __ERASER_BUTTON_SIZE_HALF, rb = pos + __ERASER_BUTTON_SIZE_HALF;
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __ERASER_BUTTON_COLOR, __PENCIL_BUTTON_ALPHA);
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __ERASER_BUTTON_EDGE_COLOR, __PENCIL_BUTTON_ALPHA, 1.f);
+		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __ERASER_BUTTON_COLOR, __ERASER_BUTTON_ALPHA);
+		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __ERASER_BUTTON_EDGE_COLOR, __ERASER_BUTTON_ALPHA, 1.f);
 
 		if(itWillBeErase != m_editorDeviceComponents.end()) {
 			continue;
@@ -789,7 +811,7 @@ void CEditorComponent::Pipe_PencilMode() {
 						float nearestRad = Frame::pi_f;
 						for(int i = 0; i < 4; i++) {
 							if(!p->nodes[i]) {
-								if(const float rad = Frame::Vec2 { 1.f, 0.f }.RotateDegree(static_cast<float>(-90 * i)).IncludedAngle(vPosMouse); rad < nearestRad) {
+								if(const float rad = GetDirPosAdd(i).IncludedAngle(vPosMouse); rad < nearestRad) {
 									dirIndex = i;
 									nearestRad = rad;
 								}
@@ -878,8 +900,8 @@ void CEditorComponent::Pipe_EraserMode() {
 				if(_pPipeNode->pDevice) {
 					const Frame::Vec2 lt = _pPipeNode->pos - __PIPE_BUTTON_SIZE_HALF;
 					const Frame::Vec2 rb = _pPipeNode->pos + __PIPE_BUTTON_SIZE_HALF;
-					Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __ERASER_BUTTON_COLOR, __PENCIL_BUTTON_ALPHA);
-					Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __ERASER_BUTTON_EDGE_COLOR, __PENCIL_BUTTON_ALPHA, 1.f);
+					Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __ERASER_BUTTON_COLOR, __ERASER_BUTTON_ALPHA);
+					Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __ERASER_BUTTON_EDGE_COLOR, __ERASER_BUTTON_ALPHA, 1.f);
 
 					if(m_bMBLeftHolding && Frame::PointInRectangle(GetMousePosInScene(), lt, rb)) {
 						pipeNodesIndex = i;
@@ -1184,12 +1206,39 @@ void CEditorComponent::ControllerEnd() {
 
 void CEditorComponent::FindAvailableInterfaces() {
 	for(auto & pEDComp : m_editorDeviceComponents) {
-		pEDComp->GetAvailableInterfaces(& m_interfaces);
+		std::vector<SInterface> interfaces;
+		pEDComp->GetAvailableInterfaces(& interfaces);
+
+		for(SInterface & interface : interfaces) {
+			bool bNeedsToCreateANewInterfaceSet = true;
+			for(SInterfaceSet & existingInterfaceSet : m_interfaces) {
+				if(Frame::PointInRectangle(interface.pos + GetDirPosAdd(interface.directionIndex) * CONNECTOR_LENGTH, existingInterfaceSet.pos - __INTERFACESET_BUTTON_SIZE_HALF, existingInterfaceSet.pos + __INTERFACESET_BUTTON_SIZE_HALF)) {
+					existingInterfaceSet.interfaces.push_back(interface);
+					bNeedsToCreateANewInterfaceSet = false;
+					break;
+				}
+			}
+			if(bNeedsToCreateANewInterfaceSet) {
+				m_interfaces.push_back({ { interface }, interface.pos + GetDirPosAdd(interface.directionIndex) * (__INTERFACESET_BUTTON_SIZE_HALF + CONNECTOR_HALF_LENGTH) });
+			}
+		}
 	}
 }
 
 void CEditorComponent::ClearAvailableInterfaces() {
+	m_pInterfaceMouseOn = nullptr;
 	m_interfaces.clear();
+}
+
+void CEditorComponent::RefreshInterfaceCanPut(const SInterface & interfaceMouseOn) {
+	if(Frame::CEntity * pEnt = Frame::gEntitySystem->SpawnEntity()) {
+		if(CColliderComponent * pComp = pEnt->CreateComponent<CColliderComponent>()) {
+			CEditorDeviceComponent::GetEditorDeviceColliders(pComp, m_pencilDevice, interfaceMouseOn.directionIndex);
+			pComp->GetEntity()->SetPosition(GetWillPutPos(interfaceMouseOn));
+			m_bInterfaceCanPut = pComp->Collide().empty();
+		}
+		Frame::gEntitySystem->RemoveEntity(pEnt->GetId());
+	}
 }
 
 Frame::Vec2 CEditorComponent::GetWillPutPos(const SInterface & interface) const {

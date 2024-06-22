@@ -96,6 +96,7 @@ private:
 	void SwitchTool(ETool tool);
 	void SwitchPencilDevice(IDeviceData::EType device) {
 		m_pencilDevice = device;
+		m_pInterfaceMouseOn = nullptr;
 	}
 	void SwitchPipeToolMode(EPipeToolMode mode) {
 		m_pipeToolMode = mode;
@@ -179,13 +180,21 @@ public:
 	};
 
 private:
-	std::vector<SInterface> m_interfaces;
+
+	struct SInterfaceSet {
+		std::vector<SInterface> interfaces;
+		Frame::Vec2 pos;
+	};
+
+	std::vector<SInterfaceSet> m_interfaces;
 
 	const SInterface * m_pInterfaceMouseOn = nullptr;
 	bool m_bInterfaceCanPut = false;
 
 	void FindAvailableInterfaces();
 	void ClearAvailableInterfaces();
+
+	void RefreshInterfaceCanPut(const SInterface & interfaceMouseOn);
 
 	/* -------------------- 装置放置 -------------------- */
 
