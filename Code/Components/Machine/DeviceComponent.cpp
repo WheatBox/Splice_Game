@@ -53,6 +53,23 @@ void CDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	break;
 	case Frame::EntityEvent::EFlag::Render:
 		//Frame::gRenderer->pTextRenderer->DrawTextBlended(std::to_string((size_t)m_pGroup), m_pEntity->GetPosition(), 0x000000, 1.f);
+
+#if 0
+		switch(GetDeviceType()) {
+		case IDeviceData::Joint:
+		{
+			auto pData = reinterpret_cast<SJointDeviceData *>(m_pNode->pDeviceData);
+			if(CDeviceComponent * pAnotherComp = pData->GetBehindMachinePartDeviceComponent()) {
+				Frame::gRenderer->pShapeRenderer->DrawPointBlended(m_pEntity->GetPosition() + 64.f, 0x000000, 1.f, 16.f);
+				Frame::gRenderer->pTextRenderer->DrawTextBlended("FULL!", m_pEntity->GetPosition() + 64.f, 0x000000, 1.f);
+			} else {
+				Frame::gRenderer->pShapeRenderer->DrawPointBlended(m_pEntity->GetPosition() + 64.f, 0x00FF00, 1.f, 16.f);
+				Frame::gRenderer->pTextRenderer->DrawTextBlended("GOOD!!", m_pEntity->GetPosition() + 64.f, 0x000000, 1.f);
+			}
+		}
+		break;
+		}
+#endif
 		break;
 	}
 }

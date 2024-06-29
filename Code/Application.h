@@ -8,6 +8,8 @@
 
 #include <list>
 
+struct GLFWwindow;
+
 class CApplication final : public Frame::IApplication {
 
 protected:
@@ -26,6 +28,7 @@ public:
 private:
 	std::list<Frame::EntityId> m_entitiesWillBeRemovedAtTheEndOfThisFrame;
 
+	GLFWwindow * m_pSubWindow = nullptr;
 };
 
 #define __MeterToPixelRatio 32.f

@@ -180,7 +180,11 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 		}
 
 		for(auto & pJointEDComp : jointDevices) {
-			if(currentPartDevices.find(pJointEDComp->m_neighbors[GetRevDirIndex(pJointEDComp->GetDirIndex())]) != currentPartDevices.end()) {
+			if(auto pBack = pJointEDComp->m_neighbors[GetRevDirIndex(pJointEDComp->GetDirIndex())]) {
+				if(currentPartDevices.find(pBack) != currentPartDevices.end()) {
+					currentPartDevices.insert(pJointEDComp);
+				}
+			} else {
 				currentPartDevices.insert(pJointEDComp);
 			}
 		}
@@ -222,8 +226,8 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 		/*
 		首先检查前方的装置是否已经与自己建立过连接
 			若否，与之建立连接
-		检查后方的装置是否已经与自己建立过连接 // 好像没必要，因为在 __ConnectMachinePartsByDevices() 要调用的 CMachinePartComponent::CreateJointWith() 中有相关验证
-			若否，检查该装置与自己是否在同一个机器部分
+		检查后方的装置是否已经与自己建立过连接
+			若否，检查该装置与自己是否在同一个机器部分 // 好像没必要，因为在 __ConnectMachinePartsByDevices() 要调用的 CMachinePartComponent::CreateJointWith() 中有相关验证
 				若否，与之建立连接
 		*/
 
@@ -236,7 +240,7 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 				break;
 			}
 
-			if(__ConnectMachinePartsByDevices(map_EDCompDeviceComp, pJointEDComp, pEDComp)) {
+			if(__ConnectMachinePartsByDevices(map_EDCompDeviceComp, pJointEDComp, pEDComp) || 1) {
 				__Connect(connectedEDComps, map_EDCompDeviceComp, pJointEDComp, pEDComp);
 			}
 		} while(false);
@@ -250,7 +254,7 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 				break;
 			}
 
-			if(__ConnectMachinePartsByDevices(map_EDCompDeviceComp, pEDComp, pJointEDComp)) {
+			if(__ConnectMachinePartsByDevices(map_EDCompDeviceComp, pEDComp, pJointEDComp) || 1) {
 				__Connect(connectedEDComps, map_EDCompDeviceComp, pEDComp, pJointEDComp);
 			}
 		} while(false);

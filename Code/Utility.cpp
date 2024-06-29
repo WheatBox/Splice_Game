@@ -257,5 +257,5 @@ int GetMachinePartJointDevicePointDirIndex(CEditorDeviceComponent * pEDComp) {
             return i;
         }
     }
-    return 0;
+    return pEDComp->GetDirIndex();
 }
