@@ -24,6 +24,8 @@ namespace Assets {
 		Editor_tool_pipe_mode_pencil,
 		Editor_tool_pipe_mode_eraser,
 		Editor_tool_pipe_mode_insert,
+		Controller_button_pressing,
+		Controller_button_free,
 	};
 
 	enum class EDeviceStaticSprite {

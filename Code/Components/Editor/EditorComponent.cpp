@@ -117,9 +117,11 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	{
 		const bool bMBLeftPressed = Frame::gInput->pMouse->GetPressed(Frame::eMBI_Left);
 		const bool bMBLeftHolding = Frame::gInput->pMouse->GetHolding(Frame::eMBI_Left);
+		const bool bMBLeftReleased = Frame::gInput->pMouse->GetReleased(Frame::eMBI_Left);
 		const bool bMBRightPressed = Frame::gInput->pMouse->GetPressed(Frame::eMBI_Right);
 		m_bMBLeftPressed = false;
 		m_bMBLeftHolding = false;
+		m_bMBLeftReleased = false;
 		m_bMBRightPressed = false;
 
 		Frame::gRenderer->pTextRenderer->SetFont(m_pFont);
@@ -181,6 +183,7 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		if(!m_bMouseOnGUI) {
 			m_bMBLeftPressed = bMBLeftPressed;
 			m_bMBLeftHolding = bMBLeftHolding;
+			m_bMBLeftReleased = bMBLeftReleased;
 			m_bMBRightPressed = bMBRightPressed;
 		}
 
@@ -220,6 +223,7 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		if(m_bMouseOnGUI) {
 			m_bMBLeftPressed = bMBLeftPressed;
 			m_bMBLeftHolding = bMBLeftHolding;
+			m_bMBLeftReleased = bMBLeftReleased;
 			m_bMBRightPressed = bMBRightPressed;
 		}
 
@@ -241,6 +245,7 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 			RenderAndProcessSwatchesMenu(toolMenuLT);
 			break;
 		case ETool::Controller:
+			RenderAndProcessControllerMenu(toolMenuLT);
 			ButtonEnd(toolbarLeftTopPos + viewSize);
 			break;
 		}
@@ -335,6 +340,8 @@ void CEditorComponent::RenderAndProcessPencilMenu(const Frame::Vec2 & leftTopPos
 
 	const Frame::Vec2 mousePosInScene = GetMousePosInScene();
 
+	int posIndex = 0;
+
 	// 只显示从 Shell 开始的装置
 	for(IDeviceData::EType type = IDeviceData::Shell; type < IDeviceData::END; type = static_cast<IDeviceData::EType>(type + 1)) {
 		bool bChoosing = m_pencilDevice == type;
@@ -346,12 +353,13 @@ void CEditorComponent::RenderAndProcessPencilMenu(const Frame::Vec2 & leftTopPos
 		case IDeviceData::JetPropeller: spriteScale = .5f; break;
 		case IDeviceData::Joint: spriteScale = .8f; break;
 		}
-		Frame::Vec2 pos = leftTopPos + Frame::Vec2 { buttonSize * .5f, buttonSize * (static_cast<float>(type - IDeviceData::Shell) + .5f) };
+		Frame::Vec2 pos = leftTopPos + Frame::Vec2 { buttonSize * .5f, buttonSize * (static_cast<float>(posIndex) + .5f) };
+		posIndex++;
 
 		DrawDevicePreview(type, pos, 1.f, 0, spriteScale);
 
 		float highlightAlpha = .0f;
-		const Frame::Vec2 highlightHalfWH { buttonSize * .5f };
+		const Frame::Vec2 highlightHalfWH { buttonSize * .5f - 1.f };
 		if(bChoosing) {
 			highlightAlpha = .3f;
 			goto Highlight;
@@ -408,12 +416,13 @@ void CEditorComponent::RenderAndProcessPipeMenu(const Frame::Vec2 & leftTopPos) 
 
 void CEditorComponent::RenderAndProcessSwatchesMenu(const Frame::Vec2 & leftTopPos) {
 	constexpr float menuWidth = GetToolMenuWidth(ETool::Swatches);
-	const float colorBlockSize = 32.f;
-	const float colorBlockSpacing = 4.f;
-	const float colorSetEdge = 8.f;
 
 	const Frame::Vec2 mousePosInScene = GetMousePosInScene();
 
+	const float colorBlockSize = 32.f;
+	const float colorBlockSpacing = 4.f;
+	const float colorSetEdge = 8.f;
+	
 	Frame::Vec2 colorSetLT = leftTopPos;
 	for(size_t i = 0ull, len = m_colorSets.size(); i < len; i++) {
 		auto & colorSet = m_colorSets[i];
@@ -438,6 +447,8 @@ void CEditorComponent::RenderAndProcessSwatchesMenu(const Frame::Vec2 & leftTopP
 			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(colorSetLT + 1.f, colorSetRB - 1.f, 0xFFFFFF, i == m_currColorSetIndex ? 1.f : .5f, 2.f);
 		}
 		if(bMouseOn && m_bMBLeftPressed) {
+			m_bMBLeftPressed = false;
+
 			m_currColorSetIndex = i;
 			SynchCurrentColorSet();
 			UpdateDevicesColor();
@@ -449,15 +460,20 @@ void CEditorComponent::RenderAndProcessSwatchesMenu(const Frame::Vec2 & leftTopP
 	/* ----------------------------- Color Editor ----------------------------- */
 
 	const Frame::Vec2 colorEditorSize { 380.f, 256.f };
-	const Frame::Vec2 colorEditorLT = leftTopPos + Frame::Vec2 { menuWidth, 0.f };
+
+	const Frame::Vec2 dragAreaLT { leftTopPos.x + menuWidth, leftTopPos.y };
+	const Frame::Vec2 dragAreaRB = Frame::Vec2Cast<float>(Frame::gCamera->GetViewSize());
+
+	m_colorEditorMenuDragger.WorkPart1(mousePosInScene, colorEditorSize, dragAreaLT, dragAreaRB);
+	if(m_colorEditorMenuDragger.IsDragging()) {
+		m_bMBLeftHolding = m_bMBLeftPressed = false;
+	}
+
+	const Frame::Vec2 & colorEditorLT = m_colorEditorMenuDragger.GetLeftTop();
 	const Frame::Vec2 colorEditorRB = colorEditorLT + colorEditorSize;
 
 	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(colorEditorLT, colorEditorRB, __GUI_BACKGROUND_COLOR, 1.f);
 	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(colorEditorLT, colorEditorRB, __GUI_BACKGROUND_EDGE_COLOR, 1.f, 1.f);
-
-	if(Frame::PointInRectangle(mousePosInScene, colorEditorLT, colorEditorRB)) {
-		m_bMouseOnGUI = true;
-	}
 
 	constexpr int colorNum = 4;
 	Frame::ColorRGB * colorSetEditingColors[colorNum] = { & m_colorSetEditing.color1, & m_colorSetEditing.color2, & m_colorSetEditing.connector, & m_colorSetEditing.pipe };
@@ -473,7 +489,8 @@ void CEditorComponent::RenderAndProcessSwatchesMenu(const Frame::Vec2 & leftTopP
 
 		if(Frame::PointInRectangle(mousePosInScene, lt, rb)) {
 			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, 0xFFFFFF, .5f, 4.f);
-			if(Frame::gInput->pMouse->GetPressed(Frame::eMBI_Left)) {
+			if(m_bMBLeftPressed) {
+				m_bMBLeftPressed = false;
 				m_swatchesColorEditingIndex = i;
 			}
 		}
@@ -486,7 +503,8 @@ void CEditorComponent::RenderAndProcessSwatchesMenu(const Frame::Vec2 & leftTopP
 		const Frame::Vec2 lt = colorEditorLT + Frame::Vec2 { 16.f, 96.f + index * 40.f }; \
 		const Frame::Vec2 rb = lt + Frame::Vec2 { 224.f, barHeight }; \
 		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, Frame::ColorRGB(colorEditing.rgbPart * _isR, colorEditing.rgbPart * _isG, colorEditing.rgbPart * _isB), 1.f); \
-		if(Frame::PointInRectangle(mousePosInScene, lt, rb) && m_bMBLeftPressed) { \
+		if(m_bMBLeftPressed && Frame::PointInRectangle(mousePosInScene, lt, rb)) { \
+			m_bMBLeftHolding = m_bMBLeftPressed = false; \
 			colorEditing.rgbPart = static_cast<uint8>(Frame::Clamp((mousePosInScene.x - lt.x) / (rb.x - lt.x), 0.f, 1.f) * 255.f); \
 		} \
 		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, 0xFFFFFF, 1.f, 1.f); \
@@ -502,12 +520,14 @@ void CEditorComponent::RenderAndProcessSwatchesMenu(const Frame::Vec2 & leftTopP
 		if(Frame::PointInRectangle(mousePosInScene, decButtonPos - buttonSizeHalf, decButtonPos + buttonSizeHalf)) { \
 			mouseOnDec = true; \
 			if(m_bMBLeftHolding && colorEditing.rgbPart > 0) { \
+				m_bMBLeftHolding = m_bMBLeftPressed = false; \
 				colorEditing.rgbPart--; \
 			} \
 		} \
 		if(Frame::PointInRectangle(mousePosInScene, incButtonPos - buttonSizeHalf, incButtonPos + buttonSizeHalf)) { \
 			mouseOnInc = true; \
 			if(m_bMBLeftHolding && colorEditing.rgbPart < 255) { \
+				m_bMBLeftHolding = m_bMBLeftPressed = false; \
 				colorEditing.rgbPart++; \
 			} \
 		} \
@@ -540,12 +560,14 @@ void CEditorComponent::RenderAndProcessSwatchesMenu(const Frame::Vec2 & leftTopP
 		if(Frame::PointInRectangle(mousePosInScene, btResetPos - btResetSizeHalf, btResetPos + btResetSizeHalf)) {
 			mouseOnReset = true;
 			if(m_bMBLeftPressed) {
+				m_bMBLeftHolding = m_bMBLeftPressed = false;
 				SynchCurrentColorSet();
 			}
 		}
 		if(Frame::PointInRectangle(mousePosInScene, btApplyPos - btApplySizeHalf, btApplyPos + btApplySizeHalf)) {
 			mouseOnApply = true;
 			if(m_bMBLeftPressed) {
+				m_bMBLeftHolding = m_bMBLeftPressed = false;
 				ApplyCurrentColorSet();
 			}
 		}
@@ -556,6 +578,151 @@ void CEditorComponent::RenderAndProcessSwatchesMenu(const Frame::Vec2 & leftTopP
 	char szColorCode[8];
 	sprintf_s(szColorCode, 8, "#%02X%02X%02X", colorEditing.r, colorEditing.g, colorEditing.b);
 	Frame::gRenderer->pTextRenderer->DrawTextAlignBlended(szColorCode, { colorEditorLT.x + 32.f, colorEditorRB.y - 32.f }, Frame::ETextHAlign::Left, Frame::ETextVAlign::Middle, 0xFFFFFF, 1.f);
+
+	m_colorEditorMenuDragger.WorkPart2(m_bMBLeftPressed, m_bMBLeftReleased, mousePosInScene, colorEditorSize);
+	if(m_colorEditorMenuDragger.IsDragging()) {
+		m_bMouseOnGUI = true;
+	}
+}
+
+void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTopPos) {
+	constexpr float menuWidth = GetToolMenuWidth(ETool::Controller);
+
+	const Frame::Vec2 mousePosInScene = GetMousePosInScene();
+
+	/* ----------------------- 底盘 ----------------------- */
+
+	const Frame::Vec2 controllerSize = Vec2Cast(Frame::Vec2i { m_controllerEditing.gridWidth, m_controllerEditing.gridHeight } * Controller::gridCellSize);
+
+	const Frame::Vec2 controllerLT = m_controllerMenuDragger.GetLeftTop();
+	const Frame::Vec2 controllerRB = controllerLT + controllerSize;
+	
+	m_controllerMenuDragger.WorkPart1(mousePosInScene, controllerSize, { leftTopPos.x + menuWidth, leftTopPos.y }, Frame::Vec2Cast<float>(Frame::gCamera->GetViewSize()));
+	if(m_controllerMenuDragger.IsDragging()) {
+		m_bMBLeftPressed = m_bMBLeftHolding = false;
+	}
+
+	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(controllerLT, controllerRB, 0x4F4F4F, 1.f);
+	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(controllerLT, controllerRB, __GUI_BACKGROUND_EDGE_COLOR, 1.f, 1.f);
+
+	/* ----------------------- 拖动现有元件 ----------------------- */
+	
+	for(auto & pElem : m_controllerEditing.elements) {
+		if(m_bMBLeftPressed && !m_pDraggingControllerElement) {
+			if(auto [lt, rb] = Controller::GetElementAABBRealPos(pElem, controllerLT); Frame::PointInRectangle(mousePosInScene, lt, rb)) {
+				m_bMBLeftPressed = m_bMBLeftHolding = false;
+				m_pDraggingControllerElement = pElem;
+				m_draggingontrollerElementPosRelativeToMouse = Controller::GetElementRealPos(pElem, controllerLT) - mousePosInScene;
+				break;
+			}
+		}
+	}
+
+	/* ----------------------- 绘制现有元件 ----------------------- */
+
+	for(auto & pElem : m_controllerEditing.elements) {
+		Controller::DrawPreview(pElem->element, Controller::GetElementRealPos(pElem, controllerLT),
+			pElem == m_pDraggingControllerElement ? .3f : 1.f, 1.f);
+	}
+
+	/* ----------------------- 元件列表 ----------------------- */
+
+	int posIndex = 0;
+	for(Controller::EElement elem = Controller::EElement::Button; elem < Controller::EElement::END; elem = static_cast<Controller::EElement>(static_cast<int>(elem) + 1)) {
+		Frame::Vec2 pos = leftTopPos + Frame::Vec2 { menuWidth * .5f, menuWidth * (static_cast<float>(posIndex) + .5f) };
+		posIndex++;
+
+		Controller::DrawPreview(elem, pos, 1.f, 1.f);
+
+		if(const Frame::Vec2 highlightHalfWH { menuWidth * .5f - 1.f }; Frame::PointInRectangle(mousePosInScene, pos - highlightHalfWH, pos + highlightHalfWH)) {
+			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(pos - highlightHalfWH, pos + highlightHalfWH, 0xFFFFFF, .15f);
+
+			if(m_bMBLeftPressed && !m_pDraggingControllerElement) {
+				m_bMBLeftPressed = m_bMBLeftHolding = false;
+				m_pDraggingControllerElement = std::make_shared<Controller::SButtonElement>();
+				m_draggingontrollerElementPosRelativeToMouse = 0.f;
+			}
+		}
+	}
+
+	/* ----------------------- 拖动并放置元件 ----------------------- */
+
+	if(m_pDraggingControllerElement) {
+		Frame::Vec2i posDraggingTo;
+		{
+			Frame::Vec2i temp = Frame::Vec2Cast<int>(mousePosInScene + m_draggingontrollerElementPosRelativeToMouse - controllerLT) + Controller::gridCellSize / 2;
+			posDraggingTo = {
+				temp.x / Controller::gridCellSize,
+				temp.y / Controller::gridCellSize
+			};
+		}
+
+		bool bCanPut = false;
+		bool bWillRemove = false;
+
+		auto [aabbLT, aabbRB] = m_pDraggingControllerElement->GetAABB();
+		aabbLT = aabbLT - m_pDraggingControllerElement->pos + posDraggingTo;
+		aabbRB = aabbRB - m_pDraggingControllerElement->pos + posDraggingTo;
+		if(Controller::AABBIntersect(aabbLT, aabbRB, 0, { m_controllerEditing.gridWidth, m_controllerEditing.gridHeight })) {
+			bCanPut = true;
+			if(aabbLT.x < 0 || aabbLT.y < 0 || aabbRB.x > m_controllerEditing.gridWidth || aabbRB.y > m_controllerEditing.gridHeight) {
+				bCanPut = false;
+			}
+			else
+			for(auto & pElementOnController : m_controllerEditing.elements) {
+				if(pElementOnController == m_pDraggingControllerElement) {
+					continue;
+				}
+				if(Controller::AABBIntersect(* pElementOnController, aabbLT, aabbRB)) {
+					bCanPut = false;
+					break;
+				}
+			}
+
+			const Frame::Vec2 pos = Controller::GetElementRealPos(posDraggingTo, controllerLT);
+
+			Controller::DrawPreview(m_pDraggingControllerElement->element, pos, 1.f, 1.f);
+			Controller::DrawAABB(m_pDraggingControllerElement->element, pos, bCanPut ? 0x00FF00 : 0xFF0000, .5f);
+		} else {
+			const Frame::Vec2 previewPos = mousePosInScene + m_draggingontrollerElementPosRelativeToMouse;
+
+			if(mousePosInScene.x < leftTopPos.x + menuWidth - 8.f) {
+				bWillRemove = true;
+			}
+			
+			Controller::DrawPreview(m_pDraggingControllerElement->element, previewPos, bWillRemove ? .5f : 1.f, 1.f);
+
+			if(bWillRemove) {
+				auto [linePos1, linePos2] = Controller::GetElementAABBRealPos(m_pDraggingControllerElement, 0.f);
+				const Frame::Vec2 elementRealPos = Controller::GetElementRealPos(m_pDraggingControllerElement, 0.f);
+				linePos1 = linePos1 - elementRealPos + previewPos;
+				linePos2 = linePos2 - elementRealPos + previewPos;
+				Frame::gRenderer->pShapeRenderer->DrawLineBlended(linePos1, linePos2, 0x000000, 1.f, 8.f);
+			}
+		}
+
+		if(m_bMBLeftReleased) {
+			if(bCanPut) {
+				m_pDraggingControllerElement->pos = posDraggingTo;
+				m_controllerEditing.elements.insert(m_pDraggingControllerElement);
+			}
+
+			if(bWillRemove) {
+				if(auto it = m_controllerEditing.elements.find(m_pDraggingControllerElement); it != m_controllerEditing.elements.end()) {
+					m_controllerEditing.elements.erase(it);
+				}
+			}
+
+			m_pDraggingControllerElement = nullptr;
+		}
+	}
+
+	/* ---------------------------------------------------- */
+
+	m_controllerMenuDragger.WorkPart2(m_bMBLeftPressed && !m_pDraggingControllerElement, m_bMBLeftReleased, mousePosInScene, controllerSize);
+	if(m_controllerMenuDragger.IsDragging()) {
+		m_bMouseOnGUI = true;
+	}
 }
 
 void CEditorComponent::Pencil() {

@@ -8,9 +8,11 @@
 #include "../../Utility.h"
 #include "../../Pipe.h"
 #include "../../Texts.h"
+#include "../../Controller.h"
 
 #include <vector>
 #include <unordered_set>
+#include <memory>
 
 class CEditorDeviceComponent;
 class CCameraComponent;
@@ -66,7 +68,7 @@ private:
 			0.f,
 			48.f,
 			160.f,
-			0.f
+			128.f
 		};
 		return toolMenuWidth[static_cast<int>(tool)];
 	}
@@ -75,16 +77,9 @@ private:
 	void RenderAndProcessPencilMenu(const Frame::Vec2 & leftTopPos);
 	void RenderAndProcessPipeMenu(const Frame::Vec2 & leftTopPos);
 	void RenderAndProcessSwatchesMenu(const Frame::Vec2 & leftTopPos);
+	void RenderAndProcessControllerMenu(const Frame::Vec2 & leftTopPos);
 
 	/* -------------------- 工具运行 -------------------- */
-
-	enum class EPipeToolMode {
-		Pencil,
-		Eraser,
-		Insert
-	} m_pipeToolMode = EPipeToolMode::Pencil; // 使用管道工具时，选中的模式
-
-	IDeviceData::EType m_pencilDevice = IDeviceData::Unset; // 使用铅笔工具时，选中的要绘制的装置
 
 	void Pencil();
 	void Eraser();
@@ -92,6 +87,14 @@ private:
 	void Pipe_EraserMode();
 	void Pipe_InsertMode();
 	void Controller();
+
+	IDeviceData::EType m_pencilDevice = IDeviceData::Unset; // 使用铅笔工具时，选中的要绘制的装置
+
+	enum class EPipeToolMode {
+		Pencil,
+		Eraser,
+		Insert
+	} m_pipeToolMode = EPipeToolMode::Pencil; // 使用管道工具时，选中的模式
 
 	void SwitchTool(ETool tool);
 	void SwitchPencilDevice(IDeviceData::EType device) {
@@ -136,7 +139,19 @@ private:
 
 	void UpdateDevicesColor();
 
+	CMenuDragger m_colorEditorMenuDragger {};
+
 	/* -------------------- 控制器编辑工具杂项 -------------------- */
+
+	Controller::EElement m_controllerPencilElement = Controller::EElement::Unknown;
+	Controller::SController m_controllerEditing {};
+	
+	CMenuDragger m_controllerMenuDragger {};
+
+	Frame::Vec2 m_draggingontrollerElementPosRelativeToMouse {};
+	std::shared_ptr<Controller::IElement> m_pDraggingControllerElement { nullptr };
+
+	// ---
 
 	struct SToolControllerStuff {
 		std::unordered_set<CEditorDeviceComponent *> engineEDComps;
@@ -334,6 +349,7 @@ private:
 	bool m_bMouseOnGUI = false;
 	bool m_bMBLeftPressed = false;
 	bool m_bMBLeftHolding = false;
+	bool m_bMBLeftReleased = false;
 	bool m_bMBRightPressed = false;
 
 	void SetMouseLabel(Texts::EText text) {

@@ -14,15 +14,18 @@ namespace Assets {
 		Frame::CTextureAtlas * pGUIAtlas = new Frame::CTextureAtlas {
 			"Assets/Art/atlas_GUI.png",
 			{ // "image name" : (left top) (right bottom)
-				{ "tool_controller.png", { { 0.000000f, 1.000000f }, { 0.187500f, 0.812500f } } },
-				{ "tool_eraser.png", { { 0.000000f, 0.812500f }, { 0.187500f, 0.625000f } } },
-				{ "tool_hand.png", { { 0.000000f, 0.625000f }, { 0.187500f, 0.437500f } } },
-				{ "tool_pencil.png", { { 0.000000f, 0.437500f }, { 0.187500f, 0.250000f } } },
-				{ "tool_pipe.png", { { 0.000000f, 0.250000f }, { 0.187500f, 0.062500f } } },
-				{ "tool_pipe_mode_eraser.png", { { 0.187500f, 1.000000f }, { 0.375000f, 0.812500f } } },
-				{ "tool_pipe_mode_insert.png", { { 0.187500f, 0.812500f }, { 0.375000f, 0.625000f } } },
-				{ "tool_pipe_mode_pencil.png", { { 0.187500f, 0.625000f }, { 0.375000f, 0.437500f } } },
-				{ "tool_swatches.png", { { 0.187500f, 0.437500f }, { 0.375000f, 0.250000f } } }
+				{ "tool_swatches.png", { { 0.000000f, 1.000000f }, { 0.187500f, 0.812500f } } },
+				{ "tool_controller.png", { { 0.000000f, 0.812500f }, { 0.187500f, 0.625000f } } },
+				{ "tool_eraser.png", { { 0.000000f, 0.625000f }, { 0.187500f, 0.437500f } } },
+				{ "tool_hand.png", { { 0.000000f, 0.437500f }, { 0.187500f, 0.250000f } } },
+				{ "tool_hand_heart.png", { { 0.000000f, 0.250000f }, { 0.187500f, 0.062500f } } },
+				{ "tool_pencil.png", { { 0.187500f, 1.000000f }, { 0.375000f, 0.812500f } } },
+				{ "tool_pipe.png", { { 0.187500f, 0.812500f }, { 0.375000f, 0.625000f } } },
+				{ "tool_pipe_mode_eraser.png", { { 0.187500f, 0.625000f }, { 0.375000f, 0.437500f } } },
+				{ "tool_pipe_mode_insert.png", { { 0.187500f, 0.437500f }, { 0.375000f, 0.250000f } } },
+				{ "tool_pipe_mode_pencil.png", { { 0.187500f, 0.250000f }, { 0.375000f, 0.062500f } } },
+				{ "controller_button_pressing.png", { { 0.375000f, 1.000000f }, { 0.500000f, 0.843750f } } },
+				{ "controller_button_free.png", { { 0.375000f, 0.843750f }, { 0.500000f, 0.687500f } } }
 			}
 		};
 		Frame::CTextureAtlas * pDevicesAtlas = new Frame::CTextureAtlas {
@@ -92,6 +95,9 @@ namespace Assets {
 		__S_GUI(Editor_tool_pipe_mode_pencil, "tool_pipe_mode_pencil.png");
 		__S_GUI(Editor_tool_pipe_mode_eraser, "tool_pipe_mode_eraser.png");
 		__S_GUI(Editor_tool_pipe_mode_insert, "tool_pipe_mode_insert.png");
+
+		__S_GUI(Controller_button_pressing, "controller_button_pressing.png");
+		__S_GUI(Controller_button_free, "controller_button_free.png");
 
 #define __S_Device(_e, _uvKey) gDeviceStaticSpriteMap[EDeviceStaticSprite::_e] = new Frame::CStaticSprite { pDevicesAtlas, _uvKey };
 

@@ -5,6 +5,7 @@
 #include <FrameCore/Camera.h>
 #include <FrameInput/Input.h>
 #include <FrameMath/ColorMath.h>
+#include <FrameMath/Math.h>
 
 #include <unordered_set>
 
@@ -103,3 +104,57 @@ void RecursiveMachinePartEditorDevices(std::unordered_set<CEditorDeviceComponent
 void RecursiveMachinePartEditorDevices(std::unordered_set<CEditorDeviceComponent *> * outSet, std::unordered_set<CEditorDeviceComponent *> * outJointSet, CEditorDeviceComponent * pComp, const std::unordered_set<CEditorDeviceComponent *> & ignore);
 
 int GetMachinePartJointDevicePointDirIndex(CEditorDeviceComponent * pEDComp);
+
+class CMenuDragger final {
+public:
+
+	bool Work(bool bDragStart, bool bDragOver, const Frame::Vec2 & mousePosInScene, const Frame::Vec2 & menuSize, const Frame::Vec2 & areaLT, const Frame::Vec2 & areaRB) {
+		WorkPart1(mousePosInScene, menuSize, areaLT, areaRB);
+		WorkPart2(bDragStart, bDragOver, mousePosInScene, menuSize);
+		return m_bDragging;
+	}
+
+	void WorkPart1(const Frame::Vec2 & mousePosInScene, const Frame::Vec2 & menuSize, const Frame::Vec2 & areaLT, const Frame::Vec2 & areaRB) {
+		if(m_bDragging) {
+			m_leftTop = m_leftTopRelativeToMouse + mousePosInScene;
+		}
+
+		const Frame::Vec2 menuMaxPos = areaRB - menuSize;
+
+		if(m_leftTop.x > menuMaxPos.x) {
+			m_leftTop.x = menuMaxPos.x;
+		}
+		if(m_leftTop.y > menuMaxPos.y) {
+			m_leftTop.y = menuMaxPos.y;
+		}
+
+		if(m_leftTop.x < areaLT.x) {
+			m_leftTop.x = areaLT.x;
+		}
+		if(m_leftTop.y < areaLT.y) {
+			m_leftTop.y = areaLT.y;
+		}
+	}
+
+	void WorkPart2(bool bDragStart, bool bDragOver, const Frame::Vec2 & mousePosInScene, const Frame::Vec2 & menuSize) {
+		if(bDragStart && !m_bDragging && Frame::PointInRectangle(mousePosInScene, m_leftTop, m_leftTop + menuSize)) {
+			m_bDragging = true;
+			m_leftTopRelativeToMouse = m_leftTop - mousePosInScene;
+		}
+		if(bDragOver && m_bDragging) {
+			m_bDragging = false;
+		}
+	}
+
+	const Frame::Vec2 & GetLeftTop() const {
+		return m_leftTop;
+	}
+	bool IsDragging() const {
+		return m_bDragging;
+	}
+
+private:
+	Frame::Vec2 m_leftTop {};
+	Frame::Vec2 m_leftTopRelativeToMouse {};
+	bool m_bDragging = false;
+};

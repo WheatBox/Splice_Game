@@ -36,7 +36,7 @@ void CApplication::Initialize(int, char **) {
 	//Frame::gRenderer->SetBackgroundColor(0xDDDDDD);
 	Frame::gRenderer->SetBackgroundColor(0xB1B1C1);
 
-	m_pSubWindow = glfwCreateWindow(640, 360, "Controller", NULL, NULL);
+	//m_pSubWindow = glfwCreateWindow(640, 360, "Controller", NULL, NULL);
 	// TODO
 }
 

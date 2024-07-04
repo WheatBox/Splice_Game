@@ -63,7 +63,7 @@ void CPhysicsWorldComponent::Initialize() {
 					sleepAdjust = 0.9 * sleepAdjust + 0.1 * (target - frameTime);
 				}
 
-				printf("physics fps: %f\n", 1.f / (float)frameTime.count());
+				//printf("physics fps: %f\n", 1.f / (float)frameTime.count());
 			}
 		}
 		};
