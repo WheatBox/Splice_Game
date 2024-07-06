@@ -592,7 +592,7 @@ void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTo
 
 	/* ----------------------- 底盘 ----------------------- */
 
-	const Frame::Vec2 controllerSize = Vec2Cast(Frame::Vec2i { m_controllerEditing.gridWidth, m_controllerEditing.gridHeight } * Controller::gridCellSize);
+	const Frame::Vec2 controllerSize = Vec2Cast(Frame::Vec2i { m_controllerEditing.gridSize.x, m_controllerEditing.gridSize.y } * Controller::gridCellSize);
 
 	const Frame::Vec2 controllerLT = m_controllerMenuDragger.GetLeftTop();
 	const Frame::Vec2 controllerRB = controllerLT + controllerSize;
@@ -605,6 +605,37 @@ void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTo
 	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(controllerLT, controllerRB, 0x4F4F4F, 1.f);
 	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(controllerLT, controllerRB, __GUI_BACKGROUND_EDGE_COLOR, 1.f, 1.f);
 
+	Frame::gRenderer->pShapeRenderer->DrawLineBlended({ controllerRB.x, controllerRB.y - 12.f }, { controllerRB.x - 12.f, controllerRB.y }, 0xFFFFFF, 1.f, 2.f);
+	Frame::gRenderer->pShapeRenderer->DrawLineBlended({ controllerRB.x, controllerRB.y - 6.f }, { controllerRB.x - 6.f, controllerRB.y }, 0xFFFFFF, 1.f, 2.f);
+
+	/* ----------------------- 拖动四角调整底盘尺寸 ----------------------- */
+
+	if(Frame::PointInRectangle(mousePosInScene, controllerRB - 8.f, controllerRB + 8.f)) {
+		gApplication->SetCursor(CApplication::eCursor_ResizeNWSE);
+		if(m_bMBLeftPressed) {
+			m_bMBLeftPressed = m_bMBLeftHolding = false;
+			m_bControllerResizing = true;
+			m_controllerResizingMinSize = { Controller::controllerMinWidth, Controller::controllerMinHeight };
+			for(auto & pElem : m_controllerEditing.elements) {
+				const Frame::Vec2i elemRB = pElem->GetAABB().second;
+				m_controllerResizingMinSize.x = std::max(elemRB.x, m_controllerResizingMinSize.x);
+				m_controllerResizingMinSize.y = std::max(elemRB.y, m_controllerResizingMinSize.y);
+			}
+		}
+	}
+
+	if(m_bControllerResizing) {
+		gApplication->SetCursor(CApplication::eCursor_ResizeNWSE);
+
+		Frame::Vec2i newSize = Frame::Vec2Cast<int>((mousePosInScene - controllerLT) / static_cast<float>(Controller::gridCellSize) + .5f);
+		m_controllerEditing.gridSize.x = std::max(newSize.x, m_controllerResizingMinSize.x);
+		m_controllerEditing.gridSize.y = std::max(newSize.y, m_controllerResizingMinSize.y);
+		
+		if(m_bMBLeftReleased) {
+			m_bControllerResizing = false;
+		}
+	}
+
 	/* ----------------------- 拖动现有元件 ----------------------- */
 	
 	for(auto & pElem : m_controllerEditing.elements) {
@@ -612,7 +643,7 @@ void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTo
 			if(auto [lt, rb] = Controller::GetElementAABBRealPos(pElem, controllerLT); Frame::PointInRectangle(mousePosInScene, lt, rb)) {
 				m_bMBLeftPressed = m_bMBLeftHolding = false;
 				m_pDraggingControllerElement = pElem;
-				m_draggingontrollerElementPosRelativeToMouse = Controller::GetElementRealPos(pElem, controllerLT) - mousePosInScene;
+				m_draggingControllerElementPosRelativeToMouse = Controller::GetElementRealPos(pElem, controllerLT) - mousePosInScene;
 				break;
 			}
 		}
@@ -640,7 +671,7 @@ void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTo
 			if(m_bMBLeftPressed && !m_pDraggingControllerElement) {
 				m_bMBLeftPressed = m_bMBLeftHolding = false;
 				m_pDraggingControllerElement = std::make_shared<Controller::SButtonElement>();
-				m_draggingontrollerElementPosRelativeToMouse = 0.f;
+				m_draggingControllerElementPosRelativeToMouse = 0.f;
 			}
 		}
 	}
@@ -650,7 +681,7 @@ void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTo
 	if(m_pDraggingControllerElement) {
 		Frame::Vec2i posDraggingTo;
 		{
-			Frame::Vec2i temp = Frame::Vec2Cast<int>(mousePosInScene + m_draggingontrollerElementPosRelativeToMouse - controllerLT) + Controller::gridCellSize / 2;
+			Frame::Vec2i temp = Frame::Vec2Cast<int>(mousePosInScene + m_draggingControllerElementPosRelativeToMouse - controllerLT) + Controller::gridCellSize / 2;
 			posDraggingTo = {
 				temp.x / Controller::gridCellSize,
 				temp.y / Controller::gridCellSize
@@ -663,9 +694,9 @@ void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTo
 		auto [aabbLT, aabbRB] = m_pDraggingControllerElement->GetAABB();
 		aabbLT = aabbLT - m_pDraggingControllerElement->pos + posDraggingTo;
 		aabbRB = aabbRB - m_pDraggingControllerElement->pos + posDraggingTo;
-		if(Controller::AABBIntersect(aabbLT, aabbRB, 0, { m_controllerEditing.gridWidth, m_controllerEditing.gridHeight })) {
+		if(Controller::AABBIntersect(aabbLT, aabbRB, 0, { m_controllerEditing.gridSize.x, m_controllerEditing.gridSize.y })) {
 			bCanPut = true;
-			if(aabbLT.x < 0 || aabbLT.y < 0 || aabbRB.x > m_controllerEditing.gridWidth || aabbRB.y > m_controllerEditing.gridHeight) {
+			if(aabbLT.x < 0 || aabbLT.y < 0 || aabbRB.x > m_controllerEditing.gridSize.x || aabbRB.y > m_controllerEditing.gridSize.y) {
 				bCanPut = false;
 			}
 			else
@@ -684,7 +715,7 @@ void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTo
 			Controller::DrawPreview(m_pDraggingControllerElement->element, pos, 1.f, 1.f);
 			Controller::DrawAABB(m_pDraggingControllerElement->element, pos, bCanPut ? 0x00FF00 : 0xFF0000, .5f);
 		} else {
-			const Frame::Vec2 previewPos = mousePosInScene + m_draggingontrollerElementPosRelativeToMouse;
+			const Frame::Vec2 previewPos = mousePosInScene + m_draggingControllerElementPosRelativeToMouse;
 
 			if(mousePosInScene.x < leftTopPos.x + menuWidth - 8.f) {
 				bWillRemove = true;

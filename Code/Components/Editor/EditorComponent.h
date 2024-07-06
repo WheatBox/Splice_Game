@@ -148,8 +148,11 @@ private:
 	
 	CMenuDragger m_controllerMenuDragger {};
 
-	Frame::Vec2 m_draggingontrollerElementPosRelativeToMouse {};
 	std::shared_ptr<Controller::IElement> m_pDraggingControllerElement { nullptr };
+	Frame::Vec2 m_draggingControllerElementPosRelativeToMouse {};
+
+	bool m_bControllerResizing = false;
+	Frame::Vec2i m_controllerResizingMinSize {};
 
 	// ---
 

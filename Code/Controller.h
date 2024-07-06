@@ -22,8 +22,9 @@ namespace Controller {
 	struct IElement;
 
 	struct SController {
-		int gridWidth = 30; // 实际宽度 = gridWidth * gridCellSize
-		int gridHeight = 20; // 实际高度 = gridHeight * gridCellSize
+		// 实际宽度 = gridSize.x * gridCellSize
+		// 实际高度 = gridSize.y * gridCellSize
+		Frame::Vec2i gridSize { 30, 20 };
 		
 		std::unordered_set<std::shared_ptr<IElement>> elements;
 	};

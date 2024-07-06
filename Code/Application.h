@@ -9,6 +9,7 @@
 #include <list>
 
 struct GLFWwindow;
+struct GLFWcursor;
 
 class CApplication final : public Frame::IApplication {
 
@@ -25,8 +26,29 @@ public:
 		m_entitiesWillBeRemovedAtTheEndOfThisFrame.push_back(entityId);
 	}
 
+	enum ECursor {
+		eCursor_Unknown,
+		eCursor_Arrow,
+		eCursor_Ibeam,
+		eCursor_Crosshair,
+		eCursor_Hand,
+		eCursor_ResizeEW,
+		eCursor_ResizeNS,
+		eCursor_ResizeNWSE,
+		eCursor_ResizeNESW,
+		eCursor_ResizeAll,
+		eCursor_NotAllowed,
+	};
+
+	void SetCursor(ECursor shape);
+
 private:
 	std::list<Frame::EntityId> m_entitiesWillBeRemovedAtTheEndOfThisFrame;
+
+	GLFWcursor * m_cursors[11] {};
+	int m_cursorCount = static_cast<int>(sizeof(m_cursors) / sizeof(* m_cursors));
+	ECursor m_cursorCurr = ECursor::eCursor_Unknown;
+	ECursor m_cursorWill = ECursor::eCursor_Unknown;
 
 	GLFWwindow * m_pSubWindow = nullptr;
 };
