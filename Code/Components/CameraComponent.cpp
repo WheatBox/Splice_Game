@@ -23,12 +23,12 @@ void CCameraComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
 	switch(event.flag) {
 	case Frame::EntityEvent::BeforeUpdate:
-		CameraControl();
+		CameraControl(true);
 		break;
 	}
 }
 
-void CCameraComponent::CameraControl() {
+void CCameraComponent::CameraControl(bool bCanZoom) {
 	const Frame::Vec2 mouseCurrPosInScene = GetMousePosInScene();
 	const Frame::Vec2 leftTopPos = Frame::gCamera->GetPos() - Frame::Vec2Cast(Frame::gCamera->GetViewSize()) * .5f / Frame::gCamera->GetZoom();
 
@@ -50,8 +50,10 @@ void CCameraComponent::CameraControl() {
 	m_mouseAngleBeforeBeginToRotateCamera = mouseAngleRelativeToCamCenter;
 
 	if(s_wannaZoomVal != 0.f) {
-		Frame::gCamera->SetZoom(Frame::Clamp(Frame::gCamera->GetZoom() * (1.f + static_cast<float>(s_wannaZoomVal) * .15f), .1f, 4.f));
-		Frame::gCamera->SetPos(Frame::gCamera->GetPos() + (mouseCurrPosInScene - GetMousePosInScene()));
+		if(bCanZoom) {
+			Frame::gCamera->SetZoom(Frame::Clamp(Frame::gCamera->GetZoom() * (1.f + static_cast<float>(s_wannaZoomVal) * .15f), .1f, 4.f));
+			Frame::gCamera->SetPos(Frame::gCamera->GetPos() + (mouseCurrPosInScene - GetMousePosInScene()));
+		}
 
 		s_wannaZoomVal = 0.f;
 	}

@@ -15,7 +15,7 @@ class CApplication final : public Frame::IApplication {
 
 protected:
 	
-	virtual void Initialize(int argc, char ** argv) override;
+	virtual void Initialize() override;
 
 	virtual void MainLoopPriority() override;
 	virtual void MainLoopLast() override;

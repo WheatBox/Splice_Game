@@ -55,6 +55,8 @@ constexpr float __DEVICE_HIDE_ALPHA = .3f;
 	Frame::gRenderer->pTextRenderer->DrawTextAlignBlended(text, center + Frame::Vec2 { .0f, -1.f }, Frame::ETextHAlign::Center, Frame::ETextVAlign::Middle, __GUI_BUTTON_TEXT_COLOR, 1.f); \
 }
 
+CEditorComponent * CEditorComponent::s_pEditorComponent = nullptr;
+
 void CEditorComponent::Initialize() {
 	m_pEntity->SetZDepth(Depths::Editor);
 
@@ -68,7 +70,7 @@ void CEditorComponent::Initialize() {
 	if(m_pCameraComponent) {
 		m_pCameraComponent->Initialize(
 			[this]() {
-				return Frame::gInput->pMouse->GetHolding(Frame::EMouseButtonId::eMBI_Left) && m_tool == ETool::Hand || Frame::gInput->pMouse->GetHolding(Frame::EMouseButtonId::eMBI_Middle);
+				return m_bMBLeftHolding && m_tool == ETool::Hand || Frame::gInput->pMouse->GetHolding(Frame::EMouseButtonId::eMBI_Middle);
 			},
 			[]() { return false; }
 		);
@@ -81,12 +83,20 @@ void CEditorComponent::Initialize() {
 			pDeviceConnectorRendererComponent->Initialize(& m_editorDeviceComponents);
 		}
 	}
+
+	InitGUI();
+
+	s_pEditorComponent = this;
 }
 
 void CEditorComponent::OnShutDown() {
 	// TODO - 清理所有 SEditorPipeNode
 	// 和 CEditorDeviceComponent
 	// 和 CEditorDeviceComponent 的 CEntity
+
+	if(s_pEditorComponent == this) {
+		s_pEditorComponent = nullptr;
+	}
 
 	delete m_pFont;
 
@@ -108,22 +118,28 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	switch(event.flag) {
 	case Frame::EntityEvent::Update:
 	{
-		CameraControl();
+		m_bMouseOnGUI = GUI::gGUIMouseData.bMouseOnGUI;
+		if(!m_bMouseOnGUI) {
+			m_bMBLeftPressed = GUI::gGUIMouseData.bMBLeftPressed;
+			m_bMBLeftHolding = GUI::gGUIMouseData.bMBLeftHolding;
+			m_bMBLeftReleased = GUI::gGUIMouseData.bMBLeftReleased;
+			m_bMBRightPressed = Frame::gInput->pMouse->GetPressed(Frame::eMBI_Right);
+		} else {
+			m_bMBLeftPressed = false;
+			m_bMBLeftHolding = false;
+			m_bMBLeftReleased = false;
+			m_bMBRightPressed = false;
+		}
+
+		if(m_pCameraComponent) {
+			m_pCameraComponent->CameraControl(!m_bMouseOnGUI);
+		}
 
 		DrawBlockBackground();
 	}
 	break;
 	case Frame::EntityEvent::Render:
 	{
-		const bool bMBLeftPressed = Frame::gInput->pMouse->GetPressed(Frame::eMBI_Left);
-		const bool bMBLeftHolding = Frame::gInput->pMouse->GetHolding(Frame::eMBI_Left);
-		const bool bMBLeftReleased = Frame::gInput->pMouse->GetReleased(Frame::eMBI_Left);
-		const bool bMBRightPressed = Frame::gInput->pMouse->GetPressed(Frame::eMBI_Right);
-		m_bMBLeftPressed = false;
-		m_bMBLeftHolding = false;
-		m_bMBLeftReleased = false;
-		m_bMBRightPressed = false;
-
 		Frame::gRenderer->pTextRenderer->SetFont(m_pFont);
 
 		{
@@ -180,13 +196,6 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
 		/* ----------------------- Canvas ----------------------- */
 
-		if(!m_bMouseOnGUI) {
-			m_bMBLeftPressed = bMBLeftPressed;
-			m_bMBLeftHolding = bMBLeftHolding;
-			m_bMBLeftReleased = bMBLeftReleased;
-			m_bMBRightPressed = bMBRightPressed;
-		}
-
 		if(m_tool == ETool::Pencil && m_pencilDevice != IDeviceData::EType::Unset) {
 			Pencil();
 		} else
@@ -212,6 +221,31 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
 		/* ----------------------- GUI ----------------------- */
 
+		m_pToolPencilMenu->SetShowing(false);
+		m_pToolPipeMenu->SetShowing(false);
+		m_pToolSwatchesMenu->SetShowing(false);
+		m_pToolSwatchesColorEditor->SetShowing(false);
+		m_pToolControllerMenu->SetShowing(false);
+		m_pToolControllerController->SetShowing(false);
+		switch(m_tool) {
+		case ETool::Pencil:
+			m_pToolPencilMenu->SetShowing(true);
+			break;
+		case ETool::Pipe:
+			m_pToolPipeMenu->SetShowing(true);
+			break;
+		case ETool::Swatches:
+			m_pToolSwatchesMenu->SetShowing(true);
+			m_pToolSwatchesColorEditor->SetShowing(true);
+			break;
+		case ETool::Controller:
+			m_pToolControllerMenu->SetShowing(true);
+			m_pToolControllerController->SetShowing(true);
+			break;
+		}
+
+		// ---- Legacy ----
+
 		const float camZoomBeforeGUI = Frame::gCamera->GetZoom();
 		const Frame::Vec2 camPosBeforeGUI = Frame::gCamera->GetPos();
 		const float camRotBeforeGUI = Frame::gCamera->GetRotation();
@@ -220,30 +254,20 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		Frame::gCamera->SetPos(viewSize * .5f);
 		Frame::gCamera->SetRotation(0.f);
 
-		if(m_bMouseOnGUI) {
+		/*if(m_bMouseOnGUI) {
 			m_bMBLeftPressed = bMBLeftPressed;
 			m_bMBLeftHolding = bMBLeftHolding;
 			m_bMBLeftReleased = bMBLeftReleased;
 			m_bMBRightPressed = bMBRightPressed;
-		}
+		}*/
 
-		m_bMouseOnGUI = false;
+		//m_bMouseOnGUI = false;
 
 		const Frame::Vec2 toolbarLeftTopPos = { 0.f };//Frame::gCamera->GetPos() - viewSize * .5f;
 		const Frame::Vec2 toolbarRightBottomPos = toolbarLeftTopPos + Frame::Vec2 { toolbarWidth, viewSize.y };
-		RenderAndProcessToolbar(toolbarLeftTopPos, toolbarRightBottomPos);
 
 		Frame::Vec2 toolMenuLT = { toolbarRightBottomPos.x, toolbarLeftTopPos.y };
 		switch(m_tool) {
-		case ETool::Pencil:
-			RenderAndProcessPencilMenu(toolMenuLT);
-			break;
-		case ETool::Pipe:
-			RenderAndProcessPipeMenu(toolMenuLT);
-			break;
-		case ETool::Swatches:
-			RenderAndProcessSwatchesMenu(toolMenuLT);
-			break;
 		case ETool::Controller:
 			RenderAndProcessControllerMenu(toolMenuLT);
 			ButtonEnd(toolbarLeftTopPos + viewSize);
@@ -254,8 +278,6 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 			Texts::DrawTextLabel(m_mouseLabelText, Frame::gInput->pMouse->GetPosition() + Frame::Vec2 { 16.f, 0.f });
 			m_mouseLabelText = Texts::EText::EMPTY;
 		}
-
-		DrawOperationPrompt(toolbarRightBottomPos + Frame::Vec2 { GetToolMenuWidth(m_tool) + 8.f, -8.f });
 
 		Frame::gCamera->SetZoom(camZoomBeforeGUI);
 		Frame::gCamera->SetPos(camPosBeforeGUI);
@@ -280,11 +302,28 @@ void CEditorComponent::SetWorking(bool b) {
 	for(auto & pEDComp : m_editorDeviceComponents) {
 		pEDComp->SetWorking(b);
 	}
+	
+	GUI::SetOrUnsetGUI(m_pGUI, b);
 }
 
-void CEditorComponent::RenderAndProcessToolbar(const Frame::Vec2 & leftTopPos, const Frame::Vec2 & rightBottomPos) {
-	constexpr static ETool arrTools[] = { ETool::Hand, ETool::Pencil, ETool::Eraser, ETool::Pipe, ETool::Swatches, ETool::Controller };
-	constexpr static Assets::EGUIStaticSprite arrSprs[] = {
+void CEditorComponent::InitGUI() {
+	m_pGUI = std::make_shared<GUI::CGUI>();
+
+	InitGUI_Toolbar();
+	InitGUI_ToolPencilMenu();
+	InitGUI_ToolPipeMenu();
+	InitGUI_ToolSwatchesMenu();
+	InitGUI_ToolSwatchesColorEditor();
+	InitGUI_ToolControllerMenu();
+	InitGUI_ToolControllerController();
+	InitGUI_OperationPrompt();
+
+	GUI::SetGUI(m_pGUI);
+}
+
+void CEditorComponent::InitGUI_Toolbar() {
+	const ETool arrTools[] = { ETool::Hand, ETool::Pencil, ETool::Eraser, ETool::Pipe, ETool::Swatches, ETool::Controller };
+	const Assets::EGUIStaticSprite arrSprs[] = {
 		Assets::EGUIStaticSprite::Editor_tool_hand,
 		Assets::EGUIStaticSprite::Editor_tool_pencil,
 		Assets::EGUIStaticSprite::Editor_tool_eraser,
@@ -292,7 +331,7 @@ void CEditorComponent::RenderAndProcessToolbar(const Frame::Vec2 & leftTopPos, c
 		Assets::EGUIStaticSprite::Editor_tool_swatches,
 		Assets::EGUIStaticSprite::Editor_tool_controller
 	};
-	constexpr static Texts::EText arrTexts[] = {
+	const Texts::EText arrTexts[] = {
 		Texts::EText::EditorToolHand,
 		Texts::EText::EditorToolPencil,
 		Texts::EText::EditorToolEraser,
@@ -300,51 +339,45 @@ void CEditorComponent::RenderAndProcessToolbar(const Frame::Vec2 & leftTopPos, c
 		Texts::EText::EditorToolSwatches,
 		Texts::EText::EditorToolController
 	};
-	constexpr static size_t toolsNum = sizeof(arrTools) / sizeof(* arrTools);
 
-	constexpr float buttonSize = toolbarWidth;
+	constexpr float pageWidth = 48.f;
+	constexpr float pageHeight = 320.f;
+	constexpr float buttonSize = pageWidth - 8.f;
 
-	const Frame::Vec2 mousePosInScene = GetMousePosInScene();
-
-	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(leftTopPos, rightBottomPos, __GUI_BACKGROUND_COLOR, 1.f);
-
-	Frame::Vec2 buttonPos = leftTopPos + Frame::Vec2 { 0.f, buttonSize * 1.5f };
-	for(size_t i = 0; i < toolsNum; i++) {
-		Frame::Vec2 buttonLT = buttonPos, buttonRB = buttonPos + Frame::Vec2 { buttonSize };
-		bool bMouseOn = Frame::PointInRectangle(mousePosInScene, buttonLT, buttonRB - 1.f);
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(buttonLT, buttonRB, bMouseOn || arrTools[i] == m_tool ? __GUI_BUTTON_HIGHLIGHT_COLOR : __GUI_BUTTON_COLOR, 1.f);
-		Frame::gRenderer->DrawSpriteAlphaBlended(Assets::GetStaticSprite(arrSprs[i])->GetImage(), buttonLT + buttonSize * .5f, __TOOLBAR_BUTTON_ICON_ALPHA, __TOOLBAR_BUTTON_ICON_SCALE, 0.f);
-		if(bMouseOn) {
-			SetMouseLabel(arrTexts[i]);
-		}
-		if(bMouseOn && m_bMBLeftPressed) {
-			SwitchTool(arrTools[i]);
-		}
-		buttonPos.y += buttonSize;
+	auto p = m_pGUI->CreateElement<GUI::CDraggablePage>(12.f, Frame::Vec2 { pageWidth, pageHeight });
+	float y = 48.f;
+	int i = 0;
+	for(ETool tool : arrTools) {
+		auto pCurrButton = p->CreateElement<GUI::CImageButton>(
+			Frame::Vec2 { pageWidth * .5f, y },
+			buttonSize,
+			[tool]() { if(CEditorComponent::s_pEditorComponent) { CEditorComponent::s_pEditorComponent->SwitchTool(tool); } },
+			arrSprs[i],
+			arrTexts[i]
+		);
+		pCurrButton->SetCustomHighlightingCondition([tool]() {
+			if(CEditorComponent::s_pEditorComponent) {
+				return CEditorComponent::s_pEditorComponent->m_tool == tool;
+			}
+			return false;
+			});
+		y += (buttonSize + pageWidth) * .5f;
+		i++;
 	}
 
-	if(float toolMenuWidth = GetToolMenuWidth(m_tool); toolMenuWidth > 0.f) { // Tool menu background
-		Frame::Vec2 lt { rightBottomPos.x, leftTopPos.y };
-		Frame::Vec2 rb { rightBottomPos.x + toolMenuWidth, rightBottomPos.y };
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __GUI_BACKGROUND_COLOR, 1.f);
-		Frame::gRenderer->pShapeRenderer->DrawLineBlended({ rb.x, lt.y }, rb, __GUI_BACKGROUND_EDGE_COLOR, 1.f);
-	}
-
-	Frame::gRenderer->pShapeRenderer->DrawLineBlended({ rightBottomPos.x, leftTopPos.y }, rightBottomPos, __GUI_BACKGROUND_EDGE_COLOR, 1.f);
+	p->SetShowing(true);
 }
 
-void CEditorComponent::RenderAndProcessPencilMenu(const Frame::Vec2 & leftTopPos) {
-	constexpr float buttonSize = GetToolMenuWidth(ETool::Pencil);
+void CEditorComponent::InitGUI_ToolPencilMenu() {
+	constexpr float pageWidth = 96.f;
+	constexpr float pageHeight = 512.f;
+	constexpr float buttonSize = pageWidth - 16.f;
 
-	SColorSet colorSet = GetCurrentColorSet();
+	auto & p = m_pToolPencilMenu;
+	p = m_pGUI->CreateElement<GUI::CDraggablePage>(Frame::Vec2 { 72.f, 12.f }, Frame::Vec2 { pageWidth, pageHeight });
 
-	const Frame::Vec2 mousePosInScene = GetMousePosInScene();
-
-	int posIndex = 0;
-
-	// 只显示从 Shell 开始的装置
-	for(IDeviceData::EType type = IDeviceData::Shell; type < IDeviceData::END; type = static_cast<IDeviceData::EType>(type + 1)) {
-		bool bChoosing = m_pencilDevice == type;
+	float y = buttonSize * .5f + 8.f;
+	for(IDeviceData::EType type = IDeviceData::Shell; type < IDeviceData::END; type = static_cast<IDeviceData::EType>(type + 1)) { // 只显示从 Shell 开始的装置
 		float spriteScale = 1.f;
 		switch(type) {
 		case IDeviceData::Shell:
@@ -353,33 +386,32 @@ void CEditorComponent::RenderAndProcessPencilMenu(const Frame::Vec2 & leftTopPos
 		case IDeviceData::JetPropeller: spriteScale = .5f; break;
 		case IDeviceData::Joint: spriteScale = .8f; break;
 		}
-		Frame::Vec2 pos = leftTopPos + Frame::Vec2 { buttonSize * .5f, buttonSize * (static_cast<float>(posIndex) + .5f) };
-		posIndex++;
+		spriteScale *= .7f;
 
-		DrawDevicePreview(type, pos, 1.f, 0, spriteScale);
-
-		float highlightAlpha = .0f;
-		const Frame::Vec2 highlightHalfWH { buttonSize * .5f - 1.f };
-		if(bChoosing) {
-			highlightAlpha = .3f;
-			goto Highlight;
-		} else if(Frame::PointInRectangle(mousePosInScene, pos - highlightHalfWH, pos + highlightHalfWH)) {
-			highlightAlpha = .15f;
-
-			if(m_bMBLeftPressed) {
-				SwitchPencilDevice(type);
+		auto pCurrButton = p->CreateElement<GUI::CCustomDrawingButton>(
+			Frame::Vec2 { pageWidth * .5f, y },
+			buttonSize,
+			[type]() { if(CEditorComponent::s_pEditorComponent) { CEditorComponent::s_pEditorComponent->SwitchPencilDevice(type); } },
+			[type, spriteScale](const Frame::Vec2 & center) {
+				if(CEditorComponent::s_pEditorComponent) { CEditorComponent::s_pEditorComponent->DrawDevicePreview(type, center, 1.f, 0, spriteScale); }
 			}
-
-			goto Highlight;
-		}
-
-		continue;
-	Highlight:
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(pos - highlightHalfWH, pos + highlightHalfWH, 0xFFFFFF, highlightAlpha);
+		);
+		pCurrButton->SetCustomHighlightingCondition(
+			[type]() {
+				if(CEditorComponent::s_pEditorComponent) {
+					return CEditorComponent::s_pEditorComponent->m_pencilDevice == type;
+				}
+				return false;
+			}
+		);
+		
+		y += buttonSize + 6.f;
 	}
+
+	p->SetShowing(false);
 }
 
-void CEditorComponent::RenderAndProcessPipeMenu(const Frame::Vec2 & leftTopPos) {
+void CEditorComponent::InitGUI_ToolPipeMenu() {
 	constexpr static EPipeToolMode arrModes[] = { EPipeToolMode::Pencil, EPipeToolMode::Eraser, EPipeToolMode::Insert };
 	constexpr static Assets::EGUIStaticSprite arrSprs[] = {
 		Assets::EGUIStaticSprite::Editor_tool_pipe_mode_pencil,
@@ -391,198 +423,281 @@ void CEditorComponent::RenderAndProcessPipeMenu(const Frame::Vec2 & leftTopPos) 
 		Texts::EText::EditorToolPipe_ModeEraser,
 		Texts::EText::EditorToolPipe_ModeInsert,
 	};
-	constexpr static size_t modesNum = sizeof(arrModes) / sizeof(* arrModes);
 
-	constexpr float menuWidth = GetToolMenuWidth(ETool::Pipe);
-	constexpr float buttonSize = menuWidth - 1;
-
-	const Frame::Vec2 mousePosInScene = GetMousePosInScene();
-
-	Frame::Vec2 buttonPos = leftTopPos + Frame::Vec2 { 0.f, buttonSize * 1.5f };
-	for(size_t i = 0; i < modesNum; i++) {
-		Frame::Vec2 buttonLT = buttonPos, buttonRB = buttonPos + Frame::Vec2 { buttonSize };
-		bool bMouseOn = Frame::PointInRectangle(mousePosInScene, buttonLT, buttonRB);
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(buttonLT, buttonRB, bMouseOn || arrModes[i] == m_pipeToolMode ? __GUI_BUTTON_HIGHLIGHT_COLOR : __GUI_BUTTON_COLOR, 1.f);
-		Frame::gRenderer->DrawSpriteAlphaBlended(Assets::GetStaticSprite(arrSprs[i])->GetImage(), buttonLT + buttonSize * .5f, __TOOLBAR_BUTTON_ICON_ALPHA, __TOOLBAR_BUTTON_ICON_SCALE, 0.f);
-		if(bMouseOn) {
-			SetMouseLabel(arrTexts[i]);
-		}
-		if(bMouseOn && m_bMBLeftPressed) {
-			SwitchPipeToolMode(arrModes[i]);
-		}
-		buttonPos.y += buttonSize;
+	constexpr float pageWidth = 48.f;
+	constexpr float pageHeight = 168.f;
+	constexpr float buttonSize = pageWidth - 8.f;
+	auto & p = m_pToolPipeMenu;
+	p = m_pGUI->CreateElement<GUI::CDraggablePage>(Frame::Vec2 { 72.f, 12.f }, Frame::Vec2 { pageWidth, pageHeight });
+	float y = 48.f;
+	int i = 0;
+	for(EPipeToolMode mode : arrModes) {
+		auto pCurrButton = p->CreateElement<GUI::CImageButton>(
+			Frame::Vec2 { pageWidth * .5f, y },
+			buttonSize,
+			[mode]() { if(CEditorComponent::s_pEditorComponent) { CEditorComponent::s_pEditorComponent->SwitchPipeToolMode(mode); } },
+			arrSprs[i],
+			arrTexts[i]
+		);
+		pCurrButton->SetCustomHighlightingCondition([mode]() {
+			if(CEditorComponent::s_pEditorComponent) {
+				return CEditorComponent::s_pEditorComponent->m_pipeToolMode == mode;
+			}
+			return false;
+			});
+		y += (buttonSize + pageWidth) * .5f;
+		i++;
 	}
+
+	p->SetShowing(false);
 }
 
-void CEditorComponent::RenderAndProcessSwatchesMenu(const Frame::Vec2 & leftTopPos) {
-	constexpr float menuWidth = GetToolMenuWidth(ETool::Swatches);
+void CEditorComponent::InitGUI_ToolSwatchesMenu() {
+	constexpr float pageWidth = 160.f;
+	constexpr float pageHeight = 512.f;
+	const Frame::Vec2 buttonSize { pageWidth - 16.f, 44.f };
 
-	const Frame::Vec2 mousePosInScene = GetMousePosInScene();
+	auto & p = m_pToolSwatchesMenu;
+	p = m_pGUI->CreateElement<GUI::CDraggablePage>(Frame::Vec2 { 72.f, 12.f }, Frame::Vec2 { pageWidth, pageHeight });
+	float y = buttonSize.y * .5f + 8.f;
+	for(size_t i = 0, len = m_colorSets.size(); i < len; i++) {
+		auto pCurrButton = p->CreateElement<GUI::CCustomDrawingButton>(
+			Frame::Vec2 { pageWidth * .5f, y },
+			buttonSize,
+			[i]() { if(CEditorComponent::s_pEditorComponent) { CEditorComponent::s_pEditorComponent->SetCurrentColorSetByIndex(i); } },
+			[i](const Frame::Vec2 & center) {
+				if(!CEditorComponent::s_pEditorComponent) {
+					return;
+				}
+				if(i >= CEditorComponent::s_pEditorComponent->m_colorSets.size()) {
+					return;
+				}
 
-	const float colorBlockSize = 32.f;
-	const float colorBlockSpacing = 4.f;
-	const float colorSetEdge = 8.f;
-	
-	Frame::Vec2 colorSetLT = leftTopPos;
-	for(size_t i = 0ull, len = m_colorSets.size(); i < len; i++) {
-		auto & colorSet = m_colorSets[i];
+				const auto & colorSet = CEditorComponent::s_pEditorComponent->m_colorSets[i];
 
-		Frame::Vec2 colorBlockLT = colorSetLT + colorSetEdge;
-
-#define __DrawColorBlock(memberVarInColorSet) \
-	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(colorBlockLT, colorBlockLT + colorBlockSize, colorSet.memberVarInColorSet, 1.f); \
-	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(colorBlockLT, colorBlockLT + colorBlockSize, 0xFFFFFF, 1.f, 1.f); \
-	colorBlockLT.x += colorBlockSize + colorBlockSpacing;
-
-		__DrawColorBlock(color1);
-		__DrawColorBlock(color2);
-		__DrawColorBlock(connector);
-		__DrawColorBlock(pipe);
+#define __DrawColorBlock(memberVarInColorSet, offsetMultiply) \
+{ \
+	Frame::Vec2 colorBlockCenter = center + Frame::Vec2 { offsetMultiply * 34.f, 0.f }; \
+	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(colorBlockCenter - 14.f, colorBlockCenter + 14.f, colorSet.memberVarInColorSet, 1.f); \
+	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(colorBlockCenter - 14.f, colorBlockCenter + 14.f, 0xFFFFFF, 1.f, 1.f); \
+}
+				__DrawColorBlock(color1, -1.5f);
+				__DrawColorBlock(color2, -.5f);
+				__DrawColorBlock(connector, .5f);
+				__DrawColorBlock(pipe, 1.5f);
 
 #undef __DrawColorBlock
-
-		const Frame::Vec2 colorSetRB = colorSetLT + Frame::Vec2 { menuWidth - 1.f, colorBlockSize + colorSetEdge * 2.f };
-		bool bMouseOn = Frame::PointInRectangle(mousePosInScene, colorSetLT, colorSetRB);
-		if(i == m_currColorSetIndex || bMouseOn) {
-			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(colorSetLT + 1.f, colorSetRB - 1.f, 0xFFFFFF, i == m_currColorSetIndex ? 1.f : .5f, 2.f);
-		}
-		if(bMouseOn && m_bMBLeftPressed) {
-			m_bMBLeftPressed = false;
-
-			m_currColorSetIndex = i;
-			SynchCurrentColorSet();
-			UpdateDevicesColor();
-		}
-
-		colorSetLT.y += colorBlockSize + colorSetEdge * 2.f;
-	}
-
-	/* ----------------------------- Color Editor ----------------------------- */
-
-	const Frame::Vec2 colorEditorSize { 380.f, 256.f };
-
-	const Frame::Vec2 dragAreaLT { leftTopPos.x + menuWidth, leftTopPos.y };
-	const Frame::Vec2 dragAreaRB = Frame::Vec2Cast<float>(Frame::gCamera->GetViewSize());
-
-	m_colorEditorMenuDragger.WorkPart1(mousePosInScene, colorEditorSize, dragAreaLT, dragAreaRB);
-	if(m_colorEditorMenuDragger.IsDragging()) {
-		m_bMBLeftHolding = m_bMBLeftPressed = false;
-	}
-
-	const Frame::Vec2 & colorEditorLT = m_colorEditorMenuDragger.GetLeftTop();
-	const Frame::Vec2 colorEditorRB = colorEditorLT + colorEditorSize;
-
-	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(colorEditorLT, colorEditorRB, __GUI_BACKGROUND_COLOR, 1.f);
-	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(colorEditorLT, colorEditorRB, __GUI_BACKGROUND_EDGE_COLOR, 1.f, 1.f);
-
-	constexpr int colorNum = 4;
-	Frame::ColorRGB * colorSetEditingColors[colorNum] = { & m_colorSetEditing.color1, & m_colorSetEditing.color2, & m_colorSetEditing.connector, & m_colorSetEditing.pipe };
-	for(int i = 0; i < colorNum; i++) {
-		Frame::Vec2 lt = colorEditorLT + Frame::Vec2 { (colorBlockSize + 16.f) * static_cast<float>(i), 0.f } + 32.f;
-		Frame::Vec2 rb = lt + colorBlockSize;
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, * colorSetEditingColors[i], 1.f);
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, 0xFFFFFF, 1.f, 1.f);
-
-		if(m_swatchesColorEditingIndex == i) {
-			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, 0xFFFFFF, 1.f, 4.f);
-		}
-
-		if(Frame::PointInRectangle(mousePosInScene, lt, rb)) {
-			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, 0xFFFFFF, .5f, 4.f);
-			if(m_bMBLeftPressed) {
-				m_bMBLeftPressed = false;
-				m_swatchesColorEditingIndex = i;
 			}
-		}
-	}
-
-	Frame::ColorRGB & colorEditing = * colorSetEditingColors[m_swatchesColorEditingIndex];
-
-#define __DRAW_COLOR_BAR(rgbPart, index, title, _isR, _isG, _isB) { \
-		constexpr float barHeight = 12.f; \
-		const Frame::Vec2 lt = colorEditorLT + Frame::Vec2 { 16.f, 96.f + index * 40.f }; \
-		const Frame::Vec2 rb = lt + Frame::Vec2 { 224.f, barHeight }; \
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, Frame::ColorRGB(colorEditing.rgbPart * _isR, colorEditing.rgbPart * _isG, colorEditing.rgbPart * _isB), 1.f); \
-		if(m_bMBLeftPressed && Frame::PointInRectangle(mousePosInScene, lt, rb)) { \
-			m_bMBLeftHolding = m_bMBLeftPressed = false; \
-			colorEditing.rgbPart = static_cast<uint8>(Frame::Clamp((mousePosInScene.x - lt.x) / (rb.x - lt.x), 0.f, 1.f) * 255.f); \
-		} \
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, 0xFFFFFF, 1.f, 1.f); \
-\
-		const Frame::Vec2 pointerCenter = { lt.x + (rb.x - lt.x) * (static_cast<float>(colorEditing.rgbPart) / 255.f), lt.y + (rb.y - lt.y) * .5f }; \
-\
-		const float buttonYCenter = pointerCenter.y; \
-		const Frame::Vec2 buttonSizeHalf { 16.f, 16.f }; \
-		const Frame::Vec2 decButtonPos { rb.x + 32.f, buttonYCenter }; \
-		const Frame::Vec2 incButtonPos { decButtonPos.x + 34.f, buttonYCenter }; \
-		bool mouseOnDec = false; \
-		bool mouseOnInc = false; \
-		if(Frame::PointInRectangle(mousePosInScene, decButtonPos - buttonSizeHalf, decButtonPos + buttonSizeHalf)) { \
-			mouseOnDec = true; \
-			if(m_bMBLeftHolding && colorEditing.rgbPart > 0) { \
-				m_bMBLeftHolding = m_bMBLeftPressed = false; \
-				colorEditing.rgbPart--; \
-			} \
-		} \
-		if(Frame::PointInRectangle(mousePosInScene, incButtonPos - buttonSizeHalf, incButtonPos + buttonSizeHalf)) { \
-			mouseOnInc = true; \
-			if(m_bMBLeftHolding && colorEditing.rgbPart < 255) { \
-				m_bMBLeftHolding = m_bMBLeftPressed = false; \
-				colorEditing.rgbPart++; \
-			} \
-		} \
-\
-		const Frame::Vec2 pointerLVecHalf { 0.f, barHeight * .5f}; \
-		Frame::gRenderer->pShapeRenderer->DrawLineBlended(pointerCenter - pointerLVecHalf, pointerCenter + pointerLVecHalf, 0xFFFFFF, 1.f, 3.f); \
-\
-		__DRAW_TEXT_BUTTON(decButtonPos, buttonSizeHalf, mouseOnDec, "[-]"); \
-		__DRAW_TEXT_BUTTON(incButtonPos, buttonSizeHalf, mouseOnInc, "[+]"); \
-		Frame::gRenderer->pTextRenderer->DrawTextAlignBlended(std::string { title } + std::to_string(colorEditing.rgbPart), { incButtonPos.x + buttonSizeHalf.x, incButtonPos.y }, Frame::ETextHAlign::Left, Frame::ETextVAlign::Middle, 0xFFFFFF, 1.f); \
-	}
-
-	__DRAW_COLOR_BAR(r, 0.f, " R: ", 1, 0, 0);
-	__DRAW_COLOR_BAR(g, 1.f, " G: ", 0, 1, 0);
-	__DRAW_COLOR_BAR(b, 2.f, " B: ", 0, 0, 1);
-
-#undef __DRAW_COLOR_BAR
-
-	{
-		Frame::Vec2 btResetSizeHalf { 24.f, 12.f };
-		Frame::Vec2 btApplySizeHalf = btResetSizeHalf;
-		if(m_pFont) {
-			btResetSizeHalf.x = 8.f + .5f * m_pFont->TextWidth(Texts::GetText(Texts::Reset), 0.f);
-			btApplySizeHalf.x = 8.f + .5f * m_pFont->TextWidth(Texts::GetText(Texts::Apply), 0.f);
-		}
-		Frame::Vec2 btResetPos = colorEditorRB - btResetSizeHalf - 12.f;
-		Frame::Vec2 btApplyPos = btResetPos - Frame::Vec2 { btResetSizeHalf.x + btApplySizeHalf.x + 16.f, 0.f };
-		bool mouseOnReset = false;
-		bool mouseOnApply = false;
-		if(Frame::PointInRectangle(mousePosInScene, btResetPos - btResetSizeHalf, btResetPos + btResetSizeHalf)) {
-			mouseOnReset = true;
-			if(m_bMBLeftPressed) {
-				m_bMBLeftHolding = m_bMBLeftPressed = false;
-				SynchCurrentColorSet();
+		);
+		pCurrButton->SetCustomHighlightingCondition([i]() {
+			if(CEditorComponent::s_pEditorComponent) {
+				return CEditorComponent::s_pEditorComponent->m_currColorSetIndex == i;
 			}
+			return false;
+			});
+		pCurrButton->SetHighlightStyle(GUI::CButtonBase::EHighlightStyle::Outline);
+		y += buttonSize.y + 6.f;
+	}
+
+	p->SetShowing(false);
+}
+
+static Frame::ColorRGB & __Color(Frame::ColorRGB SColorSet::* memberVarInColorSet = nullptr) {
+	static Frame::ColorRGB defaultRes;
+	if(!CEditorComponent::s_pEditorComponent) {
+		return defaultRes;
+	}
+	if(!memberVarInColorSet) {
+		memberVarInColorSet = CEditorComponent::s_pEditorComponent->GetColorSetEditingColor();
+	}
+	return CEditorComponent::s_pEditorComponent->GetColorSetEditing().* memberVarInColorSet;
+}
+
+static uint8 & __ColorPart(uint8 Frame::ColorRGB::* colorPart) {
+	return __Color().* colorPart;
+}
+
+static void __CreateColorButton(const std::shared_ptr<GUI::CDraggablePage> & p, float yBase, float offsetMultiply, Frame::ColorRGB SColorSet::* memberVarInColorSet) {
+	auto pButton = p->CreateElement<GUI::CCustomDrawingButton>(Frame::Vec2 { 64.f + 48.f * offsetMultiply, yBase }, 32.f,
+		[memberVarInColorSet]() {
+			if(!CEditorComponent::s_pEditorComponent) return;
+			CEditorComponent::s_pEditorComponent->SetColorSetEditingColor(memberVarInColorSet);
+		},
+		[memberVarInColorSet](const Frame::Vec2 & buttonCenter) {
+			if(!CEditorComponent::s_pEditorComponent) return;
+			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(buttonCenter - 16.f, buttonCenter + 16.f, __Color(memberVarInColorSet), 1.f);
+			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(buttonCenter - 16.f, buttonCenter + 16.f, 0xFFFFFF, 1.f, 1.f);
+		});
+	pButton->SetCustomHighlightingCondition([memberVarInColorSet]() {
+		if(!CEditorComponent::s_pEditorComponent) return false;
+		return CEditorComponent::s_pEditorComponent->GetColorSetEditingColor() == memberVarInColorSet;
+		});
+	pButton->SetHighlightStyle(GUI::CCustomDrawingButton::EHighlightStyle::Outline);
+	pButton->SetOutlineHighlightOutlineWidth(3.f);
+}
+
+static void __CreateColorBarAndOtherStuffs(const std::shared_ptr<GUI::CDraggablePage> & p, float yBase, float offsetMultiply, uint8 Frame::ColorRGB::* colorPart) {
+	const float _y = yBase + 44.f + offsetMultiply * 32.f;
+	auto pSlider = p->CreateElement<GUI::CSlider>(Frame::Vec2 { 148.f, _y }, 256.f, 255,
+		GUI::CSlider::FuncSynchValue {},
+		GUI::CSlider::FuncOnValueChanged {}
+	).get();
+
+	bool isR = colorPart == & Frame::ColorRGB::r;
+	bool isG = colorPart == & Frame::ColorRGB::g;
+	bool isB = colorPart == & Frame::ColorRGB::b;
+
+	pSlider->SetFuncOnValueChanged([pSlider, colorPart, isR, isG, isB](int value, int) {
+		uint8 val = static_cast<uint8>(value);
+		__ColorPart(colorPart) = val;
+		pSlider->SetBackgroundColor(Frame::ColorUniteRGB(val * isR, val * isG, val * isB));
+		});
+	pSlider->SetFuncSynchValue([pSlider, colorPart, isR, isG, isB]() -> uint8 {
+		uint8 val = static_cast<uint8>(pSlider->GetValue());
+		pSlider->SetBackgroundColor(Frame::ColorUniteRGB(val * isR, val * isG, val * isB));
+		return __ColorPart(colorPart);
+		});
+
+	auto pButtonDec = p->CreateElement<GUI::CTextButton>(Frame::Vec2 { 304.f, _y }, 28.f, [colorPart]() {
+		__ColorPart(colorPart)--;
+		}, Texts::EText::EMPTY);
+	pButtonDec->SetText("[-]");
+	auto pButtonInc = p->CreateElement<GUI::CTextButton>(Frame::Vec2 { 336.f, _y }, 28.f, [colorPart]() {
+		__ColorPart(colorPart)++;
+		}, Texts::EText::EMPTY);
+	pButtonInc->SetText("[+]");
+
+	auto pLabel = p->CreateElement<GUI::CLabel>(Frame::Vec2 { 360.f, _y }, Texts::EText::EMPTY, Frame::ETextHAlign::Left, Frame::ETextVAlign::Middle);
+	pLabel->SetFuncStep([colorPart](GUI::CLabel * me) {
+		if(!CEditorComponent::s_pEditorComponent) return;
+		me->SetText(std::to_string(__ColorPart(colorPart)));
+		});
+}
+
+void CEditorComponent::InitGUI_ToolSwatchesColorEditor() {
+	constexpr float pageWidth = 400.f;
+	constexpr float pageHeight = 232.f;
+
+	auto & p = m_pToolSwatchesColorEditor;
+	p = m_pGUI->CreateElement<GUI::CDraggablePage>(Frame::Vec2 { 244.f, 12.f }, Frame::Vec2 { pageWidth, pageHeight });
+
+	constexpr float yBase = 44.f;
+
+	__CreateColorButton(p, yBase, 0.f, & SColorSet::color1);
+	__CreateColorButton(p, yBase, 1.f, & SColorSet::color2);
+	__CreateColorButton(p, yBase, 2.f, & SColorSet::connector);
+	__CreateColorButton(p, yBase, 3.f, & SColorSet::pipe);
+
+	__CreateColorBarAndOtherStuffs(p, yBase, 0.f, & Frame::ColorRGB::r);
+	__CreateColorBarAndOtherStuffs(p, yBase, 1.f, & Frame::ColorRGB::g);
+	__CreateColorBarAndOtherStuffs(p, yBase, 2.f, & Frame::ColorRGB::b);
+
+	constexpr float btApplyY = yBase + 160.f;
+	p->CreateElement<GUI::CLabel>(Frame::Vec2 { 64.f, btApplyY - 12.f }, Texts::EText::EMPTY, Frame::ETextHAlign::Left, Frame::ETextVAlign::Middle)->SetFuncStep(
+		[](GUI::CLabel * me) {
+			const auto & colorEditing = __Color();
+			char szColorCode[8];
+			sprintf_s(szColorCode, 8, "#%02X%02X%02X", colorEditing.r, colorEditing.g, colorEditing.b);
+			me->SetText(szColorCode);
+		});
+	p->CreateElement<GUI::CTextButton>(Frame::Vec2 { 304.f, btApplyY }, Frame::Vec2 { 64.f, 24.f }, []() {
+		if(!CEditorComponent::s_pEditorComponent) return;
+		CEditorComponent::s_pEditorComponent->SetCurrentColorSetByIndex(CEditorComponent::s_pEditorComponent->m_currColorSetIndex);
+		}, Texts::EText::Reset);
+	p->CreateElement<GUI::CTextButton>(Frame::Vec2 { 224.f, btApplyY }, Frame::Vec2 { 64.f, 24.f }, []() {
+		if(!CEditorComponent::s_pEditorComponent) return;
+		CEditorComponent::s_pEditorComponent->ApplyCurrentColorSet();
+		}, Texts::EText::Apply);
+	
+	p->SetShowing(false);
+}
+
+void CEditorComponent::InitGUI_ToolControllerMenu() {
+	constexpr float pageWidth = 96.f;
+	constexpr float pageHeight = 512.f;
+	constexpr float buttonSize = pageWidth - 16.f;
+
+	auto & p = m_pToolControllerMenu;
+	p = m_pGUI->CreateElement<GUI::CDraggablePage>(Frame::Vec2 { 72.f, 12.f }, Frame::Vec2 { pageWidth, pageHeight });
+
+	float y = buttonSize * .5f + 8.f;
+	int i = 0;
+	for(Controller::EElement elem = Controller::EElement::Button; elem < Controller::EElement::END; elem = static_cast<Controller::EElement>(static_cast<int>(elem) + 1)) {
+		float spriteScale = 1.f;
+		switch(elem) {
+		case Controller::EElement::Button: spriteScale = 1.f; break;
 		}
-		if(Frame::PointInRectangle(mousePosInScene, btApplyPos - btApplySizeHalf, btApplyPos + btApplySizeHalf)) {
-			mouseOnApply = true;
-			if(m_bMBLeftPressed) {
-				m_bMBLeftHolding = m_bMBLeftPressed = false;
-				ApplyCurrentColorSet();
+
+		auto pCurrButton = p->CreateElement<GUI::CCustomDrawingButton>(
+			Frame::Vec2 { pageWidth * .5f, y },
+			buttonSize,
+			[elem]() { if(CEditorComponent::s_pEditorComponent) { CEditorComponent::s_pEditorComponent->SwitchControllerPencilElement(elem); } },
+			[elem, spriteScale](const Frame::Vec2 & center) {
+				Controller::DrawPreview(elem, center, 1.f, spriteScale);
 			}
+		);
+		pCurrButton->SetCustomHighlightingCondition(
+			[elem]() {
+				if(CEditorComponent::s_pEditorComponent) {
+					return CEditorComponent::s_pEditorComponent->m_controllerPencilElement == elem;
+				}
+				return false;
+			}
+		);
+
+		y += buttonSize + 6.f;
+		i++;
+	}
+
+	p->SetShowing(false);
+}
+
+void CEditorComponent::InitGUI_ToolControllerController() {
+	auto & p = m_pToolControllerController;
+	p = m_pGUI->CreateElement<GUI::CDraggableResizablePage>(Frame::Vec2 { 244.f, 12.f }, Controller::gridCellSize, m_controllerEditing.gridSize, Frame::Vec2i { Controller::controllerMinWidth, Controller::controllerMinHeight });
+
+	//const Frame::Vec2 mousePosInScene = GetMousePosInScene();
+	//const Frame::Vec2 controllerLT = p->GetL
+
+	p->SetShowing(false);
+}
+
+void CEditorComponent::InitGUI_OperationPrompt() {
+	auto pFixed = m_pGUI->CreateElement<GUI::CLabel>(0.f, Texts::EText::EditorOperationPrompt_Camera, Frame::ETextHAlign::Left, Frame::ETextVAlign::Bottom);
+	pFixed->SetFuncStep([](GUI::CLabel * me) {
+		me->SetPos({ 20.f, static_cast<float>(Frame::gCamera->GetWindowSize().y) - 16.f });
+		});
+	pFixed->SetColor(0x000000);
+
+	auto pDynamic = m_pGUI->CreateElement<GUI::CLabel>(0.f, Texts::EText::EMPTY, Frame::ETextHAlign::Left, Frame::ETextVAlign::Bottom);
+	pDynamic->SetFuncStep([](GUI::CLabel * me) {
+		me->SetPos({ 20.f, static_cast<float>(Frame::gCamera->GetWindowSize().y) - 36.f });
+
+		if(!CEditorComponent::s_pEditorComponent) {
+			return;
 		}
-		__DRAW_TEXT_BUTTON(btResetPos, btResetSizeHalf, mouseOnReset, Texts::GetText(Texts::Reset));
-		__DRAW_TEXT_BUTTON(btApplyPos, btApplySizeHalf, mouseOnApply, Texts::GetText(Texts::Apply));
-	}
 
-	char szColorCode[8];
-	sprintf_s(szColorCode, 8, "#%02X%02X%02X", colorEditing.r, colorEditing.g, colorEditing.b);
-	Frame::gRenderer->pTextRenderer->DrawTextAlignBlended(szColorCode, { colorEditorLT.x + 32.f, colorEditorRB.y - 32.f }, Frame::ETextHAlign::Left, Frame::ETextVAlign::Middle, 0xFFFFFF, 1.f);
+		Texts::EText text = Texts::EText::EMPTY;
 
-	m_colorEditorMenuDragger.WorkPart2(m_bMBLeftPressed, m_bMBLeftReleased, mousePosInScene, colorEditorSize);
-	if(m_colorEditorMenuDragger.IsDragging()) {
-		m_bMouseOnGUI = true;
-	}
+		switch(CEditorComponent::s_pEditorComponent->m_tool) {
+		case ETool::Hand: text = Texts::EText::EditorOperationPrompt_Hand; break;
+		case ETool::Pencil: text = Texts::EText::EditorOperationPrompt_Pencil; break;
+		case ETool::Pipe:
+			text = Texts::EText::EditorOperationPrompt_Pipe;
+			if(CEditorComponent::s_pEditorComponent->m_pipeToolMode == EPipeToolMode::Pencil && !CEditorComponent::s_pEditorComponent->m_pipeNodesEditing.empty()) {
+				text = Texts::EText::EditorOperationPrompt_PipePencil_Drawing;
+			}
+			break;
+		case ETool::Controller:
+			if(CEditorComponent::s_pEditorComponent->m_toolControllerStuff.pEDCompWaitingForKey) {
+				text = Texts::EText::EditorOperationPrompt_Controller_Setting;
+			}
+			break;
+		}
+
+		me->SetText(text);
+		});
+	pDynamic->SetColor(0x000000);
 }
 
 void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTopPos) {
@@ -599,7 +714,7 @@ void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTo
 	
 	m_controllerMenuDragger.WorkPart1(mousePosInScene, controllerSize, { leftTopPos.x + menuWidth, leftTopPos.y }, Frame::Vec2Cast<float>(Frame::gCamera->GetViewSize()));
 	if(m_controllerMenuDragger.IsDragging()) {
-		m_bMBLeftPressed = m_bMBLeftHolding = false;
+		m_bMBRightPressed = m_bMBLeftPressed = m_bMBLeftHolding = false;
 	}
 
 	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(controllerLT, controllerRB, 0x4F4F4F, 1.f);
@@ -608,7 +723,7 @@ void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTo
 	Frame::gRenderer->pShapeRenderer->DrawLineBlended({ controllerRB.x, controllerRB.y - 12.f }, { controllerRB.x - 12.f, controllerRB.y }, 0xFFFFFF, 1.f, 2.f);
 	Frame::gRenderer->pShapeRenderer->DrawLineBlended({ controllerRB.x, controllerRB.y - 6.f }, { controllerRB.x - 6.f, controllerRB.y }, 0xFFFFFF, 1.f, 2.f);
 
-	/* ----------------------- 拖动四角调整底盘尺寸 ----------------------- */
+	/* ----------------------- 拖动角落调整底盘尺寸 ----------------------- */
 
 	if(Frame::PointInRectangle(mousePosInScene, controllerRB - 8.f, controllerRB + 8.f)) {
 		gApplication->SetCursor(CApplication::eCursor_ResizeNWSE);
@@ -636,15 +751,20 @@ void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTo
 		}
 	}
 
-	/* ----------------------- 拖动现有元件 ----------------------- */
+	/* ----------------------- 拖动或右键现有元件 ----------------------- */
 	
-	for(auto & pElem : m_controllerEditing.elements) {
-		if(m_bMBLeftPressed && !m_pDraggingControllerElement) {
-			if(auto [lt, rb] = Controller::GetElementAABBRealPos(pElem, controllerLT); Frame::PointInRectangle(mousePosInScene, lt, rb)) {
+	if(!m_pDraggingControllerElement && !m_bControllerResizing) {
+		for(auto & pElem : m_controllerEditing.elements) {
+			if(auto [lt, rb] = Controller::GetElementAABBRealPos(pElem, controllerLT); !Frame::PointInRectangle(mousePosInScene, lt, rb)) {
+				continue;
+			}
+			if(m_bMBLeftPressed) {
 				m_bMBLeftPressed = m_bMBLeftHolding = false;
 				m_pDraggingControllerElement = pElem;
 				m_draggingControllerElementPosRelativeToMouse = Controller::GetElementRealPos(pElem, controllerLT) - mousePosInScene;
 				break;
+			} else if(m_bMBRightPressed) {
+				m_bMBRightPressed = false;
 			}
 		}
 	}
@@ -752,7 +872,7 @@ void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTo
 
 	m_controllerMenuDragger.WorkPart2(m_bMBLeftPressed && !m_pDraggingControllerElement, m_bMBLeftReleased, mousePosInScene, controllerSize);
 	if(m_controllerMenuDragger.IsDragging()) {
-		m_bMouseOnGUI = true;
+		//m_bMouseOnGUI = true;
 	}
 }
 
@@ -1372,7 +1492,7 @@ void CEditorComponent::SwitchTool(ETool tool) {
 	if(m_tool == ETool::Pencil) {
 		FindAvailableInterfaces();
 	} else if(m_tool == ETool::Swatches) {
-		SynchCurrentColorSet();
+		m_colorSetEditing = GetCurrentColorSet();
 	} else if(m_tool == ETool::Controller) {
 		ControllerBegin();
 	}
@@ -1586,27 +1706,6 @@ void CEditorComponent::UnbindPipeNodeWithEditorDeviceComponent(SEditorPipeNode *
 	}
 }
 
-void CEditorComponent::CameraControl() {
-	static Frame::Vec2 mousePosPressed {};
-
-	const Frame::Vec2 mouseCurrPos = GetMousePosInScene();
-	const float camZoomRev = 1.f / Frame::gCamera->GetZoom();
-	const Frame::Vec2 leftTopPos = Frame::gCamera->GetPos() - Frame::Vec2Cast(Frame::gCamera->GetViewSize()) * .5f * camZoomRev;
-	
-	if(mouseCurrPos.x <= leftTopPos.x + (toolbarWidth + GetToolMenuWidth(m_tool)) * camZoomRev) {
-		mousePosPressed = mouseCurrPos;
-		m_bMouseOnGUI = true;
-		//return;
-	}
-	if(m_bMouseOnGUI) { // 因为其它地方也会控制 m_bMouseOnGUI 的值，所以就把这个 return 从上面单独拿出来了
-		return;
-	}
-
-	if(m_pCameraComponent) {
-		m_pCameraComponent->CameraControl();
-	}
-}
-
 void CEditorComponent::DrawMyPipe(const std::vector<SEditorPipeNode *> & pipe, float alpha) const {
 	DrawPipe<SEditorPipeNode>(pipe, m_pEntity->GetPosition(), GetCurrentColorSet().pipe, alpha, m_pEntity->GetRotation());
 }
@@ -1655,39 +1754,6 @@ void CEditorComponent::DrawDevicePreview(IDeviceData::EType type, const Frame::V
 #undef __DrawDeviceSprite
 #undef __DrawDeviceSprite_ByPart
 
-}
-
-void CEditorComponent::DrawOperationPrompt(const Frame::Vec2 & leftBottom) {
-	if(!m_pFont) {
-		return;
-	}
-
-	Texts::EText additionalText = Texts::EText::EMPTY;
-
-	switch(m_tool) {
-	case ETool::Hand: additionalText = Texts::EText::EditorOperationPrompt_Hand; break;
-	case ETool::Pencil: additionalText = Texts::EText::EditorOperationPrompt_Pencil; break;
-	case ETool::Pipe:
-		additionalText = Texts::EText::EditorOperationPrompt_Pipe;
-		if(m_pipeToolMode == EPipeToolMode::Pencil && !m_pipeNodesEditing.empty()) {
-			additionalText = Texts::EText::EditorOperationPrompt_PipePencil_Drawing;
-		}
-		break;
-	case ETool::Controller:
-		if(m_toolControllerStuff.pEDCompWaitingForKey) {
-			additionalText = Texts::EText::EditorOperationPrompt_Controller_Setting;
-		}
-		break;
-	}
-
-	const UnicodeString & cameraStr = Texts::GetText(Texts::EText::EditorOperationPrompt_Camera);
-	Frame::gRenderer->pTextRenderer->DrawTextAlignBlended(cameraStr, leftBottom, Frame::ETextHAlign::Left, Frame::ETextVAlign::Bottom, 0x000000, 1.f);
-	if(additionalText != Texts::EText::EMPTY) {
-		const UnicodeString & additionalStr = Texts::GetText(additionalText);
-		//const float additionalTextHeight = m_pFont->TextHeight(additionalStr, 0.f);
-		const float cameraTextHeight = m_pFont->TextHeight(cameraStr, 0.f) + 4.f;
-		Frame::gRenderer->pTextRenderer->DrawTextAlignBlended(additionalStr, leftBottom - Frame::Vec2 { 0.f, cameraTextHeight }, Frame::ETextHAlign::Left, Frame::ETextVAlign::Bottom, 0x000000, 1.f);
-	}
 }
 
 void CEditorComponent::ButtonEnd(const Frame::Vec2 & rightBottom) {

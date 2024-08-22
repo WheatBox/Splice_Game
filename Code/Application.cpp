@@ -12,10 +12,11 @@
 
 #include "Assets.h"
 #include "Texts.h"
+#include "GUI/GUI.h"
 
 #include <GLFW/glfw3.h>
 
-void CApplication::Initialize(int, char **) {
+void CApplication::Initialize() {
 	SetVSync(true);
 	//SetVSync(false);
 	//SetMaxFPS(60);
@@ -28,7 +29,7 @@ void CApplication::Initialize(int, char **) {
 		pEntity->GetOrCreateComponent<CPhysicsWorldComponent>();
 	}
 	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
-		pEntity->GetOrCreateComponent<CEditorComponent>();
+		CEditorComponent::s_pEditorComponent = pEntity->GetOrCreateComponent<CEditorComponent>();
 	}
 
 	//Frame::gRenderer->SetBackgroundColor(0x00004F);
@@ -68,6 +69,10 @@ void CApplication::MainLoopLast() {
 		Frame::gEntitySystem->RemoveEntity(entId);
 	}
 	m_entitiesWillBeRemovedAtTheEndOfThisFrame.clear();
+
+	if(GUI::gCurrentGUI) {
+		GUI::gCurrentGUI->Work();
+	}
 }
 
 void CApplication::SetCursor(ECursor shape) {

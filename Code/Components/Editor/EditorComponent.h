@@ -9,6 +9,9 @@
 #include "../../Pipe.h"
 #include "../../Texts.h"
 #include "../../Controller.h"
+#include "../../GUI/GUI.h"
+
+#include "EditorControllerGUI.h"
 
 #include <vector>
 #include <unordered_set>
@@ -19,6 +22,8 @@ class CCameraComponent;
 
 class CEditorComponent final : public Frame::IEntityComponent {
 public:
+
+	static CEditorComponent * s_pEditorComponent;
 
 	virtual void Initialize() override;
 	virtual void OnShutDown() override;
@@ -48,6 +53,40 @@ private:
 
 	Frame::CEntity * m_pDeviceConnectorRendererEntity = nullptr;
 
+	/* -------------------- GUI -------------------- */
+
+	void InitGUI();
+	void InitGUI_Toolbar();
+	void InitGUI_ToolPencilMenu();
+	void InitGUI_ToolPipeMenu();
+	void InitGUI_ToolSwatchesMenu();
+	void InitGUI_ToolSwatchesColorEditor();
+	void InitGUI_ToolControllerMenu();
+	void InitGUI_ToolControllerController();
+	void InitGUI_OperationPrompt();
+
+	std::shared_ptr<GUI::CGUI> m_pGUI {};
+	std::shared_ptr<GUI::CDraggablePage> m_pToolPencilMenu {};
+	std::shared_ptr<GUI::CDraggablePage> m_pToolPipeMenu {};
+	std::shared_ptr<GUI::CDraggablePage> m_pToolSwatchesMenu {};
+	std::shared_ptr<GUI::CDraggablePage> m_pToolSwatchesColorEditor {};
+	std::shared_ptr<GUI::CDraggablePage> m_pToolControllerMenu {};
+	std::shared_ptr<CEditorControllerPage> m_pToolControllerController {};
+
+	/* -------------------- 鼠标 -------------------- */
+
+	bool m_bMouseOnGUI = false;
+
+	bool m_bMBLeftPressed = false;
+	bool m_bMBLeftHolding = false;
+	bool m_bMBLeftReleased = false;
+	bool m_bMBRightPressed = false;
+
+	void SetMouseLabel(Texts::EText text) {
+		m_mouseLabelText = text;
+	}
+	Texts::EText m_mouseLabelText = Texts::EText::EMPTY;
+
 	/* -------------------- 工具菜单 -------------------- */
 
 	static constexpr float toolbarWidth = 48.f;
@@ -73,10 +112,6 @@ private:
 		return toolMenuWidth[static_cast<int>(tool)];
 	}
 
-	void RenderAndProcessToolbar(const Frame::Vec2 & leftTopPos, const Frame::Vec2 & rightBottomPos);
-	void RenderAndProcessPencilMenu(const Frame::Vec2 & leftTopPos);
-	void RenderAndProcessPipeMenu(const Frame::Vec2 & leftTopPos);
-	void RenderAndProcessSwatchesMenu(const Frame::Vec2 & leftTopPos);
 	void RenderAndProcessControllerMenu(const Frame::Vec2 & leftTopPos);
 
 	/* -------------------- 工具运行 -------------------- */
@@ -116,19 +151,40 @@ private:
 	};
 	size_t m_currColorSetIndex = 0;
 
-	int m_swatchesColorEditingIndex = 0;
 	SColorSet m_colorSetEditing {};
+	Frame::ColorRGB SColorSet::* m_pColorSetEditingColor = & SColorSet::color1;
 
-	SColorSet GetCurrentColorSet() const {
+public:
+	SColorSet & GetColorSetEditing() {
+		return m_colorSetEditing;
+	}
+
+	void SetColorSetEditingColor(Frame::ColorRGB SColorSet::* memberVarInColorSet) {
+		m_pColorSetEditingColor = memberVarInColorSet;
+	}
+
+	Frame::ColorRGB SColorSet::* GetColorSetEditingColor() const {
+		return m_pColorSetEditingColor;
+	}
+
+private:
+	const SColorSet & GetCurrentColorSet() const {
+		static SColorSet defaultRes {};
 		if(m_currColorSetIndex >= m_colorSets.size()) {
-			return {};
+			return defaultRes;
 		}
 		return m_colorSets[m_currColorSetIndex];
 	}
 
-	void SynchCurrentColorSet() {
+	void SetCurrentColorSetByIndex(size_t colorSetIndex) {
+		if(colorSetIndex >= m_colorSets.size()) {
+			return;
+		}
+		m_currColorSetIndex = colorSetIndex;
 		m_colorSetEditing = GetCurrentColorSet();
+		UpdateDevicesColor();
 	}
+
 	void ApplyCurrentColorSet() {
 		if(m_currColorSetIndex >= m_colorSets.size()) {
 			return;
@@ -139,11 +195,16 @@ private:
 
 	void UpdateDevicesColor();
 
-	CMenuDragger m_colorEditorMenuDragger {};
-
 	/* -------------------- 控制器编辑工具杂项 -------------------- */
 
+	void SwitchControllerPencilElement(Controller::EElement elem) {
+		m_controllerPencilElement = elem;
+	}
+
 	Controller::EElement m_controllerPencilElement = Controller::EElement::Unknown;
+
+	// ---
+
 	Controller::SController m_controllerEditing {};
 	
 	CMenuDragger m_controllerMenuDragger {};
@@ -345,21 +406,6 @@ private:
 		PipeToolCleanUp();
 	}
 
-	/* -------------------- 镜头与鼠标 -------------------- */
-
-	void CameraControl();
-
-	bool m_bMouseOnGUI = false;
-	bool m_bMBLeftPressed = false;
-	bool m_bMBLeftHolding = false;
-	bool m_bMBLeftReleased = false;
-	bool m_bMBRightPressed = false;
-
-	void SetMouseLabel(Texts::EText text) {
-		m_mouseLabelText = text;
-	}
-	Texts::EText m_mouseLabelText = Texts::EText::EMPTY;
-
 	/* -------------------- 其它绘制函数 -------------------- */
 
 	void DrawMyPipe(const std::vector<SEditorPipeNode *> & pipe, float alpha = 1.f) const;
@@ -368,8 +414,6 @@ private:
 		DrawDevicePreview(type, pos, alpha, dirIndex, scale, 0, false);
 	}
 	void DrawDevicePreview(IDeviceData::EType type, const Frame::Vec2 & pos, float alpha, int dirIndex, float scale, Frame::ColorRGB customColor, bool useCustomColor = true) const;
-
-	void DrawOperationPrompt(const Frame::Vec2 & leftBottom);
 
 	/* -------------------- 未归类 -------------------- */
 

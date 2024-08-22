@@ -1,6 +1,6 @@
 ﻿#include "Application.h"
 
-int main(int argc, char ** argv) {
+int main() {
 	printf("main called\n");
-	return gApplication->EntryPoint(argc, argv);
+	return gApplication->EntryPoint("Splice", { 1280, 720 });
 }

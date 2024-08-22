@@ -57,6 +57,7 @@ endmacro(AddFiles)
 
 AddFiles(CODE_FILES
 	Code
+	Code/GUI
 	Code/Components
 	Code/Components/Editor
 	Code/Components/Machine

@@ -24,7 +24,7 @@ public:
 		type.SetGUID("{D9488C87-2807-41EE-8E78-85F59CDE2A05}");
 	}
 
-	void CameraControl();
+	void CameraControl(bool bCanZoom);
 
 	// 暂停工作后，仍然可以通过在自己需要的位置上调用 CameraControl() 等函数来让该组件发挥作用
 	// 也就是说，如果需要自己手动安排镜头控制和其它代码之间的执行顺序等，可以先将该组件设为暂停工作，然后在所需位置调用 CameraControl()

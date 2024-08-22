@@ -131,7 +131,7 @@ void CPhysicsWorldComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 			break;
 		}
 		if(m_pCameraComponent) {
-			m_pCameraComponent->CameraControl();
+			m_pCameraComponent->CameraControl(true);
 		}
 		DrawBlockBackground();
 		break;
