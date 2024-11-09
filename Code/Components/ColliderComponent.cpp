@@ -6,7 +6,7 @@
 
 #include <cmath>
 
-REGISTER_ENTITY_COMPONENT(, CColliderComponent);
+REGISTER_ENTITY_COMPONENT(CColliderComponent);
 
 std::unordered_set<CColliderComponent *> CColliderComponent::s_colliders {};
 

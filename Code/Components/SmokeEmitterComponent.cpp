@@ -6,7 +6,7 @@
 
 #include "../Depths.h"
 
-REGISTER_ENTITY_COMPONENT(, CSmokeEmitterComponent);
+REGISTER_ENTITY_COMPONENT(CSmokeEmitterComponent);
 
 CSmokeEmitterComponent * CSmokeEmitterComponent::s_pSmokeEmitterComponent = nullptr;
 std::list<CSmokeEmitterComponent::SSmokeParticle> CSmokeEmitterComponent::s_smokePraticles {};

@@ -13,7 +13,7 @@
 
 #include <algorithm>
 
-REGISTER_ENTITY_COMPONENT(, CMachinePartComponent);
+REGISTER_ENTITY_COMPONENT(CMachinePartComponent);
 
 Frame::EntityEvent::Flags CMachinePartComponent::GetEventFlags() const {
 	return Frame::EntityEvent::EFlag::Update
@@ -45,8 +45,7 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 	m_colorSet = colorSet;
 
 	m_pRigidbodyComponent = m_pEntity->CreateComponent<CRigidbodyComponent>();
-	std::vector<b2FixtureDef *> fixtureDefs;
-	std::unordered_map<b2FixtureDef *, CDeviceComponent *> map_fixtureDefDeviceComp;
+	std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> shapeDefs;
 
 	/* --------------------- 创建装置 --------------------- */
 
@@ -64,11 +63,8 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 				pComp->Initialize(m_pEntity, pEDComp->GetDeviceType(), pEDComp->GetKeyId(), pEDComp->GetDirIndex(), colorSet);
 				pComp->SetRelativePositionRotation(devicePos, deviceRot);
 
-				auto defs = CDeviceComponent::CreateFixtureDefs(pEDComp->GetDeviceType(), devicePos, deviceRot);
-				fixtureDefs.insert(fixtureDefs.end(), defs.begin(), defs.end());
-				for(auto def : defs) {
-					map_fixtureDefDeviceComp.insert({ def, pComp });
-				}
+				auto defs = CDeviceComponent::MakeShapeDefs(pEDComp->GetDeviceType(), devicePos, deviceRot);
+				shapeDefs.insert(shapeDefs.end(), defs.begin(), defs.end());
 
 				map_EDCompDeviceComp.insert({ pEDComp, pComp });
 				m_deviceComponents.insert(pComp);
@@ -95,14 +91,14 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 	{
 		const Frame::Vec2 entPos = PixelToMeterVec2(m_pEntity->GetPosition());
 
-		b2BodyDef bodyDef;
+		b2BodyDef bodyDef = b2DefaultBodyDef();
 		bodyDef.type = b2_dynamicBody;
-		bodyDef.position.Set(entPos.x, entPos.y);
-		bodyDef.angle = Frame::DegToRad(m_pEntity->GetRotation());
+		bodyDef.position = { entPos.x, entPos.y };
+		bodyDef.rotation = b2MakeRot(Frame::DegToRad(m_pEntity->GetRotation()));
 		bodyDef.linearDamping = 1.f;
 		bodyDef.angularDamping = 1.f;
 
-		m_pRigidbodyComponent->Physicalize(bodyDef, fixtureDefs, map_fixtureDefDeviceComp);
+		m_pRigidbodyComponent->Physicalize(bodyDef, shapeDefs);
 		//m_pRigidbodyComponent->SetEnableRendering(true);
 	}
 
@@ -286,18 +282,21 @@ bool CMachinePartComponent::CreateJointWith(CMachinePartComponent * pAnotherMach
 	{
 		Frame::Vec2 anchor = PixelToMeterVec2(pJointComp->GetEntity()->GetPosition());
 		bRes = m_pRigidbodyComponent->CreateJointWith(pAnotherMachinePartComp->GetEntity()->GetId(),
-			[anchor](b2Body * pMyBody, b2Body * pAnotherBody) {
-				b2RevoluteJointDef * pDef = new b2RevoluteJointDef {};
-				pDef->Initialize(pMyBody, pAnotherBody, { anchor.x, anchor.y });
-				pDef->collideConnected = true;
-				pDef->referenceAngle = Frame::DegToRad(0.f);
-				pDef->lowerAngle = Frame::DegToRad(-90.f);
-				pDef->upperAngle = Frame::DegToRad(90.f);
-				pDef->enableLimit = true;
-				return pDef;
-			},
-			[](b2JointDef * pDef) {
-				delete reinterpret_cast<b2RevoluteJointDef *>(pDef);
+			[anchor](b2BodyId myBody, b2BodyId anotherBody) {
+				b2RevoluteJointDef def = b2DefaultRevoluteJointDef();
+				
+				def.bodyIdA = myBody;
+				def.bodyIdB = anotherBody;
+				def.localAnchorA = b2Body_GetLocalPoint(myBody, { anchor.x, anchor.y });
+				def.localAnchorB = b2Body_GetLocalPoint(anotherBody, { anchor.x, anchor.y });
+
+				def.collideConnected = true;
+				def.referenceAngle = Frame::DegToRad(0.f);
+				def.lowerAngle = Frame::DegToRad(-90.f);
+				def.upperAngle = Frame::DegToRad(90.f);
+				def.enableLimit = true;
+
+				b2CreateRevoluteJoint(gWorldId, & def);
 			}
 		);
 	}

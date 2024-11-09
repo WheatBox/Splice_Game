@@ -16,7 +16,7 @@
 
 #include "../../Depths.h"
 
-REGISTER_ENTITY_COMPONENT(, CEditorComponent);
+REGISTER_ENTITY_COMPONENT(CEditorComponent);
 
 constexpr float __INTERFACESET_BUTTON_SIZE_HALF = 48.f;
 constexpr float __INTERFACE_SIGN_WIDTH_HALF = 8.f;
@@ -226,7 +226,7 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		m_pToolSwatchesMenu->SetShowing(false);
 		m_pToolSwatchesColorEditor->SetShowing(false);
 		m_pToolControllerMenu->SetShowing(false);
-		m_pToolControllerController->SetShowing(false);
+		//m_pToolControllerController->SetShowing(false);
 		switch(m_tool) {
 		case ETool::Pencil:
 			m_pToolPencilMenu->SetShowing(true);
@@ -240,7 +240,7 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 			break;
 		case ETool::Controller:
 			m_pToolControllerMenu->SetShowing(true);
-			m_pToolControllerController->SetShowing(true);
+			//m_pToolControllerController->SetShowing(true);
 			break;
 		}
 
@@ -653,13 +653,14 @@ void CEditorComponent::InitGUI_ToolControllerMenu() {
 }
 
 void CEditorComponent::InitGUI_ToolControllerController() {
-	auto & p = m_pToolControllerController;
-	p = m_pGUI->CreateElement<GUI::CDraggableResizablePage>(Frame::Vec2 { 244.f, 12.f }, Controller::gridCellSize, m_controllerEditing.gridSize, Frame::Vec2i { Controller::controllerMinWidth, Controller::controllerMinHeight });
+	//auto & p = m_pToolControllerController;
+	//p = m_pGUI->CreateElement<GUI::CDraggableResizablePage>(Frame::Vec2 { 244.f, 12.f }, Controller::gridCellSize, m_controllerEditing.gridSize, Frame::Vec2i { Controller::controllerMinWidth, Controller::controllerMinHeight });
+	//TODO
 
 	//const Frame::Vec2 mousePosInScene = GetMousePosInScene();
 	//const Frame::Vec2 controllerLT = p->GetL
 
-	p->SetShowing(false);
+	//p->SetShowing(false);
 }
 
 void CEditorComponent::InitGUI_OperationPrompt() {

@@ -4,12 +4,12 @@
 
 #include "../SpriteComponent.h"
 #include "MachinePartComponent.h"
+#include "../RigidbodyComponent.h"
 
 #include "../../DevicesData.h"
 
 #include <unordered_set>
 
-class b2Fixture;
 struct SPipeNode;
 
 class CDeviceComponent final : public Frame::IEntityComponent {
@@ -51,8 +51,7 @@ public:
 
 	void Step(float timeStep);
 
-	static std::vector<b2FixtureDef *> CreateFixtureDefs(IDeviceData::EType deviceType, const Frame::Vec2 & devicePos, float rotation);
-	static void DestroyFixtureDefs(const std::vector<b2FixtureDef *> & defs);
+	static std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> MakeShapeDefs(IDeviceData::EType deviceType, const Frame::Vec2 & devicePos, float rotation);
 	
 private:
 
@@ -61,8 +60,6 @@ private:
 
 	Frame::CEntity * m_pMachinePartEntity = nullptr;
 	CMachinePartComponent::SGroup * m_pGroup = nullptr;
-
-	b2Fixture * m_pFixture = nullptr;
 
 	float m_frametime = 0.f;
 
@@ -87,13 +84,6 @@ public:
 
 	Frame::CEntity * GetMachinePartEntity() const {
 		return m_pMachinePartEntity;
-	}
-
-	void SetFixture(b2Fixture * pFixture) {
-		m_pFixture = pFixture;
-	}
-	b2Fixture * GetFixture() const {
-		return m_pFixture;
 	}
 
 	int GetDirIndex() const {

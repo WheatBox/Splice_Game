@@ -9,7 +9,7 @@
 #include <FrameCore/Globals.h>
 #include <FrameRender/Renderer.h>
 
-REGISTER_ENTITY_COMPONENT(, CDeviceConnectorRendererComponent);
+REGISTER_ENTITY_COMPONENT(CDeviceConnectorRendererComponent);
 
 Frame::EntityEvent::Flags CDeviceConnectorRendererComponent::GetEventFlags() const {
 	return Frame::EntityEvent::EFlag::Render;

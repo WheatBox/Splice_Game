@@ -7,6 +7,18 @@ set(EXE_NAME Game)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
 
+find_package(glfw3 CONFIG REQUIRED)
+find_package(Freetype CONFIG REQUIRED)
+find_package(OpenAL CONFIG REQUIRED) # OpenAL-soft
+find_package(SndFile CONFIG REQUIRED)
+
+set(THIRD_LIBS
+	glfw
+	Freetype::Freetype
+	OpenAL::OpenAL
+	SndFile::sndfile
+)
+
 set(OUTPUT_DIR ${CMAKE_SOURCE_DIR}/Bin/Windows-x64/)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIR})
@@ -28,6 +40,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	add_compile_options(
 		-Wall
 		-Werror
+		# TODO
 	)
 endif()
 
@@ -37,6 +50,9 @@ if(MSVC)
 		/utf-8
 		/W4
 		/WX
+		/permissive
+		$<$<CONFIG:Debug>:/MTd>
+		$<$<CONFIG:Release>:/MT>
 	)
 endif()
 
@@ -85,12 +101,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
 	${CMAKE_SOURCE_DIR}/Framework_x64_debug.lib
-	${CMAKE_SOURCE_DIR}/box2d_debug.lib
-
-	${CMAKE_SOURCE_DIR}/glfw3.lib
-	${CMAKE_SOURCE_DIR}/freetype.lib
-	${CMAKE_SOURCE_DIR}/OpenAL32.lib
-	${CMAKE_SOURCE_DIR}/sndfile.lib
+	${CMAKE_SOURCE_DIR}/box2dd.lib
+	${THIRD_LIBS}
 )
 
 if(MSVC)

@@ -7,7 +7,7 @@
 #include "../../Assets.h"
 #include "../../Depths.h"
 
-REGISTER_ENTITY_COMPONENT(, CEditorDeviceComponent);
+REGISTER_ENTITY_COMPONENT(CEditorDeviceComponent);
 
 #define __DEBUG_COLLIDER 0
 

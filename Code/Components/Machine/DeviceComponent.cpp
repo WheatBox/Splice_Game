@@ -10,10 +10,9 @@
 #include "../../Pipe.h"
 
 #include "../PhysicsWorldComponent.h"
-#include "../RigidbodyComponent.h"
 #include "../SmokeEmitterComponent.h"
 
-REGISTER_ENTITY_COMPONENT(, CDeviceComponent);
+REGISTER_ENTITY_COMPONENT(CDeviceComponent);
 
 std::unordered_set<CDeviceComponent *> CDeviceComponent::s_workingDevices;
 
@@ -290,54 +289,16 @@ ForMachinePartJoints:
 
 #define F(x) PixelToMeter(x)
 
-std::vector<b2FixtureDef *> CDeviceComponent::CreateFixtureDefs(IDeviceData::EType deviceType, const Frame::Vec2 & devicePos, float rotation) {
-	std::vector<b2FixtureDef *> defs;
+std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> CDeviceComponent::MakeShapeDefs(IDeviceData::EType deviceType, const Frame::Vec2 & devicePos, float rotation) {
+	std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> defs;
 
-	const Frame::Vec2 devicePosMeter = PixelToMeterVec2(devicePos);
-	rotation = Frame::DegToRad(rotation); // 注意 rotation 在此处转换为了弧度
-
-	switch(deviceType) {
-	case IDeviceData::EType::Cabin:
-	case IDeviceData::EType::Shell:
-	case IDeviceData::EType::Engine:
-	case IDeviceData::EType::JetPropeller:
-	{
-		b2PolygonShape * shape = new b2PolygonShape {};
-		Frame::Vec2 whHalf = GetDeviceMeterSize(deviceType) * .5f;
-		shape->SetAsBox(whHalf.x, whHalf.y, { devicePosMeter.x, devicePosMeter.y }, rotation);
-
-		b2FixtureDef * def = new b2FixtureDef {};
-		def->shape = shape;
-		defs.push_back(def);
-	}
-	break;
-	case IDeviceData::EType::Propeller:
-	{
-		b2PolygonShape * shape1 = new b2PolygonShape {}, * shape2 = new b2PolygonShape {};
-		const Frame::Vec2 center1 = Frame::Vec2 { -22.f, 0.f }.Rotate(rotation) + devicePos;
-		const Frame::Vec2 center2 = Frame::Vec2 { 24.f, 0.f }.Rotate(rotation) + devicePos;
-		shape1->SetAsBox(F(24.f), F(40.f), { F(center1.x), F(center1.y) }, rotation);
-		shape2->SetAsBox(F(36.f), F(114.f), { F(center2.x), F(center2.y) }, rotation); // TODO - 细化风扇的部分
-
-		b2FixtureDef * def1 = new b2FixtureDef {}, * def2 = new b2FixtureDef {};
-		def1->shape = shape1;
-		def2->shape = shape2;
-		defs.push_back(def1);
-		defs.push_back(def2);
-	}
-	break;
-	case IDeviceData::EType::Joint:
-	{
-		b2CircleShape * shape = new b2CircleShape {};
-		shape->m_p = { devicePosMeter.x, devicePosMeter.y };
-		shape->m_radius = F(36.f);
-
-		b2FixtureDef * def = new b2FixtureDef {};
-		def->shape = shape;
-		defs.push_back(def);
-	}
-	break;
-	}
+#define __NEW_DEF(_density, _friction, _restitution) {\
+	b2ShapeDef defTemp = b2DefaultShapeDef(); \
+	defTemp.density = _density; \
+	defTemp.friction = _friction; \
+	defTemp.restitution = _restitution; \
+	defs.push_back({ defTemp, {} }); \
+}
 
 	constexpr float shellDensity = 1.f; // 以 Shell 的密度为基准密度
 
@@ -346,36 +307,65 @@ std::vector<b2FixtureDef *> CDeviceComponent::CreateFixtureDefs(IDeviceData::ETy
 	case IDeviceData::EType::Shell:
 	case IDeviceData::EType::Engine:
 	case IDeviceData::EType::Joint:
-		defs[0]->density = shellDensity;
-		defs[0]->friction = .5f;
-		defs[0]->restitution = 0.f;
+		__NEW_DEF(shellDensity, .5f, 0.f);
 		break;
 	case IDeviceData::EType::Propeller:
-		defs[0]->density = shellDensity;
-		defs[0]->friction = .5f;
-		defs[0]->restitution = 0.f;
-		defs[1]->density = shellDensity * .3f;
-		defs[1]->friction = .5f;
-		defs[1]->restitution = .2f;
+		__NEW_DEF(shellDensity, .5f, 0.f);
+		__NEW_DEF(shellDensity * .3f, .5f, .2f);
 		break;
 	case IDeviceData::EType::JetPropeller:
-		defs[0]->density = shellDensity * .8f;
-		defs[0]->friction = .5f;
-		defs[0]->restitution = 0.f;
+		__NEW_DEF(shellDensity * .8f, .5f, 0.f);
 		break;
 	}
+
+#undef __NEW_DEF
+
+	const Frame::Vec2 devicePosMeter = PixelToMeterVec2(devicePos);
+	rotation = Frame::DegToRad(rotation); // 注意 rotation 在此处转换为了弧度
+
+#define __NEW_SHAPE(_shape, _b2ShapeType) \
+	defs[_ind++].second = { _shape, _b2ShapeType };
+
+	int _ind = 0;
+
+	switch(deviceType) {
+	case IDeviceData::EType::Cabin:
+	case IDeviceData::EType::Shell:
+	case IDeviceData::EType::Engine:
+	case IDeviceData::EType::JetPropeller:
+	{
+		Frame::Vec2 whHalf = GetDeviceMeterSize(deviceType) * .5f;
+		b2Polygon shape = b2MakeOffsetBox(whHalf.x, whHalf.y, { devicePosMeter.x, devicePosMeter.y }, b2MakeRot(rotation));
+		
+		__NEW_SHAPE(shape, b2ShapeType::b2_polygonShape);
+	}
+	break;
+	case IDeviceData::EType::Propeller:
+	{
+		const Frame::Vec2 center1 = Frame::Vec2 { -22.f, 0.f }.Rotate(rotation) + devicePos;
+		const Frame::Vec2 center2 = Frame::Vec2 { 24.f, 0.f }.Rotate(rotation) + devicePos;
+		b2Polygon shape1 = b2MakeOffsetBox(F(24.f), F(40.f), { F(center1.x), F(center1.y) }, b2MakeRot(rotation));
+		b2Polygon shape2 = b2MakeOffsetBox(F(36.f), F(114.f), { F(center2.x), F(center2.y) }, b2MakeRot(rotation));
+
+		__NEW_SHAPE(shape1, b2ShapeType::b2_polygonShape);
+		__NEW_SHAPE(shape2, b2ShapeType::b2_polygonShape);
+	}
+	break;
+	case IDeviceData::EType::Joint:
+	{
+		b2Circle shape { { devicePosMeter.x, devicePosMeter.y }, F(36.f) };
+
+		__NEW_SHAPE(shape, b2ShapeType::b2_circleShape);
+	}
+	break;
+	}
+
+#undef __NEW_SHAPE
 
 	return defs;
 }
 
 #undef F
-
-void CDeviceComponent::DestroyFixtureDefs(const std::vector<b2FixtureDef *> & defs) {
-	for(const auto & def : defs) {
-		delete def->shape;
-		delete def;
-	}
-}
 
 void CDeviceComponent::Step(float timeStep) {
 	if(!m_pNode || !m_pNode->pDeviceData || !m_pMachinePartEntity) {

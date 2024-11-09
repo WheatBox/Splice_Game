@@ -75,7 +75,8 @@ namespace GUI {
 
 		template<typename T, typename ... _Types>
 		std::shared_ptr<T> CreateElement(_Types && ... _args) {
-			m_elements.push_back(std::make_shared<T>(_args ...));
+			auto p = std::make_shared<T>(_args ...);
+			m_elements.push_back(p);
 			return p;
 		}
 

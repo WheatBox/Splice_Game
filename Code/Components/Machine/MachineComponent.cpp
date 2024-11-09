@@ -8,7 +8,7 @@
 #include "../Editor/EditorDeviceComponent.h"
 #include "../../Application.h"
 
-REGISTER_ENTITY_COMPONENT(, CMachineComponent);
+REGISTER_ENTITY_COMPONENT(CMachineComponent);
 
 Frame::EntityEvent::Flags CMachineComponent::GetEventFlags() const {
 	return Frame::EntityEvent::EFlag::Update;

@@ -6,7 +6,7 @@
 
 #include "../Utility.h"
 
-REGISTER_ENTITY_COMPONENT(, CSpriteComponent);
+REGISTER_ENTITY_COMPONENT(CSpriteComponent);
 
 Frame::EntityEvent::Flags CSpriteComponent::GetEventFlags() const {
 	return Frame::EntityEvent::EFlag::Update | Frame::EntityEvent::EFlag::Render;

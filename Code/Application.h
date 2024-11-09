@@ -4,7 +4,7 @@
 #include <FrameMath/Vector2.h>
 #include <FrameEntity/Entity.h>
 
-#include "box2dIncluded.h"
+#include <box2d/box2d.h>
 
 #include <list>
 
@@ -74,7 +74,7 @@ static inline Frame::Vec2 PixelToMeterVec2(const Frame::Vec2 & pixel) {
 #undef __MeterToPixelRatio
 
 extern CApplication * gApplication;
-extern b2World * gWorld;
+extern b2WorldId gWorldId;
 
 static inline void RemoveEntityAtTheEndOfThisFrame(Frame::EntityId entityId) {
 	if(gApplication) {

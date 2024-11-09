@@ -13,7 +13,7 @@
 
 #include <thread>
 
-REGISTER_ENTITY_COMPONENT(, CPhysicsWorldComponent);
+REGISTER_ENTITY_COMPONENT(CPhysicsWorldComponent);
 
 CPhysicsWorldComponent * CPhysicsWorldComponent::s_pPhysicsWorldComponent = nullptr;
 
@@ -70,17 +70,16 @@ void CPhysicsWorldComponent::Initialize() {
 		s_pPhysicsThread->detach();
 	}
 
-	if(gWorld) {
-		b2World * pWorldTemp = gWorld;
-		gWorld = nullptr;
-		delete pWorldTemp;
-		// 这里分成这三行写主要是防止多线程的访问出错，还有下面这一段也是
+	if(b2World_IsValid(gWorldId)) {
+		b2WorldId worldIdTemp = gWorldId;
+		gWorldId = b2_nullWorldId;
+		b2DestroyWorld(worldIdTemp);
+		// 这里分成这三行写主要是防止多线程的访问出错
 	}
 	{
-		b2World * pWorldTemp = new b2World { { 0.f, 0.f } };
-		pWorldTemp->SetAutoClearForces(true);
-		pWorldTemp->SetAllowSleeping(true);
-		gWorld = pWorldTemp;
+		b2WorldDef worldDef = b2DefaultWorldDef();
+		worldDef.gravity = { 0.f, 0.f };
+		gWorldId = b2CreateWorld(& worldDef);
 	}
 
 	s_pPhysicsWorldComponent = this;
@@ -103,10 +102,10 @@ void CPhysicsWorldComponent::OnShutDown() {
 	if(s_pPhysicsWorldComponent == this) {
 		s_pPhysicsWorldComponent = nullptr;
 
-		if(gWorld) {
-			b2World * pWorldTemp = gWorld;
-			gWorld = nullptr;
-			delete pWorldTemp;
+		if(b2World_IsValid(gWorldId)) {
+			b2WorldId worldIdTemp = gWorldId;
+			gWorldId = b2_nullWorldId;
+			b2DestroyWorld(worldIdTemp);
 		}
 	}
 
@@ -139,7 +138,7 @@ void CPhysicsWorldComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 }
 
 void CPhysicsWorldComponent::Step(float timeStep) {
-	if(!gWorld || gWorld->IsLocked()) {
+	if(!b2World_IsValid(gWorldId)) {
 		return;
 	}
 
@@ -152,9 +151,8 @@ void CPhysicsWorldComponent::Step(float timeStep) {
 		pDevice->Step(timeStep);
 	}
 
-	//gWorld->Step(timeStep, 16, 8);
-	gWorld->Step(timeStep, 8, 3);
-	// 因为第一个参数应为不能变的固定参数，所以为物理计算单独开一条线程，其它的物理相关运算应该也放入该线程
-	// 以及记得给这三个参数都做成玩家开房间时候的设置选项
+	b2World_Step(gWorldId, timeStep, 4);
+	// 因为参数 timeStep 应为不能变的固定参数，所以为物理计算单独开一条线程，其它的物理相关运算应该也放入该线程
+	// TODO - 以及记得给后两个参数都做成玩家开房间时候的设置选项
 
 }

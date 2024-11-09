@@ -85,4 +85,4 @@ void CApplication::SetCursor(ECursor shape) {
 }
 
 CApplication * gApplication = new CApplication {};
-b2World * gWorld = nullptr;
+b2WorldId gWorldId = b2_nullWorldId;

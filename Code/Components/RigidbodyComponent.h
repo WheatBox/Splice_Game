@@ -5,10 +5,12 @@
 #include <FrameMath/Vector2.h>
 #include <FrameMath/ColorMath.h>
 
-#include "../box2dIncluded.h"
+#include <box2d/box2d.h>
+
 #include "../Application.h"
 
 #include <functional>
+#include <variant>
 
 class CDeviceComponent;
 
@@ -26,82 +28,88 @@ public:
 
 	virtual void OnShutDown() override;
 
-	void Physicalize(b2BodyDef bodyDef, b2FixtureDef fixtureDef);
-	// 运行结束后，会自动释放 fixtureDefs 中的 b2FixtureDef
-	void Physicalize(b2BodyDef bodyDef, std::vector<b2FixtureDef *> fixtureDefs);
-	// 运行结束后，会自动释放 fixtureDefs 中的 b2FixtureDef
-	void Physicalize(b2BodyDef bodyDef, std::vector<b2FixtureDef *> fixtureDefs, std::unordered_map<b2FixtureDef *, CDeviceComponent *> map_fixtureDefDeviceComp);
+	struct SBox2dShape {
+		std::variant<b2Polygon, b2Circle> shape;
+		b2ShapeType type;
+	};
+
+	void Physicalize(b2BodyDef bodyDef, b2ShapeDef shapeDef, SBox2dShape shape);
+	void Physicalize(b2BodyDef bodyDef, std::vector<std::pair<b2ShapeDef, SBox2dShape>> shapeDefs);
 
 	void SetEnableRendering(bool enable) {
 		bRender = enable;
 	}
 
 	// 如果要连接的实体与该组件所在实体为同一实体，返回 false，否则返回 true
-	bool CreateJointWith(Frame::EntityId entityId, std::function<b2JointDef * (b2Body *, b2Body *)> funcCreateJointDef, std::function<void (b2JointDef *)> funcDestroyJointDef);
+	bool CreateJointWith(Frame::EntityId entityId, std::function<void (b2BodyId, b2BodyId)> funcCreateJoint);
 
-	b2Body * GetBody() const {
-		return m_pBody;
+	const b2BodyId & GetBody() const {
+		return m_bodyId;
 	}
-	void SetBody(b2Body * pBody) {
-		m_pBody = pBody;
+	void SetBody(const b2BodyId & bodyId) {
+		m_bodyId = bodyId;
 	}
 
-	std::vector<b2Fixture *> & GetFixtures() {
-		return m_fixtures;
+	bool IsBodyValid() const {
+		return b2Body_IsValid(m_bodyId);
+	}
+
+	std::vector<b2ShapeId> & GetShapes() {
+		return m_shapes;
 	}
 
 	Frame::Vec2 GetPosition() const {
-		if(!m_pBody) {
+		if(!IsBodyValid()) {
 			return { 0.f, 0.f };
 		}
-		const b2Vec2 pos = m_pBody->GetPosition();
+		const b2Vec2 pos = b2Body_GetPosition(m_bodyId);
 		return MeterToPixelVec2({ pos.x, pos.y });
 	}
 
 	float GetRotation() const {
-		if(!m_pBody) {
+		if(!IsBodyValid()) {
 			return 0.f;
 		}
-		return Frame::RadToDeg(m_pBody->GetAngle());
+		return Frame::RadToDeg(b2Rot_GetAngle(b2Body_GetRotation(m_bodyId)));
 	}
 
 	void ApplyForce(const Frame::Vec2 & force) {
-		if(!m_pBody) {
+		if(!IsBodyValid()) {
 			return;
 		}
-		m_pBody->ApplyForceToCenter({ force.x, force.y }, true);
+		b2Body_ApplyForceToCenter(m_bodyId, { force.x, force.y }, true);
 	}
 	void ApplyForce(const Frame::Vec2 & force, const Frame::Vec2 & pointInWorld_pixel) {
-		if(!m_pBody) {
+		if(!IsBodyValid()) {
 			return;
 		}
-		m_pBody->ApplyForce({ force.x, force.y }, { PixelToMeter(pointInWorld_pixel.x), PixelToMeter(pointInWorld_pixel.y) }, true);
+		b2Body_ApplyForce(m_bodyId, { force.x, force.y }, { PixelToMeter(pointInWorld_pixel.x), PixelToMeter(pointInWorld_pixel.y) }, true);
 	}
 
 	void ApplyLinearImpulseToCenter(const Frame::Vec2 & impulse) {
-		if(!m_pBody) {
+		if(!IsBodyValid()) {
 			return;
 		}
-		m_pBody->ApplyLinearImpulseToCenter({ impulse.x, impulse.y }, true);
+		b2Body_ApplyLinearImpulseToCenter(m_bodyId, { impulse.x, impulse.y }, true);
 	}
 	void ApplyLinearImpulse(const Frame::Vec2 & impulse, const Frame::Vec2 & pointInWorld_pixel) {
-		if(!m_pBody) {
+		if(!IsBodyValid()) {
 			return;
 		}
-		m_pBody->ApplyLinearImpulse({ impulse.x, impulse.y }, { PixelToMeter(pointInWorld_pixel.x), PixelToMeter(pointInWorld_pixel.y) }, true);
+		b2Body_ApplyLinearImpulse(m_bodyId, { impulse.x, impulse.y }, { PixelToMeter(pointInWorld_pixel.x), PixelToMeter(pointInWorld_pixel.y) }, true);
 	}
 
 	void ApplyAngularImpulse(float impulse) {
-		if(!m_pBody) {
+		if(!IsBodyValid()) {
 			return;
 		}
-		m_pBody->ApplyAngularImpulse(impulse, true);
+		b2Body_ApplyAngularImpulse(m_bodyId, impulse, true);
 	}
 
 private:
 
-	b2Body * m_pBody = nullptr;
-	std::vector<b2Fixture *> m_fixtures;
+	b2BodyId m_bodyId;
+	std::vector<b2ShapeId> m_shapes;
 	bool bRender = false;
 
 };

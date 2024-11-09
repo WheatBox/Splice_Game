@@ -2,7 +2,7 @@
 
 #include "../Utility.h"
 
-REGISTER_ENTITY_COMPONENT(, CCameraComponent);
+REGISTER_ENTITY_COMPONENT(CCameraComponent);
 
 float CCameraComponent::s_wannaZoomVal = 0.f;
 

@@ -9,59 +9,64 @@
 #include "Machine/DeviceComponent.h"
 #include "PhysicsWorldComponent.h"
 
-REGISTER_ENTITY_COMPONENT(, CRigidbodyComponent);
+REGISTER_ENTITY_COMPONENT(CRigidbodyComponent);
 
 void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	switch(event.flag) {
 	case Frame::EntityEvent::Render:
 	{
-		if(!bRender || !m_pBody) {
+		if(!bRender || !b2Body_IsValid(m_bodyId)) {
 			break;
 		}
 
-		const int color = m_pBody->IsAwake() ? 0xFF7E00 : 0xB4B4B4;
+		const int color = b2Body_IsAwake(m_bodyId) ? 0xFF7E00 : 0xB4B4B4;
 
-		for(const auto & pFixture : m_fixtures) {
-			b2Shape * pShape = pFixture->GetShape();
-			switch(pShape->m_type) {
-			case b2Shape::Type::e_polygon:
+		for(const auto & shapeId : m_shapes) {
+			b2ShapeType shapeType = b2Shape_GetType(shapeId);
+			switch(shapeType) {
+			case b2ShapeType::b2_polygonShape:
 			{
-				b2PolygonShape * pPolygonShape = reinterpret_cast<b2PolygonShape *>(pShape);
+				b2Polygon polygon = b2Shape_GetPolygon(shapeId);
 
-				Frame::Vec2 posAdd { m_pBody->GetPosition().x, m_pBody->GetPosition().y };
+				float rot = b2Rot_GetAngle(b2Body_GetRotation(m_bodyId));
+				b2Vec2 bodyPos = b2Body_GetPosition(m_bodyId);
+				Frame::Vec2 posAdd { bodyPos.x, bodyPos.y };
 
-				for(int i = 2; i < pPolygonShape->m_count; i++) {
+				for(int i = 2; i < polygon.count; i++) {
 					Frame::gRenderer->pShapeRenderer->DrawTriangleBlended(
-						MeterToPixelVec2(posAdd + Frame::Vec2 { pPolygonShape->m_vertices[0].x, pPolygonShape->m_vertices[0].y }.Rotate(m_pBody->GetAngle())),
-						MeterToPixelVec2(posAdd + Frame::Vec2 { pPolygonShape->m_vertices[i].x, pPolygonShape->m_vertices[i].y }.Rotate(m_pBody->GetAngle())),
-						MeterToPixelVec2(posAdd + Frame::Vec2 { pPolygonShape->m_vertices[i - 1].x, pPolygonShape->m_vertices[i - 1].y }.Rotate(m_pBody->GetAngle())),
+						MeterToPixelVec2(posAdd + Frame::Vec2 { polygon.vertices[0].x, polygon.vertices[0].y }.Rotate(rot)),
+						MeterToPixelVec2(posAdd + Frame::Vec2 { polygon.vertices[i].x, polygon.vertices[i].y }.Rotate(rot)),
+						MeterToPixelVec2(posAdd + Frame::Vec2 { polygon.vertices[i - 1].x, polygon.vertices[i - 1].y }.Rotate(rot)),
 						color, .5f
 					);
 				}
-				for(int i = 0; i < pPolygonShape->m_count; i++) {
-					b2Vec2 pos = pPolygonShape->m_vertices[i];
-					b2Vec2 posPrev = (i == 0 ? pPolygonShape->m_vertices[pPolygonShape->m_count - 1] : pPolygonShape->m_vertices[i - 1]);
+				for(int i = 0; i < polygon.count; i++) {
+					b2Vec2 pos = polygon.vertices[i];
+					b2Vec2 posPrev = (i == 0 ? polygon.vertices[polygon.count - 1] : polygon.vertices[i - 1]);
 					Frame::gRenderer->pShapeRenderer->DrawLineBlended(
-						MeterToPixelVec2(posAdd + Frame::Vec2 { posPrev.x, posPrev.y }.Rotate(m_pBody->GetAngle())),
-						MeterToPixelVec2(posAdd + Frame::Vec2 { pos.x, pos.y }.Rotate(m_pBody->GetAngle())),
+						MeterToPixelVec2(posAdd + Frame::Vec2 { posPrev.x, posPrev.y }.Rotate(rot)),
+						MeterToPixelVec2(posAdd + Frame::Vec2 { pos.x, pos.y }.Rotate(rot)),
 						color, 1.f
 					);
 				}
 			}
 			break;
-			case b2Shape::Type::e_circle:
+			case b2ShapeType::b2_circleShape:
 			{
-				b2CircleShape * pCircleShape = reinterpret_cast<b2CircleShape *>(pShape);
+				b2Circle circle = b2Shape_GetCircle(shapeId);
 				
-				Frame::Vec2 posAdd = Frame::Vec2 { m_pBody->GetPosition().x, m_pBody->GetPosition().y } + Frame::Vec2 { pCircleShape->m_p.x, pCircleShape->m_p.y }.Rotate(m_pBody->GetAngle());
+				float rot = b2Rot_GetAngle(b2Body_GetRotation(m_bodyId));
+				b2Vec2 bodyPos = b2Body_GetPosition(m_bodyId);
+				Frame::Vec2 posAdd = Frame::Vec2 { bodyPos.x, bodyPos.y } + Frame::Vec2 { circle.center.x, circle.center.y }.Rotate(rot);
+
 				constexpr int vertCount = 12;
 				constexpr float angleAdd = Frame::DegToRad(360.f / static_cast<float>(vertCount));
 
 				float angle = 2.f * angleAdd;
-				b2Vec2 posPrev { std::cos(angleAdd) * pCircleShape->m_radius, std::sin(angleAdd) * pCircleShape->m_radius };
-				b2Vec2 posFirst { pCircleShape->m_radius, 0.f };
+				b2Vec2 posPrev { std::cos(angleAdd) * circle.radius, std::sin(angleAdd) * circle.radius };
+				b2Vec2 posFirst { circle.radius, 0.f };
 				for(int i = 2; i < vertCount; i++) {
-					b2Vec2 pos { std::cos(angle) * pCircleShape->m_radius, std::sin(angle) * pCircleShape->m_radius };
+					b2Vec2 pos { std::cos(angle) * circle.radius, std::sin(angle) * circle.radius };
 					Frame::gRenderer->pShapeRenderer->DrawTriangleBlended(
 						MeterToPixelVec2(posAdd + Frame::Vec2 { posFirst.x, posFirst.y }),
 						MeterToPixelVec2(posAdd + Frame::Vec2 { pos.x, pos.y }),
@@ -73,9 +78,9 @@ void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event)
 				}
 
 				angle = 0.f;
-				posPrev = { std::cos(-angleAdd) * pCircleShape->m_radius, std::sin(-angleAdd) * pCircleShape->m_radius };
+				posPrev = { std::cos(-angleAdd) * circle.radius, std::sin(-angleAdd) * circle.radius };
 				for(int i = 0; i < vertCount; i++) {
-					b2Vec2 pos { std::cos(angle) * pCircleShape->m_radius, std::sin(angle) * pCircleShape->m_radius };
+					b2Vec2 pos { std::cos(angle) * circle.radius, std::sin(angle) * circle.radius };
 					Frame::gRenderer->pShapeRenderer->DrawLineBlended(
 						MeterToPixelVec2(posAdd + Frame::Vec2 { posPrev.x, posPrev.y }),
 						MeterToPixelVec2(posAdd + Frame::Vec2 { pos.x, pos.y }),
@@ -94,22 +99,33 @@ void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event)
 }
 
 void CRigidbodyComponent::OnShutDown() {
-	if(b2Body * pBody = m_pBody) {
+	if(IsBodyValid()) {
+		b2BodyId bodyId = m_bodyId;
 		CPhysicsWorldComponent::s_physicalizeQueue.push(
-			[pBody]() { gWorld->DestroyBody(pBody); }
+			[bodyId]() { b2DestroyBody(bodyId); }
 		);
 	}
 }
 
-void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, b2FixtureDef fixtureDef) {
+static inline b2ShapeId CreateShape(const b2BodyId & bodyId, const b2ShapeDef & shapeDef, const CRigidbodyComponent::SBox2dShape & shape) {
+	switch(shape.type) {
+	case b2ShapeType::b2_circleShape:
+		return b2CreateCircleShape(bodyId, & shapeDef, & std::get<b2Circle>(shape.shape));
+	case b2ShapeType::b2_polygonShape:
+		return b2CreatePolygonShape(bodyId, & shapeDef, & std::get<b2Polygon>(shape.shape));
+	}
+	return b2_nullShapeId;
+}
+
+void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, b2ShapeDef shapeDef, SBox2dShape shape) {
 	Frame::EntityId myEntityId = m_pEntity->GetId();
 	CPhysicsWorldComponent::s_physicalizeQueue.push(
-		[myEntityId, bodyDef, fixtureDef]() {
+		[myEntityId, bodyDef, shapeDef, shape]() {
 			if(Frame::CEntity * pEntity = Frame::gEntitySystem->GetEntity(myEntityId)) {
 				if(CRigidbodyComponent * pComp = pEntity->GetComponent<CRigidbodyComponent>()) {
-					if(b2Body * pBody = gWorld->CreateBody(& bodyDef)) {
-						pComp->SetBody(pBody);
-						pComp->GetFixtures().push_back(pBody->CreateFixture(& fixtureDef));
+					if(b2BodyId bodyId = b2CreateBody(gWorldId, & bodyDef); b2Body_IsValid(bodyId)) {
+						pComp->SetBody(bodyId);
+						pComp->GetShapes().push_back(CreateShape(bodyId, shapeDef, shape));
 					}
 				}
 			}
@@ -117,50 +133,25 @@ void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, b2FixtureDef fixtureDef
 	);
 }
 
-void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, std::vector<b2FixtureDef *> fixtureDefs) {
+void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, std::vector<std::pair<b2ShapeDef, SBox2dShape>> shapeDefs) {
 	Frame::EntityId myEntityId = m_pEntity->GetId();
 	CPhysicsWorldComponent::s_physicalizeQueue.push(
-		[myEntityId, bodyDef, fixtureDefs]() {
+		[myEntityId, bodyDef, shapeDefs]() {
 			if(Frame::CEntity * pEntity = Frame::gEntitySystem->GetEntity(myEntityId)) {
 				if(CRigidbodyComponent * pComp = pEntity->GetComponent<CRigidbodyComponent>()) {
-					if(b2Body * pBody = gWorld->CreateBody(& bodyDef)) {
-						pComp->SetBody(pBody);
-						for(const auto & fixtureDef : fixtureDefs) {
-							pComp->GetFixtures().push_back(pBody->CreateFixture(fixtureDef));
+					if(b2BodyId bodyId = b2CreateBody(gWorldId, & bodyDef); b2Body_IsValid(bodyId)) {
+						pComp->SetBody(bodyId);
+						for(const auto & shapeDef : shapeDefs) {
+							pComp->GetShapes().push_back(CreateShape(bodyId, shapeDef.first, shapeDef.second));
 						}
 					}
 				}
 			}
-			CDeviceComponent::DestroyFixtureDefs(fixtureDefs);
 		}
 	);
 }
 
-void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, std::vector<b2FixtureDef *> fixtureDefs, std::unordered_map<b2FixtureDef *, CDeviceComponent *> map_fixtureDefDeviceComp) {
-	Frame::EntityId myEntityId = m_pEntity->GetId();
-	CPhysicsWorldComponent::s_physicalizeQueue.push(
-		[myEntityId, bodyDef, fixtureDefs, map_fixtureDefDeviceComp]() {
-			if(Frame::CEntity * pEntity = Frame::gEntitySystem->GetEntity(myEntityId)) {
-				if(CRigidbodyComponent * pComp = pEntity->GetComponent<CRigidbodyComponent>()) {
-					if(b2Body * pBody = gWorld->CreateBody(& bodyDef)) {
-						pComp->SetBody(pBody);
-						for(const auto & fixtureDef : fixtureDefs) {
-							b2Fixture * pFixture = pBody->CreateFixture(fixtureDef);
-							pComp->GetFixtures().push_back(pFixture);
-
-							if(auto it = map_fixtureDefDeviceComp.find(fixtureDef); it != map_fixtureDefDeviceComp.end()) {
-								it->second->SetFixture(pFixture);
-							}
-						}
-					}
-				}
-			}
-			CDeviceComponent::DestroyFixtureDefs(fixtureDefs);
-		}
-	);
-}
-
-bool CRigidbodyComponent::CreateJointWith(Frame::EntityId entityId, std::function<b2JointDef * (b2Body *, b2Body *)> funcCreateJointDef, std::function<void (b2JointDef *)> funcDestroyJointDef) {
+bool CRigidbodyComponent::CreateJointWith(Frame::EntityId entityId, std::function<void (b2BodyId, b2BodyId)> funcCreateJoint) {
 	Frame::EntityId myEntityId = m_pEntity->GetId();
 
 	if(myEntityId == entityId) {
@@ -168,23 +159,21 @@ bool CRigidbodyComponent::CreateJointWith(Frame::EntityId entityId, std::functio
 	}
 	
 	CPhysicsWorldComponent::s_physicalizeQueue.push(
-		[myEntityId, entityId, funcCreateJointDef, funcDestroyJointDef]() {
-			b2Body * pMyBody = nullptr, * pAnotherBody = nullptr;
+		[myEntityId, entityId, funcCreateJoint]() {
+			b2BodyId myBody = b2_nullBodyId, anotherBody = b2_nullBodyId;
 			if(Frame::CEntity * pEntity = Frame::gEntitySystem->GetEntity(myEntityId)) {
 				if(CRigidbodyComponent * pComp = pEntity->GetComponent<CRigidbodyComponent>()) {
-					pMyBody = pComp->GetBody();
+					myBody = pComp->GetBody();
 				}
 			}
 			if(Frame::CEntity * pEntity = Frame::gEntitySystem->GetEntity(entityId)) {
 				if(CRigidbodyComponent * pComp = pEntity->GetComponent<CRigidbodyComponent>()) {
-					pAnotherBody = pComp->GetBody();
+					anotherBody = pComp->GetBody();
 				}
 			}
 
-			if(pMyBody && pAnotherBody) {
-				auto pDef = funcCreateJointDef(pMyBody, pAnotherBody);
-				gWorld->CreateJoint(pDef);
-				funcDestroyJointDef(pDef);
+			if(b2Body_IsValid(myBody) && b2Body_IsValid(anotherBody)) {
+				funcCreateJoint(myBody, anotherBody);
 			}
 		}
 	);
