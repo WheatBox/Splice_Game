@@ -11,6 +11,8 @@ REGISTER_ENTITY_COMPONENT(CSmokeEmitterComponent);
 CSmokeEmitterComponent * CSmokeEmitterComponent::s_pSmokeEmitterComponent = nullptr;
 std::list<CSmokeEmitterComponent::SSmokeParticle> CSmokeEmitterComponent::s_smokePraticles {};
 
+std::vector<Frame::CRenderer::SInstanceBuffer> CSmokeEmitterComponent::s_smokeParticleInstanceBuffers {};
+
 void CSmokeEmitterComponent::Initialize() {
 	s_pSmokeEmitterComponent = this;
 	m_pEntity->SetZDepth(Depths::SmokeEmitter);
@@ -20,6 +22,10 @@ Frame::EntityEvent::Flags CSmokeEmitterComponent::GetEventFlags() const {
 	return Frame::EntityEvent::EFlag::Update
 		| Frame::EntityEvent::EFlag::Render;
 }
+
+std::vector<float> times;
+float sec = 0.f;
+float fpssec = 0.f;
 
 void CSmokeEmitterComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	switch(event.flag) {
@@ -46,6 +52,19 @@ void CSmokeEmitterComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 				it++;
 			}
 		}
+
+		sec += m_frametime;
+		times.push_back(m_frametime);
+		if(sec >= 1.f) {
+			sec = 0.f;
+			fpssec = 0.f;
+			for(auto & time : times) {
+				fpssec += 1.f / time;
+			}
+			fpssec /= (float)times.size();
+			times.clear();
+		}
+		Frame::gRenderer->pTextRenderer->DrawText(std::string { "fps: " } + std::to_string((int)std::round(fpssec)), Frame::gCamera->WindowToScene(0.f));
 	}
 	break;
 	}

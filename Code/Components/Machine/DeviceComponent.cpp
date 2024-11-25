@@ -39,7 +39,7 @@ void CDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	{
 		if(m_pMachinePartEntity) {
 			const float machineRot = m_pMachinePartEntity->GetRotation();
-			m_pEntity->SetPosition(m_pMachinePartEntity->GetPosition() + m_relativePosition.RotateDegree(machineRot));
+			m_pEntity->SetPosition(m_pMachinePartEntity->GetPosition() + m_relativePosition.GetRotatedDegree(machineRot));
 			m_pEntity->SetRotation(machineRot + m_relativeRotation);
 		}
 
@@ -160,7 +160,7 @@ m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceSt
 			const Frame::Vec2 entPos = m_pEntity->GetPosition();
 			const float entRot = m_pEntity->GetRotation();
 
-			const Frame::Vec2 pos = entPos - Frame::Vec2 { 32.f, 0.f }.RotateDegree(entRot);
+			const Frame::Vec2 pos = entPos - Frame::Vec2 { 32.f, 0.f }.GetRotatedDegree(entRot);
 			const float alpha = std::min(1.f, pData->accumulatingShowing / pData->accumulationShowingMax) * .35f;
 
 			pData->smokeRotation1 += frameTime * (40.f + 30000.f * (pData->accumulatingShowing - pData->accumulatingShowingPrev));
@@ -172,7 +172,7 @@ m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceSt
 			for(int i = 0; i < CSmokeEmitterComponent::SSmokeParticle::spritesCount; i++) {
 				Frame::gRenderer->DrawSpriteBlended(
 					Assets::GetStaticSprite(CSmokeEmitterComponent::SSmokeParticle::sprites[i])->GetImage(),
-					pos + Frame::Vec2 { 16.f, 0.f }.RotateDegree(static_cast<float>(i * (360 / CSmokeEmitterComponent::SSmokeParticle::spritesCount)) + pData->smokeRotation1), 0xFFFFFF, alpha,
+					pos + Frame::Vec2 { 16.f, 0.f }.GetRotatedDegree(static_cast<float>(i * (360 / CSmokeEmitterComponent::SSmokeParticle::spritesCount)) + pData->smokeRotation1), 0xFFFFFF, alpha,
 					{ .75f }, pData->smokeRotation2
 				);
 			}
@@ -227,7 +227,7 @@ void CDeviceComponent::WeldWith(CDeviceComponent * pDeviceComp, int dirIndex) {
 static void __DrawConnector(const Frame::Vec2 & entityPos, const SDeviceTreeNode * m_pNode, int m_directionIndex, int drawDirIndex, float rot, const SColorSet & m_colorSet) {
 	Frame::Vec2 pos = entityPos
 		+ GetDeviceInterfaceBias(m_pNode->pDeviceData->device, m_directionIndex, drawDirIndex, rot)
-		+ GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_pNode->pDeviceData->device) + CONNECTOR_HALF_LENGTH * 2.f, m_directionIndex, drawDirIndex).RotateDegree(rot)
+		+ GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_pNode->pDeviceData->device) + CONNECTOR_HALF_LENGTH * 2.f, m_directionIndex, drawDirIndex).GetRotatedDegree(rot)
 		;
 	Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::connector)->GetImage(), pos, m_colorSet.connector, 1.f,
 		{ 1.f }, drawDirIndex * 90.f + rot
@@ -342,8 +342,8 @@ std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> CDeviceComp
 	break;
 	case IDeviceData::EType::Propeller:
 	{
-		const Frame::Vec2 center1 = Frame::Vec2 { -22.f, 0.f }.Rotate(rotation) + devicePos;
-		const Frame::Vec2 center2 = Frame::Vec2 { 24.f, 0.f }.Rotate(rotation) + devicePos;
+		const Frame::Vec2 center1 = Frame::Vec2 { -22.f, 0.f }.GetRotated(rotation) + devicePos;
+		const Frame::Vec2 center2 = Frame::Vec2 { 24.f, 0.f }.GetRotated(rotation) + devicePos;
 		b2Polygon shape1 = b2MakeOffsetBox(F(24.f), F(40.f), { F(center1.x), F(center1.y) }, b2MakeRot(rotation));
 		b2Polygon shape2 = b2MakeOffsetBox(F(36.f), F(114.f), { F(center2.x), F(center2.y) }, b2MakeRot(rotation));
 
@@ -384,19 +384,19 @@ void CDeviceComponent::Step(float timeStep) {
 	}
 	///////////////////////
 
-	//if(deviceType == IDeviceData::Engine) { // 这段代码是测试烟雾特效用的，作用是让所有的发动机装置无需发动就自动冒烟
-	//	SEngineDeviceData * pData = reinterpret_cast<SEngineDeviceData *>(m_pNode->pDeviceData);
-	//	pData->smoking += m_frametime;
-	//	if(pData->smoking > 0.f && pData->smoking < 100.f) { // 防止意外的死循环
-	//		while(pData->smoking >= pData->smokeMax) {
-	//			CSmokeEmitterComponent::SummonSmokeParticle({ m_pEntity->GetPosition(), 1.f });
-	//			pData->smoking -= pData->smokeMax;
-	//		}
-	//	} else {
-	//		pData->smoking = 0.f;
-	//	}
-	//	return;
-	//}
+	if(deviceType == IDeviceData::Engine) { // 这段代码是测试烟雾特效用的，作用是让所有的发动机装置无需发动就自动冒烟
+		SEngineDeviceData * pData = reinterpret_cast<SEngineDeviceData *>(m_pNode->pDeviceData);
+		pData->smoking += m_frametime;
+		if(pData->smoking > 0.f && pData->smoking < 100.f) { // 防止意外的死循环
+			while(pData->smoking >= pData->smokeMax) {
+				CSmokeEmitterComponent::SummonSmokeParticle({ m_pEntity->GetPosition(), 1.f });
+				pData->smoking -= pData->smokeMax;
+			}
+		} else {
+			pData->smoking = 0.f;
+		}
+		return;
+	}
 	
 	if(!m_pGroup) {
 		goto ForThoseDevicesHasNoGroup;
@@ -432,8 +432,8 @@ void CDeviceComponent::Step(float timeStep) {
 			}
 			if(auto pRigidbodyComp = m_pMachinePartEntity->GetComponent<CRigidbodyComponent>()) {
 				pRigidbodyComp->ApplyForce(
-					Frame::Vec2 { -1200.f * power, 0.f }.RotateDegree(m_pEntity->GetRotation())
-					, m_relativePosition.RotateDegree(m_pMachinePartEntity->GetRotation()) + m_pMachinePartEntity->GetPosition()
+					Frame::Vec2 { -1200.f * power, 0.f }.GetRotatedDegree(m_pEntity->GetRotation())
+					, m_relativePosition.GetRotatedDegree(m_pMachinePartEntity->GetRotation()) + m_pMachinePartEntity->GetPosition()
 				);
 			}
 			break;
@@ -451,8 +451,8 @@ void CDeviceComponent::Step(float timeStep) {
 			if(pData->accumulating >= pData->accumulationMax) {
 				if(auto pRigidbodyComp = m_pMachinePartEntity->GetComponent<CRigidbodyComponent>()) {
 					pRigidbodyComp->ApplyLinearImpulse(
-						Frame::Vec2 { -6000.f * power, 0.f }.RotateDegree(m_pEntity->GetRotation())
-						, m_relativePosition.RotateDegree(m_pMachinePartEntity->GetRotation()) + m_pMachinePartEntity->GetPosition()
+						Frame::Vec2 { -6000.f * power, 0.f }.GetRotatedDegree(m_pEntity->GetRotation())
+						, m_relativePosition.GetRotatedDegree(m_pMachinePartEntity->GetRotation()) + m_pMachinePartEntity->GetPosition()
 					);
 				}
 				pData->accumulating = -.5f;
@@ -505,8 +505,8 @@ void CDeviceComponent::Step(float timeStep) {
 			if(pData->accumulatingShowing > .002f && pData->accumulating < 0.f) {
 				for(int i = 0; i < 4; i++) {
 					CSmokeEmitterComponent::SSmokeParticle particle {
-						m_pEntity->GetPosition() + Frame::Vec2 { 96.f, 0.f }.RotateDegree(m_pEntity->GetRotation()),
-						1.f, 0xFFFFFF, Frame::Vec2 { 4000.f, 0.f }.RotateDegree(m_pEntity->GetRotation() + static_cast<float>(rand() % 41 - 20))
+						m_pEntity->GetPosition() + Frame::Vec2 { 96.f, 0.f }.GetRotatedDegree(m_pEntity->GetRotation()),
+						1.f, 0xFFFFFF, Frame::Vec2 { 4000.f, 0.f }.GetRotatedDegree(m_pEntity->GetRotation() + static_cast<float>(rand() % 41 - 20))
 					};
 					particle.alpha *= -pData->accumulating * 3.f;
 					particle.scaleAdd *= 5.f;

@@ -171,7 +171,7 @@ static inline Frame::Vec2 GetDeviceInterfaceBias(IDeviceData::EType device, int 
 		break;
 	}
 
-	return res.RotateDegree(-GetDegreeByDirIndex(dirIndexOfDevice) + rotationAdd);
+	return res.GetRotatedDegree(-GetDegreeByDirIndex(dirIndexOfDevice) + rotationAdd);
 }
 
 struct SColorSet {

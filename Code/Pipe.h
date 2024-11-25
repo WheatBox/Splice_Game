@@ -86,7 +86,7 @@ static inline void DrawPipeCross(const PipeNodeT * pPipeNode, const Frame::Vec2 
 		}
 	}
 
-	const Frame::Vec2 posAdd = pPipeNode->pos.RotateDegree(rotation);
+	const Frame::Vec2 posAdd = pPipeNode->pos.GetRotatedDegree(rotation);
 	Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(colorSprite)->GetImage(), pos + posAdd, color, alpha, 1.f, angle + rotation);
 	Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(baseSprite)->GetImage(), pos + posAdd, 0xFFFFFF, alpha, 1.f, angle + rotation);
 }
@@ -116,7 +116,7 @@ void DrawPipe(const PipeT & pipeNodes, const Frame::Vec2 & pos, Frame::ColorRGB 
 			if(!pPipeNode->nodes[i]) {
 				continue;
 			}
-			DrawPipeSingleLine(pos + pPipeNode->pos.RotateDegree(rotation), pos + pPipeNode->nodes[i]->pos.RotateDegree(rotation), color, alpha);
+			DrawPipeSingleLine(pos + pPipeNode->pos.GetRotatedDegree(rotation), pos + pPipeNode->nodes[i]->pos.GetRotatedDegree(rotation), color, alpha);
 
 			pipeNodesMark[pPipeNode] &= ~(0b1 << i);
 			pipeNodesMark[pPipeNode->nodes[i]] &= ~(0b100 << i);

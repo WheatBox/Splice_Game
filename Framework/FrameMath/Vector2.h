@@ -24,6 +24,8 @@ namespace Frame {
 		Vec2_tpl<T> operator *(const Vec2_tpl<T> & v) const { return { this->x * v.x, this->y * v.y }; }
 		Vec2_tpl<T> operator /(const Vec2_tpl<T> & v) const { return { this->x / v.x, this->y / v.y }; }
 
+		Vec2_tpl<T> operator -() const { return { -x, -y }; }
+
 		bool operator ==(const Vec2_tpl<T> & v) const { return this->x == v.x && this->y == v.y; }
 		bool operator !=(const Vec2_tpl<T> & v) const { return this->x != v.x || this->y != v.y; }
 
@@ -44,14 +46,24 @@ namespace Frame {
 		}
 		T IncludedAngleDegree(const Vec2_tpl<T> & v) const { return RadToDeg(IncludedAngle(v)); }
 
-		Vec2_tpl Rotate(T rad) const {
+		Vec2_tpl GetRotated(T rad) const {
 			T cosr = std::cos(rad), sinr = std::sin(rad);
 			return {
 				x * cosr - y * sinr,
 				y * cosr + x * sinr
 			};
 		}
-		Vec2_tpl RotateDegree(T deg) const {
+		Vec2_tpl GetRotatedDegree(T deg) const {
+			return GetRotated(DegToRad(deg));
+		}
+
+		Vec2_tpl & Rotate(T rad) {
+			T cosr = std::cos(rad), sinr = std::sin(rad);
+			x = x * cosr - y * sinr;
+			y = y * cosr + x * sinr;
+			return * this;
+		}
+		Vec2_tpl & RotateDegree(T deg) {
 			return Rotate(DegToRad(deg));
 		}
 
@@ -108,7 +120,7 @@ namespace Frame {
 	// std::vector<Vec2> vecs { ... };
 	// Rotate2DVectors(radian, vecs);
 	template<typename T>
-	constexpr void Rotate2DVectors(float radian, const std::vector<Vec2_tpl<T>> & vecs) {
+	constexpr void Rotate2DVectors(float radian, std::vector<Vec2_tpl<T>> & vecs) {
 		T cosr = std::cos(radian), sinr = std::sin(radian);
 		T xTemp;
 		for(auto & vec : vecs) {
@@ -129,7 +141,7 @@ namespace Frame {
 	// std::vector<Vec2> vecs { ... };
 	// Rotate2DVectors(degree, vecs);
 	template<typename T>
-	constexpr void Rotate2DVectorsDegree(float degree, const std::vector<Vec2_tpl<T>> & vecs) {
+	constexpr void Rotate2DVectorsDegree(float degree, std::vector<Vec2_tpl<T>> & vecs) {
 		Rotate2DVectors(DegToRad(degree), vecs);
 	}
 

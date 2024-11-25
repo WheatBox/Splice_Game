@@ -4,6 +4,8 @@
 #include <FrameMath/Vector2.h>
 #include <FrameMath/ColorMath.h>
 
+#include <FrameRender/Renderer.h>
+
 #include "../Assets.h"
 
 #include <cstdlib>
@@ -44,7 +46,7 @@ public:
 			rotation = static_cast<float>(rand() % 360);
 			alpha = static_cast<float>(rand() % 3 + 1) * .1f;
 
-			posAdd = Frame::Vec2 { static_cast<float>(rand() % 40 + 30), 0.f }.RotateDegree(static_cast<float>(rand() % 360)) * (static_cast<float>(rand() % 6 + 4) * .1f);
+			posAdd = Frame::Vec2 { static_cast<float>(rand() % 40 + 30), 0.f }.GetRotatedDegree(static_cast<float>(rand() % 360)) * (static_cast<float>(rand() % 6 + 4) * .1f);
 			scaleAdd = static_cast<float>(rand() % 8 + 10) * .1f;
 			rotationAdd = static_cast<float>(rand() % 75 * (rand() % 2 ? -1 : 1));
 			alphaAdd = -static_cast<float>(rand() % 2 + 2) * .1f;
@@ -81,6 +83,8 @@ public:
 	}
 	static CSmokeEmitterComponent * s_pSmokeEmitterComponent;
 	static std::list<SSmokeParticle> s_smokePraticles;
+
+	static std::vector<Frame::CRenderer::SInstanceBuffer> s_smokeParticleInstanceBuffers;
 
 public:
 	virtual void Initialize() override;

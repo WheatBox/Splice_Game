@@ -243,8 +243,8 @@ void CEditorDeviceComponent::DrawConnectors() {
 void CEditorDeviceComponent::GetEditorDeviceColliders(CColliderComponent * outColliderComp, IDeviceData::EType type, int dirIndex) {
 #define __FORMULA(w, h, offx, offy) \
 { \
-	Frame::Vec2 _siz = Frame::Vec2 { w, h }.RotateDegree(-GetDegreeByDirIndex(dirIndex)); \
-	outColliderComp->AddCollider({ { std::abs(_siz.x), std::abs(_siz.y) }, Frame::Vec2 { offx, offy }.RotateDegree(-GetDegreeByDirIndex(dirIndex)) }); \
+	Frame::Vec2 _siz = Frame::Vec2 { w, h }.GetRotatedDegree(-GetDegreeByDirIndex(dirIndex)); \
+	outColliderComp->AddCollider({ { std::abs(_siz.x), std::abs(_siz.y) }, Frame::Vec2 { offx, offy }.GetRotatedDegree(-GetDegreeByDirIndex(dirIndex)) }); \
 }
 
 	const Frame::Vec2 siz = GetDevicePixelSize(type);

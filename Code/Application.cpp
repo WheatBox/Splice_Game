@@ -10,11 +10,15 @@
 
 #include "Components/Editor/EditorComponent.h"
 
+#include "Components/SmokeEmitterComponent.h"
+
 #include "Assets.h"
 #include "Texts.h"
 #include "GUI/GUI.h"
 
 #include <GLFW/glfw3.h>
+
+CSmokeEmitterComponent * pSmokeComp = nullptr;
 
 void CApplication::Initialize() {
 	SetVSync(true);
@@ -26,16 +30,23 @@ void CApplication::Initialize() {
 	//Texts::InitializeTexts(Texts::ELanguage::English);
 
 	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
-		pEntity->GetOrCreateComponent<CPhysicsWorldComponent>();
+		//pEntity->GetOrCreateComponent<CPhysicsWorldComponent>();
 	}
 	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
-		CEditorComponent::s_pEditorComponent = pEntity->GetOrCreateComponent<CEditorComponent>();
+		//CEditorComponent::s_pEditorComponent = pEntity->GetOrCreateComponent<CEditorComponent>();
+	}
+	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
+		pSmokeComp = pEntity->GetOrCreateComponent<CSmokeEmitterComponent>();
+
+		Frame::CFont * font = new Frame::CFont { Assets::GetFontFilename(), 16.f };
+		Frame::gRenderer->pTextRenderer->SetFont(font);
 	}
 
 	//Frame::gRenderer->SetBackgroundColor(0x00004F);
 	//Frame::gRenderer->SetBackgroundColor(0xFFFFFF);
 	//Frame::gRenderer->SetBackgroundColor(0xDDDDDD);
-	Frame::gRenderer->SetBackgroundColor(0xB1B1C1);
+	//Frame::gRenderer->SetBackgroundColor(0xB1B1C1);
+	Frame::gRenderer->SetBackgroundColor(0x000000);
 
 	m_cursors[eCursor_Arrow] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
 	m_cursors[eCursor_Ibeam] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
@@ -72,6 +83,11 @@ void CApplication::MainLoopLast() {
 
 	if(GUI::gCurrentGUI) {
 		GUI::gCurrentGUI->Work();
+	}
+
+	for(int i = 0; i < 100; i++) {
+		CSmokeEmitterComponent::SSmokeParticle part { { float(rand() % 800 - 400), float(rand() % 500 - 250) }, 1.f, 0xFFFFFF, { 0.f } };
+		pSmokeComp->SummonSmokeParticle(part);
 	}
 }
 

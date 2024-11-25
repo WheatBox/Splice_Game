@@ -34,9 +34,9 @@ void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event)
 
 				for(int i = 2; i < polygon.count; i++) {
 					Frame::gRenderer->pShapeRenderer->DrawTriangleBlended(
-						MeterToPixelVec2(posAdd + Frame::Vec2 { polygon.vertices[0].x, polygon.vertices[0].y }.Rotate(rot)),
-						MeterToPixelVec2(posAdd + Frame::Vec2 { polygon.vertices[i].x, polygon.vertices[i].y }.Rotate(rot)),
-						MeterToPixelVec2(posAdd + Frame::Vec2 { polygon.vertices[i - 1].x, polygon.vertices[i - 1].y }.Rotate(rot)),
+						MeterToPixelVec2(posAdd + Frame::Vec2 { polygon.vertices[0].x, polygon.vertices[0].y }.GetRotated(rot)),
+						MeterToPixelVec2(posAdd + Frame::Vec2 { polygon.vertices[i].x, polygon.vertices[i].y }.GetRotated(rot)),
+						MeterToPixelVec2(posAdd + Frame::Vec2 { polygon.vertices[i - 1].x, polygon.vertices[i - 1].y }.GetRotated(rot)),
 						color, .5f
 					);
 				}
@@ -44,8 +44,8 @@ void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event)
 					b2Vec2 pos = polygon.vertices[i];
 					b2Vec2 posPrev = (i == 0 ? polygon.vertices[polygon.count - 1] : polygon.vertices[i - 1]);
 					Frame::gRenderer->pShapeRenderer->DrawLineBlended(
-						MeterToPixelVec2(posAdd + Frame::Vec2 { posPrev.x, posPrev.y }.Rotate(rot)),
-						MeterToPixelVec2(posAdd + Frame::Vec2 { pos.x, pos.y }.Rotate(rot)),
+						MeterToPixelVec2(posAdd + Frame::Vec2 { posPrev.x, posPrev.y }.GetRotated(rot)),
+						MeterToPixelVec2(posAdd + Frame::Vec2 { pos.x, pos.y }.GetRotated(rot)),
 						color, 1.f
 					);
 				}
@@ -57,7 +57,7 @@ void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event)
 				
 				float rot = b2Rot_GetAngle(b2Body_GetRotation(m_bodyId));
 				b2Vec2 bodyPos = b2Body_GetPosition(m_bodyId);
-				Frame::Vec2 posAdd = Frame::Vec2 { bodyPos.x, bodyPos.y } + Frame::Vec2 { circle.center.x, circle.center.y }.Rotate(rot);
+				Frame::Vec2 posAdd = Frame::Vec2 { bodyPos.x, bodyPos.y } + Frame::Vec2 { circle.center.x, circle.center.y }.GetRotated(rot);
 
 				constexpr int vertCount = 12;
 				constexpr float angleAdd = Frame::DegToRad(360.f / static_cast<float>(vertCount));

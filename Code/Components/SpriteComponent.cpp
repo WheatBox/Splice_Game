@@ -50,7 +50,7 @@ void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 				if(layer.m_pAnimatedSprite) pImage = layer.m_pAnimatedSprite->GetFrame(layer.m_currentFrame);
 				else break;
 			}
-			const Frame::Vec2 pos = m_pEntity->GetPosition() - layer.m_offset.RotateDegree(entityRot);
+			const Frame::Vec2 pos = m_pEntity->GetPosition() - layer.m_offset.GetRotatedDegree(entityRot);
 			DrawSpriteBlendedPro(pImage, pos, layer.m_color, layer.m_alpha, layer.m_rotation, layer.m_scale, entityRot);
 
 			if(layer.m_extraFunc) {
