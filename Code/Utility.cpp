@@ -144,7 +144,7 @@ void DrawBlockBackground() {
     Frame::Vec2 camPos = Frame::gCamera->GetPos();
     Frame::Vec2 camSizeHalf = Frame::Vec2Cast<float>(Frame::gCamera->GetViewSize()) / Frame::gCamera->GetZoom() * .5f;
     camSizeHalf.y = camSizeHalf.x = std::max(camSizeHalf.x, camSizeHalf.y);
-    Frame::Vec2 camLT = camPos - camSizeHalf, camRB = camPos + camSizeHalf;
+    Frame::Vec2 camLT = camPos - camSizeHalf;
     float blockSize = 512.f;
     int iBlockSize = int(blockSize);
     Frame::Vec2i over = Frame::Vec2Cast<int>((camSizeHalf * 2.f) / blockSize * 1.414f) + 5;

@@ -70,7 +70,7 @@ void CEditorComponent::Initialize() {
 	if(m_pCameraComponent) {
 		m_pCameraComponent->Initialize(
 			[this]() {
-				return m_bMBLeftHolding && m_tool == ETool::Hand || Frame::gInput->pMouse->GetHolding(Frame::EMouseButtonId::eMBI_Middle);
+				return (m_bMBLeftHolding && m_tool == ETool::Hand) || Frame::gInput->pMouse->GetHolding(Frame::EMouseButtonId::eMBI_Middle);
 			},
 			[]() { return false; }
 		);
@@ -143,7 +143,6 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		Frame::gRenderer->pTextRenderer->SetFont(m_pFont);
 
 		{
-			const Frame::ColorRGB pipeColor = GetCurrentColorSet().pipe;
 			for(size_t i = 0, siz = m_pipes.size(); i < siz; i++) {
 				const auto & _pipeNodes = m_pipes[i];
 				float alpha = (i == m_pipeInsertData.pipeIndex || m_pipeInsertData.pipeIndex == SIZE_MAX) ? 1.f : __PIPE_HIDE_ALPHA;
@@ -597,7 +596,11 @@ void CEditorComponent::InitGUI_ToolSwatchesColorEditor() {
 		[](GUI::CLabel * me) {
 			const auto & colorEditing = __Color();
 			char szColorCode[8];
+#ifdef _WIN32
 			sprintf_s(szColorCode, 8, "#%02X%02X%02X", colorEditing.r, colorEditing.g, colorEditing.b);
+#else
+			sprintf(szColorCode, "#%02X%02X%02X", colorEditing.r, colorEditing.g, colorEditing.b);
+#endif
 			me->SetText(szColorCode);
 		});
 	p->CreateElement<GUI::CTextButton>(Frame::Vec2 { 304.f, btApplyY }, Frame::Vec2 { 64.f, 24.f }, []() {

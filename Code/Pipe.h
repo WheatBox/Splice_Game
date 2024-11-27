@@ -6,6 +6,7 @@
 #include <FrameCore/Globals.h>
 #include <FrameRender/Renderer.h>
 
+#include "Assets.h"
 #include "Components/Machine/DeviceComponent.h"
 
 #include <vector>

@@ -19,9 +19,7 @@ set(THIRD_LIBS
 	SndFile::sndfile
 )
 
-set(OUTPUT_DIR ${CMAKE_SOURCE_DIR}/Bin/)
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
+set(OUTPUT_DIR ${CMAKE_SOURCE_DIR}/Bin/Windows-x64/)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${OUTPUT_DIR})
@@ -42,7 +40,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	add_compile_options(
 		-Wall
 		-Werror
-		-Wno-switch
+		# TODO
 	)
 endif()
 
@@ -101,19 +99,16 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 	${CMAKE_SOURCE_DIR}/ThirdInclude/
 )
 
-if(WIN32)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+if(WIN32)
 	${CMAKE_SOURCE_DIR}/Framework_x64_debug.lib
 	${CMAKE_SOURCE_DIR}/box2dd.lib
-	${THIRD_LIBS}
-)
 else()
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
 	${CMAKE_SOURCE_DIR}/libFramework.a
 	${CMAKE_SOURCE_DIR}/libbox2d.a
+endif()
 	${THIRD_LIBS}
 )
-endif()
 
 if(MSVC)
 	set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES

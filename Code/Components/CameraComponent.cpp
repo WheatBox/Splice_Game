@@ -30,7 +30,7 @@ void CCameraComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
 void CCameraComponent::CameraControl(bool bCanZoom) {
 	const Frame::Vec2 mouseCurrPosInScene = GetMousePosInScene();
-	const Frame::Vec2 leftTopPos = Frame::gCamera->GetPos() - Frame::Vec2Cast(Frame::gCamera->GetViewSize()) * .5f / Frame::gCamera->GetZoom();
+	// const Frame::Vec2 leftTopPos = Frame::gCamera->GetPos() - Frame::Vec2Cast(Frame::gCamera->GetViewSize()) * .5f / Frame::gCamera->GetZoom();
 
 	if(m_func_IsTryingToMoveCamera()) {
 		Frame::gCamera->SetPos(Frame::gCamera->GetPos() + m_mousePosBeforeBeginToMoveCamera - mouseCurrPosInScene);

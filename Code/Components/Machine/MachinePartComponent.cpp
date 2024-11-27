@@ -148,7 +148,7 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 			std::unordered_set<SPipeNode *> erasingNodes;
 			PipeRecursion(& erasingNodes, * wrongPipeNodes.begin(), 1);
 
-			bool wrongPipeNodeErased = false;
+			// bool wrongPipeNodeErased = false;
 
 			for(auto & erasingNode : erasingNodes) {
 				for(auto itPipes = m_pipes.begin(); itPipes != m_pipes.end();) {
@@ -163,7 +163,7 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 				}
 				if(auto it = wrongPipeNodes.find(erasingNode); it != wrongPipeNodes.end()) {
 					wrongPipeNodes.erase(it);
-					wrongPipeNodeErased = true;
+					// wrongPipeNodeErased = true;
 				}
 				delete erasingNode;
 			}

@@ -29,12 +29,12 @@ void CApplication::Initialize() {
 	Texts::InitializeTexts(Texts::ELanguage::Chinese);
 	//Texts::InitializeTexts(Texts::ELanguage::English);
 
-	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
+	//if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
 		//pEntity->GetOrCreateComponent<CPhysicsWorldComponent>();
-	}
-	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
+	//}
+	//if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
 		//CEditorComponent::s_pEditorComponent = pEntity->GetOrCreateComponent<CEditorComponent>();
-	}
+	//}
 	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
 		pSmokeComp = pEntity->GetOrCreateComponent<CSmokeEmitterComponent>();
 
@@ -85,7 +85,7 @@ void CApplication::MainLoopLast() {
 		GUI::gCurrentGUI->Work();
 	}
 
-	for(int i = 0; i < 100; i++) {
+	for(int i = 0; i < 1000; i++) {
 		CSmokeEmitterComponent::SSmokeParticle part { { float(rand() % 800 - 400), float(rand() % 500 - 250) }, 1.f, 0xFFFFFF, { 0.f } };
 		pSmokeComp->SummonSmokeParticle(part);
 	}

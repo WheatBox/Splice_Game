@@ -3,8 +3,7 @@
 #include <FrameEntity/IEntityComponent.h>
 #include <FrameMath/Vector2.h>
 #include <FrameMath/ColorMath.h>
-
-#include <FrameRender/Renderer.h>
+#include <FrameMath/Matrix33.h>
 
 #include "../Assets.h"
 
@@ -26,7 +25,7 @@ public:
 			, scale { _scale }
 			, color { _color }
 		{
-			smokeSpr = sprites[rand() % spritesCount];
+			smokeSprIndex = rand() % spritesCount;
 
 			if(_impulse.x != 0 || _impulse.y != 0) {
 				impulseDir = _impulse.GetNormalized();
@@ -43,12 +42,12 @@ public:
 			alphaAdd = -static_cast<float>(rand() % 2) * .1f - .2f;*/
 
 			scale *= static_cast<float>(rand() % 8 + 6) * .1f;
-			rotation = static_cast<float>(rand() % 360);
+			rotation = Frame::DegToRad(static_cast<float>(rand() % 360));
 			alpha = static_cast<float>(rand() % 3 + 1) * .1f;
 
 			posAdd = Frame::Vec2 { static_cast<float>(rand() % 40 + 30), 0.f }.GetRotatedDegree(static_cast<float>(rand() % 360)) * (static_cast<float>(rand() % 6 + 4) * .1f);
 			scaleAdd = static_cast<float>(rand() % 8 + 10) * .1f;
-			rotationAdd = static_cast<float>(rand() % 75 * (rand() % 2 ? -1 : 1));
+			rotationAdd = Frame::DegToRad(static_cast<float>(rand() % 75 * (rand() % 2 ? -1 : 1)));
 			alphaAdd = -static_cast<float>(rand() % 2 + 2) * .1f;
 		}
 		Frame::Vec2 pos;
@@ -58,7 +57,7 @@ public:
 		Frame::Vec2 impulseDir {};
 		float impulsePower = 0.f;
 
-		Assets::EOtherStaticSprite smokeSpr;
+		int smokeSprIndex;
 
 		float rotation;
 		float alpha;
@@ -76,6 +75,8 @@ public:
 			Assets::EOtherStaticSprite::smoke5
 		};
 		static constexpr int spritesCount = 5;
+
+		static Frame::Matrix33 spritesTexCoordTrans[spritesCount];
 	};
 
 	static void SummonSmokeParticle(SSmokeParticle particle) {
@@ -83,8 +84,6 @@ public:
 	}
 	static CSmokeEmitterComponent * s_pSmokeEmitterComponent;
 	static std::list<SSmokeParticle> s_smokePraticles;
-
-	static std::vector<Frame::CRenderer::SInstanceBuffer> s_smokeParticleInstanceBuffers;
 
 public:
 	virtual void Initialize() override;

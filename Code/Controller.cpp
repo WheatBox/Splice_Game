@@ -46,7 +46,7 @@ case EElement::_EElement: \
 			return;
 		}
 
-		Frame::gRenderer->DrawSpriteBlended(pImage, pos, 0xFFFFFF, alpha, scale, 0.f);
+		Frame::gRenderer->DrawSpriteBlended(pImage, pos, 0xFFFFFF, alpha, scale * scaleMulti, 0.f);
 	}
 
 }
