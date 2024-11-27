@@ -11,7 +11,8 @@ REGISTER_ENTITY_COMPONENT(CSmokeEmitterComponent);
 Frame::Matrix33 CSmokeEmitterComponent::SSmokeParticle::spritesTexCoordTrans[spritesCount] {};
 
 CSmokeEmitterComponent * CSmokeEmitterComponent::s_pSmokeEmitterComponent = nullptr;
-std::vector<CSmokeEmitterComponent::SSmokeParticle> CSmokeEmitterComponent::s_smokePraticles {};
+CSmokeEmitterComponent::SSmokeParticlesBuffer CSmokeEmitterComponent::s_smokeParticlesBuffer {};
+std::vector<CSmokeEmitterComponent::SSmokeParticle> CSmokeEmitterComponent::s_smokeParticles;
 
 void CSmokeEmitterComponent::Initialize() {
 	s_pSmokeEmitterComponent = this;
@@ -33,9 +34,6 @@ std::vector<float> times;
 float sec = 0.f;
 float fpssec = 0.f;
 
-#include <chrono>
-#include <iostream>
-
 void CSmokeEmitterComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	switch(event.flag) {
 	case Frame::EntityEvent::EFlag::Update:
@@ -45,7 +43,14 @@ void CSmokeEmitterComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 	{
 		std::vector<Frame::CRenderer::SInstanceBuffer> instances;
 
-		auto itToErase = std::remove_if(s_smokePraticles.begin(), s_smokePraticles.end(), [this, & instances](SSmokeParticle & part) {
+		auto & smokeParticles = s_smokeParticlesBuffer.buffers[s_smokeParticlesBuffer.usingBufferId];
+		//s_smokeParticlesBuffer.usingBufferId = !s_smokeParticlesBuffer.usingBufferId; // 这么写 VS 会给我弹提示，不好看
+		s_smokeParticlesBuffer.usingBufferId = s_smokeParticlesBuffer.usingBufferId == 0 ? 1 : 0;
+
+		s_smokeParticles.insert(s_smokeParticles.end(), smokeParticles.begin(), smokeParticles.end());
+		smokeParticles.clear();
+
+		auto itToErase = std::remove_if(s_smokeParticles.begin(), s_smokeParticles.end(), [this, & instances](SSmokeParticle & part) {
 			part.alpha += part.alphaAdd * m_frametime;
 			part.rotation += part.rotationAdd * m_frametime;
 			part.pos += part.posAdd * m_frametime;
@@ -64,7 +69,7 @@ void CSmokeEmitterComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 			}
 			return true;
 			});
-		s_smokePraticles.erase(itToErase, s_smokePraticles.end());
+		s_smokeParticles.erase(itToErase, s_smokeParticles.end());
 
 		Frame::gRenderer->DrawSpritesInstanced(Assets::GetStaticSprite(SSmokeParticle::sprites[0])->GetImage(), instances);
 

@@ -35,12 +35,12 @@ void CApplication::Initialize() {
 	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
 		CEditorComponent::s_pEditorComponent = pEntity->GetOrCreateComponent<CEditorComponent>();
 	}
-	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
-		//pSmokeComp = pEntity->GetOrCreateComponent<CSmokeEmitterComponent>();
+	//if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
+	//	pSmokeComp = pEntity->GetOrCreateComponent<CSmokeEmitterComponent>();
 
-		//Frame::CFont * font = new Frame::CFont { Assets::GetFontFilename(), 16.f };
-		//Frame::gRenderer->pTextRenderer->SetFont(font);
-	}
+	//	Frame::CFont * font = new Frame::CFont { Assets::GetFontFilename(), 16.f };
+	//	Frame::gRenderer->pTextRenderer->SetFont(font);
+	//}
 
 	//Frame::gRenderer->SetBackgroundColor(0x00004F);
 	//Frame::gRenderer->SetBackgroundColor(0xFFFFFF);
@@ -86,8 +86,8 @@ void CApplication::MainLoopLast() {
 	}
 
 	//for(int i = 0; i < 700; i++) {
-		//CSmokeEmitterComponent::SSmokeParticle part { { float(rand() % 800 - 400), float(rand() % 500 - 250) }, 1.f, 0xFFFFFF, { 0.f } };
-		//pSmokeComp->SummonSmokeParticle(part);
+	//	CSmokeEmitterComponent::SSmokeParticle part { { float(rand() % 800 - 400), float(rand() % 500 - 250) }, 1.f, 0xFFFFFF, { 0.f } };
+	//	pSmokeComp->SummonSmokeParticle(part);
 	//}
 }
 

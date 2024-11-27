@@ -80,11 +80,15 @@ public:
 	};
 
 	static void SummonSmokeParticle(const SSmokeParticle & particle) {
-		//s_smokePraticles.insert(s_smokePraticles.begin(), particle); // 后创建的粒子先绘制
-		s_smokePraticles.push_back(particle);
+		s_smokeParticlesBuffer.buffers[s_smokeParticlesBuffer.usingBufferId].push_back(particle);
 	}
-	static CSmokeEmitterComponent * s_pSmokeEmitterComponent;
-	static std::vector<SSmokeParticle> s_smokePraticles;
+
+	struct SSmokeParticlesBuffer {
+		std::vector<SSmokeParticle> buffers[2] {};
+		int usingBufferId = 0;
+	};
+	static SSmokeParticlesBuffer s_smokeParticlesBuffer; // 两个缓存交替给 s_smokeParticles 传递新烟雾粒子的数据，用以解决多线程方面的冲突问题
+	static std::vector<SSmokeParticle> s_smokeParticles;
 
 public:
 	virtual void Initialize() override;
@@ -93,6 +97,7 @@ public:
 			s_pSmokeEmitterComponent = nullptr;
 		}
 	}
+	static CSmokeEmitterComponent * s_pSmokeEmitterComponent;
 
 	virtual Frame::EntityEvent::Flags GetEventFlags() const override;
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
