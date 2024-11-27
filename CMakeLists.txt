@@ -103,8 +103,10 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 if(WIN32)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
-	${CMAKE_SOURCE_DIR}/Framework_x64_debug.lib
-	${CMAKE_SOURCE_DIR}/box2dd.lib
+	$<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/Framework_x64_debug.lib>
+	$<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/Framework_x64_release.lib>
+	$<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/box2dd.lib>
+	$<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/box2d.lib>
 	${THIRD_LIBS}
 )
 else()
