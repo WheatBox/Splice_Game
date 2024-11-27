@@ -29,24 +29,24 @@ void CApplication::Initialize() {
 	Texts::InitializeTexts(Texts::ELanguage::Chinese);
 	//Texts::InitializeTexts(Texts::ELanguage::English);
 
-	//if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
-		//pEntity->GetOrCreateComponent<CPhysicsWorldComponent>();
-	//}
-	//if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
-		//CEditorComponent::s_pEditorComponent = pEntity->GetOrCreateComponent<CEditorComponent>();
-	//}
 	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
-		pSmokeComp = pEntity->GetOrCreateComponent<CSmokeEmitterComponent>();
+		pEntity->GetOrCreateComponent<CPhysicsWorldComponent>();
+	}
+	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
+		CEditorComponent::s_pEditorComponent = pEntity->GetOrCreateComponent<CEditorComponent>();
+	}
+	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
+		//pSmokeComp = pEntity->GetOrCreateComponent<CSmokeEmitterComponent>();
 
-		Frame::CFont * font = new Frame::CFont { Assets::GetFontFilename(), 16.f };
-		Frame::gRenderer->pTextRenderer->SetFont(font);
+		//Frame::CFont * font = new Frame::CFont { Assets::GetFontFilename(), 16.f };
+		//Frame::gRenderer->pTextRenderer->SetFont(font);
 	}
 
 	//Frame::gRenderer->SetBackgroundColor(0x00004F);
 	//Frame::gRenderer->SetBackgroundColor(0xFFFFFF);
 	//Frame::gRenderer->SetBackgroundColor(0xDDDDDD);
-	//Frame::gRenderer->SetBackgroundColor(0xB1B1C1);
-	Frame::gRenderer->SetBackgroundColor(0x000000);
+	Frame::gRenderer->SetBackgroundColor(0xB1B1C1);
+	//Frame::gRenderer->SetBackgroundColor(0x000000);
 
 	m_cursors[eCursor_Arrow] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
 	m_cursors[eCursor_Ibeam] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
@@ -85,10 +85,10 @@ void CApplication::MainLoopLast() {
 		GUI::gCurrentGUI->Work();
 	}
 
-	for(int i = 0; i < 1000; i++) {
-		CSmokeEmitterComponent::SSmokeParticle part { { float(rand() % 800 - 400), float(rand() % 500 - 250) }, 1.f, 0xFFFFFF, { 0.f } };
-		pSmokeComp->SummonSmokeParticle(part);
-	}
+	//for(int i = 0; i < 700; i++) {
+		//CSmokeEmitterComponent::SSmokeParticle part { { float(rand() % 800 - 400), float(rand() % 500 - 250) }, 1.f, 0xFFFFFF, { 0.f } };
+		//pSmokeComp->SummonSmokeParticle(part);
+	//}
 }
 
 void CApplication::SetCursor(ECursor shape) {

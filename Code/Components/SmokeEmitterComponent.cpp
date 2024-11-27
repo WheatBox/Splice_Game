@@ -11,7 +11,7 @@ REGISTER_ENTITY_COMPONENT(CSmokeEmitterComponent);
 Frame::Matrix33 CSmokeEmitterComponent::SSmokeParticle::spritesTexCoordTrans[spritesCount] {};
 
 CSmokeEmitterComponent * CSmokeEmitterComponent::s_pSmokeEmitterComponent = nullptr;
-std::list<CSmokeEmitterComponent::SSmokeParticle> CSmokeEmitterComponent::s_smokePraticles {};
+std::vector<CSmokeEmitterComponent::SSmokeParticle> CSmokeEmitterComponent::s_smokePraticles {};
 
 void CSmokeEmitterComponent::Initialize() {
 	s_pSmokeEmitterComponent = this;
@@ -43,42 +43,28 @@ void CSmokeEmitterComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 		break;
 	case Frame::EntityEvent::EFlag::Render:
 	{
-
-// 开始计时
-auto start = std::chrono::high_resolution_clock::now();
-
 		std::vector<Frame::CRenderer::SInstanceBuffer> instances;
 
-		for(auto it = s_smokePraticles.begin(); it != s_smokePraticles.end();) {
-			it->alpha += it->alphaAdd * m_frametime;
-			it->rotation += it->rotationAdd * m_frametime;
-			it->pos += it->posAdd * m_frametime;
-			it->scale += it->scaleAdd * m_frametime;
+		auto itToErase = std::remove_if(s_smokePraticles.begin(), s_smokePraticles.end(), [this, & instances](SSmokeParticle & part) {
+			part.alpha += part.alphaAdd * m_frametime;
+			part.rotation += part.rotationAdd * m_frametime;
+			part.pos += part.posAdd * m_frametime;
+			part.scale += part.scaleAdd * m_frametime;
 
-			it->pos += it->impulseDir * it->impulsePower * m_frametime;
-			it->impulsePower = Lerp(it->impulsePower, 0.f, Frame::Clamp(m_frametime * 10.f, 0.f, 1.f));
+			part.pos += part.impulseDir * part.impulsePower * m_frametime;
+			part.impulsePower = Lerp(part.impulsePower, 0.f, Frame::Clamp(m_frametime * 10.f, 0.f, 1.f));
 
-			if(it->alpha <= 0.f) {
-				it = s_smokePraticles.erase(it);
-			} else {
-
+			if(part.alpha > 0.f) {
 				instances.push_back({
-					Frame::Matrix33::CreateTranslation(it->pos) * Frame::Matrix33::CreateRotationZ(it->rotation) * Frame::Matrix33::CreateScale(it->scale)
-					, SSmokeParticle::spritesTexCoordTrans[it->smokeSprIndex]
-					, { ONERGB(it->color), it->alpha }
+					Frame::Matrix33::CreateTranslation(part.pos) * Frame::Matrix33::CreateRotationZ(part.rotation) * Frame::Matrix33::CreateScale(part.scale)
+					, SSmokeParticle::spritesTexCoordTrans[part.smokeSprIndex]
+					, { ONERGB(part.color), part.alpha }
 					});
-
-				instances.push_back({});
-				it++;
+				return false;
 			}
-		}
-
-// 获取结束时间点
-auto end = std::chrono::high_resolution_clock::now();
-// 计算运行时间，以毫秒为单位
-std::chrono::duration<double, std::milli> elapsed = end - start;
-// 输出运行时间
-std::cout << "运行时间: " << elapsed.count() << " 毫秒" << std::endl;
+			return true;
+			});
+		s_smokePraticles.erase(itToErase, s_smokePraticles.end());
 
 		Frame::gRenderer->DrawSpritesInstanced(Assets::GetStaticSprite(SSmokeParticle::sprites[0])->GetImage(), instances);
 

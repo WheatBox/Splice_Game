@@ -79,11 +79,12 @@ public:
 		static Frame::Matrix33 spritesTexCoordTrans[spritesCount];
 	};
 
-	static void SummonSmokeParticle(SSmokeParticle particle) {
-		s_smokePraticles.push_front(particle); // 后创建的粒子先绘制
+	static void SummonSmokeParticle(const SSmokeParticle & particle) {
+		//s_smokePraticles.insert(s_smokePraticles.begin(), particle); // 后创建的粒子先绘制
+		s_smokePraticles.push_back(particle);
 	}
 	static CSmokeEmitterComponent * s_pSmokeEmitterComponent;
-	static std::list<SSmokeParticle> s_smokePraticles;
+	static std::vector<SSmokeParticle> s_smokePraticles;
 
 public:
 	virtual void Initialize() override;
