@@ -5,6 +5,7 @@
 #include <FrameInput/Input.h>
 
 #include "MachinePartComponent.h"
+#include "DeviceComponent.h"
 #include "../Editor/EditorDeviceComponent.h"
 #include "../../Application.h"
 
@@ -32,7 +33,7 @@ void CMachineComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	break;
 	}
 }
-
+#if 0 // TODO
 static bool __HasConnected(const std::unordered_map<CEditorDeviceComponent *, std::unordered_set<CEditorDeviceComponent *>> & connectedEDComps, CEditorDeviceComponent * pEDComp1, CEditorDeviceComponent * pEDComp2) {
 	if(!pEDComp1 || !pEDComp2) {
 		return false;
@@ -260,7 +261,7 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 		} while(false);
 	}
 }
-
+#endif
 void CMachineComponent::OnShutDown() {
 	for(auto & pMachinePartComp : m_machineParts) {
 		Frame::gEntitySystem->RemoveEntity(pMachinePartComp->GetEntity()->GetId());

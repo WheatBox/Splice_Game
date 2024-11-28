@@ -17,7 +17,7 @@ Frame::EntityEvent::Flags CEditorDeviceComponent::GetEventFlags() const {
 
 void CEditorDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
-	if(!m_bWorking || !m_pEditorComponent) {
+	if(!m_bWorking) {
 		return;
 	}
 
@@ -52,7 +52,7 @@ void CEditorDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 	}
 }
 
-bool CEditorDeviceComponent::Initialize(CEditorComponent * pComp, IDeviceData::EType type, int dirIndex) {
+bool CEditorDeviceComponent::Initialize(IDeviceData::EType type, int dirIndex) {
 	m_pEntity->SetZDepth(Depths::EditorDevice);
 
 	m_pEntity->SetRotation(-GetDegreeByDirIndex(dirIndex));
@@ -67,7 +67,6 @@ bool CEditorDeviceComponent::Initialize(CEditorComponent * pComp, IDeviceData::E
 	if(!m_pColliderComponent->Collide().empty()) {
 		return false;
 	}
-	m_pEditorComponent = pComp;
 
 	m_pSpriteComponent = m_pEntity->CreateComponent<CSpriteComponent>();
 
@@ -189,30 +188,30 @@ if(m_neighbors[dirIndex] == nullptr) { \
 #undef __FORMULA
 }
 
-void CEditorDeviceComponent::GetPipeInterfaces(std::vector<CEditorComponent::SPipeInterface> * outToPushBack) {
-	if(m_deviceType == IDeviceData::Unset) {
-		return;
-	}
-
-#define __FORMULA(dirIndex) { \
-	Frame::Vec2 pos = m_pEntity->GetPosition() + GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_deviceType), m_directionIndex, dirIndex); \
-	outToPushBack->push_back({ this, pos, dirIndex }); \
-}
-
-	switch(m_deviceType) {
-	case IDeviceData::Engine:
-		for(int i = 0; i < 4; i++) {
-			__FORMULA(i)
-		}
-		break;
-	case IDeviceData::Propeller:
-	case IDeviceData::JetPropeller:
-		__FORMULA(GetRevDirIndex(m_directionIndex))
-		break;
-	}
-
-#undef __FORMULA
-}
+//void CEditorDeviceComponent::GetPipeInterfaces(std::vector<CEditorComponent::SPipeInterface> * outToPushBack) {
+//	if(m_deviceType == IDeviceData::Unset) {
+//		return;
+//	}
+//
+//#define __FORMULA(dirIndex) { \
+//	Frame::Vec2 pos = m_pEntity->GetPosition() + GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_deviceType), m_directionIndex, dirIndex); \
+//	outToPushBack->push_back({ this, pos, dirIndex }); \
+//}
+//
+//	switch(m_deviceType) {
+//	case IDeviceData::Engine:
+//		for(int i = 0; i < 4; i++) {
+//			__FORMULA(i)
+//		}
+//		break;
+//	case IDeviceData::Propeller:
+//	case IDeviceData::JetPropeller:
+//		__FORMULA(GetRevDirIndex(m_directionIndex))
+//		break;
+//	}
+//
+//#undef __FORMULA
+//}
 
 bool CEditorDeviceComponent::ConnectWith(CEditorDeviceComponent * pEDComp, int dirIndex) {
 	if(!pEDComp) {

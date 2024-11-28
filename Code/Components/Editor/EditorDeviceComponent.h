@@ -18,14 +18,14 @@ public:
 	}
 
 	// 若可放置于此处（无碰撞）（也就意味着初始化成功）则返回 true
-	bool Initialize(CEditorComponent * pComp, IDeviceData::EType type, int dirIndex);
+	bool Initialize(IDeviceData::EType type, int dirIndex);
 
 	virtual void OnShutDown() override;
 
 	void GetAvailableInterfaces(std::vector<CEditorComponent::SInterface> * outToPushBack);
-	void GetPipeInterfaces(std::vector<CEditorComponent::SPipeInterface> * outToPushBack);
+	//void GetPipeInterfaces(std::vector<CEditorComponent::SPipeInterface> * outToPushBack); // TODO
 
-	IDeviceData::EType GetDeviceType() {
+	IDeviceData::EType GetDeviceType() const {
 		return m_deviceType;
 	}
 
@@ -59,17 +59,6 @@ public:
 		return m_directionIndex;
 	}
 
-	void SetKeyId(Frame::EKeyId keyId) {
-		m_keyId = keyId;
-	}
-	Frame::EKeyId GetKeyId() const {
-		return m_keyId;
-	}
-
-	std::unordered_set<SEditorPipeNode *> & GetPipeNodes() {
-		return m_pipeNodes;
-	}
-
 	const SColorSet & GetColorSet() const {
 		return m_colorSet;
 	}
@@ -82,12 +71,9 @@ public:
 	}
 	
 	CEditorDeviceComponent * m_neighbors[4] {};
-	std::unordered_set<SEditorPipeNode *> m_pipeNodes;
 
 private:
 	bool m_bWorking = true;
-
-	CEditorComponent * m_pEditorComponent = nullptr;
 
 	CSpriteComponent * m_pSpriteComponent = nullptr;
 	CColliderComponent * m_pColliderComponent = nullptr;
@@ -99,8 +85,6 @@ private:
 	std::vector<Frame::ColorRGB SColorSet::*> m_colorUpdatesInSpriteLayers; // 具体作用，见 UpdateColor()
 
 	int m_directionIndex = 0;
-
-	Frame::EKeyId m_keyId = Frame::EKeyId::eKI_Unknown;
 
 	float m_alpha = 1.f;
 

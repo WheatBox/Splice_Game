@@ -60,7 +60,7 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 				pEntity->SetPosition(devicePos);
 				pEntity->SetRotation(deviceRot);
 
-				pComp->Initialize(m_pEntity, pEDComp->GetDeviceType(), pEDComp->GetKeyId(), pEDComp->GetDirIndex(), colorSet);
+				//pComp->Initialize(m_pEntity, pEDComp->GetDeviceType(), pEDComp->GetKeyId(), pEDComp->GetDirIndex(), colorSet); // TODO
 				pComp->SetRelativePositionRotation(devicePos, deviceRot);
 
 				auto defs = CDeviceComponent::MakeShapeDefs(pEDComp->GetDeviceType(), devicePos, deviceRot);

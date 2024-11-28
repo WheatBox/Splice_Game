@@ -27,19 +27,12 @@ namespace Texts {
 		EditorToolHand,
 		EditorToolPencil,
 		EditorToolEraser,
-		EditorToolPipe,
 		EditorToolSwatches,
 		EditorToolController,
-
-		EditorToolPipe_ModePencil,
-		EditorToolPipe_ModeEraser,
-		EditorToolPipe_ModeInsert,
 
 		EditorOperationPrompt_Camera,
 		EditorOperationPrompt_Hand,
 		EditorOperationPrompt_Pencil,
-		EditorOperationPrompt_Pipe,
-		EditorOperationPrompt_PipePencil_Drawing,
 		EditorOperationPrompt_Controller_Setting,
 
 		EditorEnd,

@@ -6,7 +6,6 @@
 #include "../../DevicesData.h"
 #include "../../Assets.h"
 #include "../../Utility.h"
-#include "../../Pipe.h"
 #include "../../Texts.h"
 #include "../../Controller.h"
 #include "../../GUI/GUI.h"
@@ -58,7 +57,6 @@ private:
 	void InitGUI();
 	void InitGUI_Toolbar();
 	void InitGUI_ToolPencilMenu();
-	void InitGUI_ToolPipeMenu();
 	void InitGUI_ToolSwatchesMenu();
 	void InitGUI_ToolSwatchesColorEditor();
 	void InitGUI_ToolControllerMenu();
@@ -67,7 +65,6 @@ private:
 
 	std::shared_ptr<GUI::CGUI> m_pGUI {};
 	std::shared_ptr<GUI::CDraggablePage> m_pToolPencilMenu {};
-	std::shared_ptr<GUI::CDraggablePage> m_pToolPipeMenu {};
 	std::shared_ptr<GUI::CDraggablePage> m_pToolSwatchesMenu {};
 	std::shared_ptr<GUI::CDraggablePage> m_pToolSwatchesColorEditor {};
 	std::shared_ptr<GUI::CDraggablePage> m_pToolControllerMenu {};
@@ -95,7 +92,6 @@ private:
 		Hand,
 		Pencil,
 		Eraser,
-		Pipe,
 		Swatches,
 		Controller
 	} m_tool = ETool::Hand;
@@ -105,7 +101,6 @@ private:
 			0.f,
 			128.f,
 			0.f,
-			48.f,
 			160.f,
 			128.f
 		};
@@ -118,27 +113,13 @@ private:
 
 	void Pencil();
 	void Eraser();
-	void Pipe_PencilMode();
-	void Pipe_EraserMode();
-	void Pipe_InsertMode();
-	void Controller();
 
 	IDeviceData::EType m_pencilDevice = IDeviceData::Unset; // 使用铅笔工具时，选中的要绘制的装置
-
-	enum class EPipeToolMode {
-		Pencil,
-		Eraser,
-		Insert
-	} m_pipeToolMode = EPipeToolMode::Pencil; // 使用管道工具时，选中的模式
 
 	void SwitchTool(ETool tool);
 	void SwitchPencilDevice(IDeviceData::EType device) {
 		m_pencilDevice = device;
 		m_pInterfaceMouseOn = nullptr;
-	}
-	void SwitchPipeToolMode(EPipeToolMode mode) {
-		m_pipeToolMode = mode;
-		PipeToolCleanUp();
 	}
 
 	/* -------------------- 调色盘工具杂项 -------------------- */
@@ -227,23 +208,6 @@ private:
 	void ControllerBegin();
 	void ControllerEnd();
 
-	/* -------------------- 管道工具杂项 -------------------- */
-
-	struct SPipeInsertData {
-		size_t pipeIndex = SIZE_MAX; // 管道工具插入模式，要插入的目标管道在 m_pipes 中的下标（注意不是管道节点的下标）
-		size_t pipeEditingMinIndex = SIZE_MAX;
-		bool isNewCross = false;
-		std::unordered_set<CEditorDeviceComponent *> devicesThatHasAlreadyConnected;
-	} m_pipeInsertData;
-
-	void PipeToolCleanUp() {
-		if(m_tool == ETool::Pipe && (m_pipeToolMode == EPipeToolMode::Pencil || m_pipeToolMode == EPipeToolMode::Insert)) {
-			FindAvailablePipeInterfaces();
-		}
-		CancelPipeNodesEditing();
-		m_pipeInsertData = SPipeInsertData {};
-	}
-
 	/* -------------------- 装置接口（插槽） -------------------- */
 
 public:
@@ -287,128 +251,13 @@ private:
 
 	/* -------------------- 管道接口（插槽） -------------------- */
 
-public:
-	typedef SInterface SPipeInterface;
 
-private:
-	std::vector<SPipeInterface> m_pipeInterfaces;
-
-	size_t m_pipeInterfaceSelectingIndex = SIZE_MAX;
-
-	void DeselectPipeInterface() {
-		m_pipeInterfaceSelectingIndex = SIZE_MAX;
-	}
-	bool IsSelectingPipeInterface() const {
-		return m_pipeInterfaceSelectingIndex < m_pipeInterfaces.size();
-	}
-	const SPipeInterface & GetSelectingPipeInterface() const {
-		return m_pipeInterfaces[m_pipeInterfaceSelectingIndex];
-	}
-
-	void GetAvailablePipeInterfaces(std::vector<SPipeInterface> * outToPushBack, CEditorDeviceComponent * pEDComp) const;
-	void FindAvailablePipeInterfaces();
-	void FindAvailablePipeInterfacesMachinePart(SPipeInterface pipeInterface);
-	void FindAvailablePipeInterfacesMachinePart(CEditorDeviceComponent * _pEDComp);
 
 	/* -------------------- 管道节点 -------------------- */
 
-	// 将一整条管道（包含各个小分支在内）视为一个整体进行处理
-	// 此处的 m_pipes 存储的就是一个个上面这句话里提到的“整体”
-	std::vector<std::vector<SEditorPipeNode *>> m_pipes;
-	std::vector<SEditorPipeNode *> m_pipeNodesEditing;
 
-	SEditorPipeNode * CreatePipeNodeByInterface(const SPipeInterface & interface) const;
-
-	void ErasePipeNode(size_t pipeIndex, SEditorPipeNode * pipeNode);
-
-	void BindPipeNodeWithEditorDeviceComponent(SEditorPipeNode * pPipeNode, CEditorDeviceComponent * pEDComp) const;
-	void UnbindPipeNodeWithEditorDeviceComponent(SEditorPipeNode * pPipeNode) const;
-
-	void DestroyPipeNode(SEditorPipeNode * pPipeNode) const {
-		UnbindPipeNodeWithEditorDeviceComponent(pPipeNode);
-		delete pPipeNode;
-	}
-
-	void MovePipeNodesEditingToPipeNodes() {
-		if(m_pipeInsertData.pipeIndex == SIZE_MAX) {
-			m_pipes.push_back(m_pipeNodesEditing);
-		} else {
-			m_pipeNodesEditing.swap(m_pipes[m_pipeInsertData.pipeIndex]);
-		}
-		m_pipeNodesEditing.clear();
-
-		DeselectPipeInterface();
-	}
-	void CancelPipeNodesEditing() {
-		if(m_pipeNodesEditing.size() == 0) {
-			return;
-		}
-		if(m_pipeInsertData.pipeIndex != SIZE_MAX) {
-			CancelPipeNodesInserting();
-		} else {
-			for(const auto & p : m_pipeNodesEditing) {
-				DestroyPipeNode(p);
-			}
-			m_pipeNodesEditing.clear();
-		}
-	}
-	void UndoPipeNodesEditing() {
-		if(m_pipeNodesEditing.size() == 0) {
-			return;
-		}
-		const auto & p = m_pipeNodesEditing.back();
-		for(int i = 0; i < 4; i++) {
-			if(p->nodes[i]) {
-				for(int j = 0; j < 4; j++) {
-					if(p->nodes[i]->nodes[j] == p) {
-						p->nodes[i]->nodes[j] = nullptr;
-						break;
-					}
-				}
-			}
-		}
-		DestroyPipeNode(p);
-		m_pipeNodesEditing.pop_back();
-	}
-	void CancelPipeNodesInserting() {
-		if(m_pipeNodesEditing.size() == 0 || m_pipeInsertData.pipeEditingMinIndex == SIZE_MAX) {
-			return;
-		}
-		for(size_t i = m_pipeInsertData.pipeEditingMinIndex + 1, len = m_pipeNodesEditing.size(); i < len; i++) {
-			UndoPipeNodesEditing();
-		}
-		UndoNewCrossOfPipeNodesInserting();
-
-		MovePipeNodesEditingToPipeNodes();
-	}
-	void UndoNewCrossOfPipeNodesInserting() {
-		if(m_pipeInsertData.pipeIndex == SIZE_MAX || m_pipeNodesEditing.size() == 0) {
-			return;
-		}
-		if(m_pipeInsertData.isNewCross) {
-			SEditorPipeNode * p = m_pipeNodesEditing.back();
-			for(int i = 0; i < 2; i++) {
-				if(p->nodes[i] && p->nodes[i + 2] && p->nodes[i]->nodes[i + 2] && p->nodes[i + 2]->nodes[i]) {
-					p->nodes[i]->nodes[i + 2] = p->nodes[i + 2];
-					p->nodes[i + 2]->nodes[i] = p->nodes[i];
-				}
-			}
-			DestroyPipeNode(p);
-			m_pipeNodesEditing.pop_back();
-		}
-	}
-	void GiveBackPipeNodesEditingToInsertMode() {
-		DrawMyPipe(m_pipeNodesEditing);
-
-		MovePipeNodesEditingToPipeNodes();
-
-		m_pipeToolMode = EPipeToolMode::Insert;
-		PipeToolCleanUp();
-	}
 
 	/* -------------------- 其它绘制函数 -------------------- */
-
-	void DrawMyPipe(const std::vector<SEditorPipeNode *> & pipe, float alpha = 1.f) const;
 
 	void DrawDevicePreview(IDeviceData::EType type, const Frame::Vec2 & pos, float alpha, int dirIndex, float scale) const {
 		DrawDevicePreview(type, pos, alpha, dirIndex, scale, 0, false);

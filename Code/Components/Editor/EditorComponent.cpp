@@ -103,6 +103,10 @@ void CEditorComponent::OnShutDown() {
 	if(m_pDeviceConnectorRendererEntity) {
 		Frame::gEntitySystem->RemoveEntity(m_pDeviceConnectorRendererEntity->GetId());
 	}
+
+	for(auto & pEditorDeviceComp : m_editorDeviceComponents) {
+		gApplication->RemoveEntityAtTheEndOfThisFrame(pEditorDeviceComp->GetEntity()->GetId());
+	}
 }
 
 Frame::EntityEvent::Flags CEditorComponent::GetEventFlags() const {
@@ -142,17 +146,6 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	{
 		Frame::gRenderer->pTextRenderer->SetFont(m_pFont);
 
-		{
-			for(size_t i = 0, siz = m_pipes.size(); i < siz; i++) {
-				const auto & _pipeNodes = m_pipes[i];
-				float alpha = (i == m_pipeInsertData.pipeIndex || m_pipeInsertData.pipeIndex == SIZE_MAX) ? 1.f : __PIPE_HIDE_ALPHA;
-				if(m_tool == ETool::Controller && !m_toolControllerStuff.highlightEDComps.empty()) {
-					alpha = m_toolControllerStuff.highlightPipeIndices.find(i) == m_toolControllerStuff.highlightPipeIndices.end() ? __DEVICE_HIDE_ALPHA : alpha;
-				}
-				DrawMyPipe(_pipeNodes, alpha);
-			}
-		}
-
 		/* --------------------- HotKeys --------------------- */
 
 		do {
@@ -163,9 +156,8 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 			if(Frame::gInput->pKeyboard->GetPressed(Frame::eKI_1)) SwitchTool(ETool::Hand);
 			else if(Frame::gInput->pKeyboard->GetPressed(Frame::eKI_2)) SwitchTool(ETool::Pencil);
 			else if(Frame::gInput->pKeyboard->GetPressed(Frame::eKI_3)) SwitchTool(ETool::Eraser);
-			else if(Frame::gInput->pKeyboard->GetPressed(Frame::eKI_4)) SwitchTool(ETool::Pipe);
-			else if(Frame::gInput->pKeyboard->GetPressed(Frame::eKI_5)) SwitchTool(ETool::Swatches);
-			else if(Frame::gInput->pKeyboard->GetPressed(Frame::eKI_6)) SwitchTool(ETool::Controller);
+			else if(Frame::gInput->pKeyboard->GetPressed(Frame::eKI_4)) SwitchTool(ETool::Swatches);
+			else if(Frame::gInput->pKeyboard->GetPressed(Frame::eKI_5)) SwitchTool(ETool::Controller);
 
 			if(m_tool == ETool::Pencil) {
 				const bool bGoPrev = Frame::gInput->pKeyboard->GetPressed(Frame::eKI_Q);
@@ -181,14 +173,6 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 					if(deviceTemp >= IDeviceData::END) deviceTemp = IDeviceData::Shell;
 					SwitchPencilDevice(deviceTemp);
 				}
-			} else if(m_tool == ETool::Pipe) {
-				if(Frame::gInput->pKeyboard->GetPressed(Frame::eKI_Q)) {
-					constexpr EPipeToolMode arr[] = { EPipeToolMode::Insert, EPipeToolMode::Pencil, EPipeToolMode::Eraser };
-					SwitchPipeToolMode(arr[static_cast<int>(m_pipeToolMode)]);
-				} else if(Frame::gInput->pKeyboard->GetPressed(Frame::eKI_E)) {
-					constexpr EPipeToolMode arr[] = { EPipeToolMode::Eraser, EPipeToolMode::Insert, EPipeToolMode::Pencil };
-					SwitchPipeToolMode(arr[static_cast<int>(m_pipeToolMode)]);
-				}
 			}
 
 		} while(false);
@@ -200,28 +184,11 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		} else
 		if(m_tool == ETool::Eraser) {
 			Eraser();
-		} else
-		if(m_tool == ETool::Pipe) {
-			switch(m_pipeToolMode) {
-			case EPipeToolMode::Pencil:
-				Pipe_PencilMode();
-				break;
-			case EPipeToolMode::Eraser:
-				Pipe_EraserMode();
-				break;
-			case EPipeToolMode::Insert:
-				Pipe_InsertMode();
-				break;
-			}
-		} else
-		if(m_tool == ETool::Controller) {
-			Controller();
 		}
 
 		/* ----------------------- GUI ----------------------- */
 
 		m_pToolPencilMenu->SetShowing(false);
-		m_pToolPipeMenu->SetShowing(false);
 		m_pToolSwatchesMenu->SetShowing(false);
 		m_pToolSwatchesColorEditor->SetShowing(false);
 		m_pToolControllerMenu->SetShowing(false);
@@ -229,9 +196,6 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		switch(m_tool) {
 		case ETool::Pencil:
 			m_pToolPencilMenu->SetShowing(true);
-			break;
-		case ETool::Pipe:
-			m_pToolPipeMenu->SetShowing(true);
 			break;
 		case ETool::Swatches:
 			m_pToolSwatchesMenu->SetShowing(true);
@@ -310,7 +274,6 @@ void CEditorComponent::InitGUI() {
 
 	InitGUI_Toolbar();
 	InitGUI_ToolPencilMenu();
-	InitGUI_ToolPipeMenu();
 	InitGUI_ToolSwatchesMenu();
 	InitGUI_ToolSwatchesColorEditor();
 	InitGUI_ToolControllerMenu();
@@ -321,12 +284,11 @@ void CEditorComponent::InitGUI() {
 }
 
 void CEditorComponent::InitGUI_Toolbar() {
-	const ETool arrTools[] = { ETool::Hand, ETool::Pencil, ETool::Eraser, ETool::Pipe, ETool::Swatches, ETool::Controller };
+	const ETool arrTools[] = { ETool::Hand, ETool::Pencil, ETool::Eraser, ETool::Swatches, ETool::Controller };
 	const Assets::EGUIStaticSprite arrSprs[] = {
 		Assets::EGUIStaticSprite::Editor_tool_hand,
 		Assets::EGUIStaticSprite::Editor_tool_pencil,
 		Assets::EGUIStaticSprite::Editor_tool_eraser,
-		Assets::EGUIStaticSprite::Editor_tool_pipe,
 		Assets::EGUIStaticSprite::Editor_tool_swatches,
 		Assets::EGUIStaticSprite::Editor_tool_controller
 	};
@@ -334,7 +296,6 @@ void CEditorComponent::InitGUI_Toolbar() {
 		Texts::EText::EditorToolHand,
 		Texts::EText::EditorToolPencil,
 		Texts::EText::EditorToolEraser,
-		Texts::EText::EditorToolPipe,
 		Texts::EText::EditorToolSwatches,
 		Texts::EText::EditorToolController
 	};
@@ -405,47 +366,6 @@ void CEditorComponent::InitGUI_ToolPencilMenu() {
 		);
 		
 		y += buttonSize + 6.f;
-	}
-
-	p->SetShowing(false);
-}
-
-void CEditorComponent::InitGUI_ToolPipeMenu() {
-	constexpr static EPipeToolMode arrModes[] = { EPipeToolMode::Pencil, EPipeToolMode::Eraser, EPipeToolMode::Insert };
-	constexpr static Assets::EGUIStaticSprite arrSprs[] = {
-		Assets::EGUIStaticSprite::Editor_tool_pipe_mode_pencil,
-		Assets::EGUIStaticSprite::Editor_tool_pipe_mode_eraser,
-		Assets::EGUIStaticSprite::Editor_tool_pipe_mode_insert,
-	};
-	constexpr static Texts::EText arrTexts[] = {
-		Texts::EText::EditorToolPipe_ModePencil,
-		Texts::EText::EditorToolPipe_ModeEraser,
-		Texts::EText::EditorToolPipe_ModeInsert,
-	};
-
-	constexpr float pageWidth = 48.f;
-	constexpr float pageHeight = 168.f;
-	constexpr float buttonSize = pageWidth - 8.f;
-	auto & p = m_pToolPipeMenu;
-	p = m_pGUI->CreateElement<GUI::CDraggablePage>(Frame::Vec2 { 72.f, 12.f }, Frame::Vec2 { pageWidth, pageHeight });
-	float y = 48.f;
-	int i = 0;
-	for(EPipeToolMode mode : arrModes) {
-		auto pCurrButton = p->CreateElement<GUI::CImageButton>(
-			Frame::Vec2 { pageWidth * .5f, y },
-			buttonSize,
-			[mode]() { if(CEditorComponent::s_pEditorComponent) { CEditorComponent::s_pEditorComponent->SwitchPipeToolMode(mode); } },
-			arrSprs[i],
-			arrTexts[i]
-		);
-		pCurrButton->SetCustomHighlightingCondition([mode]() {
-			if(CEditorComponent::s_pEditorComponent) {
-				return CEditorComponent::s_pEditorComponent->m_pipeToolMode == mode;
-			}
-			return false;
-			});
-		y += (buttonSize + pageWidth) * .5f;
-		i++;
 	}
 
 	p->SetShowing(false);
@@ -686,12 +606,6 @@ void CEditorComponent::InitGUI_OperationPrompt() {
 		switch(CEditorComponent::s_pEditorComponent->m_tool) {
 		case ETool::Hand: text = Texts::EText::EditorOperationPrompt_Hand; break;
 		case ETool::Pencil: text = Texts::EText::EditorOperationPrompt_Pencil; break;
-		case ETool::Pipe:
-			text = Texts::EText::EditorOperationPrompt_Pipe;
-			if(CEditorComponent::s_pEditorComponent->m_pipeToolMode == EPipeToolMode::Pencil && !CEditorComponent::s_pEditorComponent->m_pipeNodesEditing.empty()) {
-				text = Texts::EText::EditorOperationPrompt_PipePencil_Drawing;
-			}
-			break;
 		case ETool::Controller:
 			if(CEditorComponent::s_pEditorComponent->m_toolControllerStuff.pEDCompWaitingForKey) {
 				text = Texts::EText::EditorOperationPrompt_Controller_Setting;
@@ -1006,482 +920,13 @@ void CEditorComponent::Eraser() {
 
 		/* ----------------- 擦除附着的管道 ----------------- */
 
-		std::vector<SPipeInterface> pipeInterfacesTemp;
-		pEDComp->GetPipeInterfaces(& pipeInterfacesTemp);
-		for(const auto & _pipeInterface : pipeInterfacesTemp) {
-			bool hasPipe = false;
-			for(size_t i = 0, siz = m_pipes.size(); i < siz; i++) {
-				for(const auto & _pPipeNode : m_pipes[i]) {
-					if(_pPipeNode->pDevice == pEDComp && _pPipeNode->dirIndexForDevice == _pipeInterface.directionIndex) {
-						hasPipe = true;
-						ErasePipeNode(i, _pPipeNode);
-						break;
-					}
-				}
-				if(hasPipe) {
-					break;
-				}
-			}
-		}
+		// TODO
 
 		/* ------------------------------------------------ */
 
 		Frame::gEntitySystem->RemoveEntity(pEDComp->GetEntity()->GetId());
 		m_editorDeviceComponents.erase(itWillBeErase);
 	}
-}
-
-void CEditorComponent::Pipe_PencilMode() {
-	const size_t minIndexCanBeEdited = m_pipeInsertData.pipeIndex == SIZE_MAX ? 0 : m_pipeInsertData.pipeEditingMinIndex;
-
-	const Frame::Vec2 mousePosInScene = GetMousePosInScene();
-	const Frame::ColorRGB pipeColor = GetCurrentColorSet().pipe;
-
-	const SPipeInterface * pPipeInterfaceMouseOn = nullptr;
-	{
-		size_t i = 0;
-		bool bSelectOver = false;
-		for(auto & interface : m_pipeInterfaces) {
-			if(m_pipeInterfaceSelectingIndex == i
-				|| (IsSelectingPipeInterface() && GetSelectingPipeInterface().pEditorDeviceComponent == m_pipeInterfaces[i].pEditorDeviceComponent)
-				|| m_pipeInsertData.devicesThatHasAlreadyConnected.find(m_pipeInterfaces[i].pEditorDeviceComponent) != m_pipeInsertData.devicesThatHasAlreadyConnected.end()
-				) {
-				i++;
-				continue;
-			}
-			const Frame::Vec2 pos = interface.pos;
-			constexpr float sizeHalf = __PIPE_BUTTON_SIZE_HALF;
-			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(pos - sizeHalf, pos + sizeHalf, __PENCIL_BUTTON_COLOR, __PENCIL_BUTTON_ALPHA);
-			Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(pos - sizeHalf, pos + sizeHalf, __PENCIL_BUTTON_EDGE_COLOR, __PENCIL_BUTTON_ALPHA, 1.f);
-			if(!bSelectOver && Frame::PointInRectangle(mousePosInScene, pos - sizeHalf, pos + sizeHalf)) {
-				pPipeInterfaceMouseOn = & interface;
-
-				if(m_bMBLeftPressed && !IsSelectingPipeInterface() && m_pipeInsertData.pipeIndex == SIZE_MAX) {
-					m_pipeInterfaceSelectingIndex = i;
-
-					m_pipeNodesEditing.push_back(CreatePipeNodeByInterface(interface));
-
-					m_bMBLeftPressed = false;
-					m_bMBRightPressed = false;
-
-					bSelectOver = true;
-				}
-			}
-			i++;
-		}
-
-		if(bSelectOver) {
-			FindAvailablePipeInterfacesMachinePart(GetSelectingPipeInterface());
-			return;
-		}
-	}
-
-	if(!IsSelectingPipeInterface() && m_pipeInsertData.pipeIndex == SIZE_MAX) {
-		return;
-	}
-
-	if(m_bMBRightPressed) { // 右键单击以撤销正在进行中的编辑
-
-		if(m_pipeNodesEditing.size() <= minIndexCanBeEdited) {
-			goto _RightClickToUndo_Over;
-		}
-		else
-			if(m_pipeNodesEditing.size() == minIndexCanBeEdited + 1) {
-				if(m_pipeInsertData.pipeIndex != SIZE_MAX) {
-					UndoNewCrossOfPipeNodesInserting();
-					GiveBackPipeNodesEditingToInsertMode();
-					return;
-				}
-				CancelPipeNodesEditing();
-				FindAvailablePipeInterfaces();
-				goto _RightClickToUndo_Over;
-			}
-
-		UndoPipeNodesEditing();
-
-	_RightClickToUndo_Over:
-
-		DrawMyPipe(m_pipeNodesEditing);
-
-		return;
-	}
-
-	{
-		int dirIndex = 0;
-		Frame::Vec2 pos {};
-		Frame::Vec2 vPosMouse {};
-		/*
-		const bool bToInterface = m_pipeNodesEditing.size() == 0;
-		if(bToInterface) {
-		pos = m_pipeInterfaces[m_pipeInterfaceSelectingIndex].pos;
-		vPosMouse = mousePosInScene - pos;
-		dirIndex = m_pipeInterfaces[m_pipeInterfaceSelectingIndex].directionIndex;
-		} else */
-		if(m_pipeNodesEditing.size() > minIndexCanBeEdited) {
-			pos = m_pipeNodesEditing.back()->pos;
-
-			if(pPipeInterfaceMouseOn) {
-				vPosMouse = pPipeInterfaceMouseOn->pos - pos;
-			} else {
-				vPosMouse = mousePosInScene - pos;
-			}
-
-			if(m_pipeNodesEditing.size() <= minIndexCanBeEdited + 1) {
-				if(m_pipeInsertData.pipeIndex != SIZE_MAX) {
-					dirIndex = GetDirIndex(vPosMouse);
-					if(const SEditorPipeNode * p = m_pipeNodesEditing.back(); p->nodes[dirIndex]) {
-						float nearestRad = Frame::pi_f;
-						for(int i = 0; i < 4; i++) {
-							if(!p->nodes[i]) {
-								if(const float rad = GetDirPosAdd(i).IncludedAngle(vPosMouse); rad < nearestRad) {
-									dirIndex = i;
-									nearestRad = rad;
-								}
-							}
-						}
-					}
-				} else {
-					dirIndex = GetSelectingPipeInterface().directionIndex;
-				}
-			} else {
-				dirIndex = GetDirIndex(vPosMouse);
-				if(const int pipeRevDirIndex = GetDirIndex(m_pipeNodesEditing[m_pipeNodesEditing.size() - 2ull]->pos - pos); pipeRevDirIndex == dirIndex) {
-					const float degree = (vPosMouse.x == 0.f && vPosMouse.y == 0.f) ? 0.f : -vPosMouse.Degree();
-					if(const int dirIndexTemp = GetDirIndexByDegree(degree + 45.f); dirIndexTemp != pipeRevDirIndex) {
-						dirIndex = dirIndexTemp;
-					} else {
-						dirIndex = GetDirIndexByDegree(degree - 45.f);
-					}
-				}
-			}
-		}
-
-		const Frame::Vec2 dirPosAdd = GetDirPosAdd(dirIndex);
-		Frame::Vec2 vPosDest { dirPosAdd.x * vPosMouse.x > 0.f ? vPosMouse.x : 0.f, dirPosAdd.y * vPosMouse.y > 0.f ? vPosMouse.y : 0.f };
-		if(constexpr float minLen = PIPE_CROSS_SIZE; vPosDest.Length() < minLen) {
-			vPosDest = dirPosAdd * minLen;
-		}
-		const Frame::Vec2 posDest = pos + vPosDest;
-
-		DrawMyPipe(m_pipeNodesEditing);
-		DrawPipeSingleLine({ std::min(pos.x, posDest.x), std::max(pos.y, posDest.y) }, { std::max(pos.x, posDest.x), std::min(pos.y, posDest.y) }, pipeColor, .5f);
-		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::pipe_interface_color)->GetImage(), posDest, pipeColor, .5f);
-		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::pipe_interface)->GetImage(), posDest, 0xFFFFFF, .5f);
-
-		if(m_bMBLeftPressed) {
-
-			if(m_pipeNodesEditing.size() >= minIndexCanBeEdited + 2) {
-				// 如果要添加的新节点和上两个节点在同一条线上，清除上一个节点，避免三个节点处在同一条线段上
-				if(SEditorPipeNode * pPrev = m_pipeNodesEditing.back(); pPrev->nodes[GetRevDirIndex(dirIndex)]) {
-					int count = 0;
-					for(int i = 0; i < 4; i++) {
-						count += m_pipeNodesEditing.back()->nodes[i] != nullptr;
-					}
-					if(count < 2) {
-						delete pPrev;
-						m_pipeNodesEditing.pop_back();
-					}
-				}
-			}
-
-			SEditorPipeNode * pPipeNode = new SEditorPipeNode { posDest };
-			//if(!bToInterface) {
-			SEditorPipeNode * pAnother = m_pipeNodesEditing.back();
-			pPipeNode->nodes[GetRevDirIndex(dirIndex)] = pAnother;
-			pAnother->nodes[dirIndex] = pPipeNode;
-			//}
-			m_pipeNodesEditing.push_back(pPipeNode);
-			if(pPipeInterfaceMouseOn && std::abs(pPipeInterfaceMouseOn->pos.x - posDest.x) <= 4.f && std::abs(pPipeInterfaceMouseOn->pos.y - posDest.y) <= 4.f) {
-
-				BindPipeNodeWithEditorDeviceComponent(pPipeNode, pPipeInterfaceMouseOn->pEditorDeviceComponent);
-				pPipeNode->dirIndexForDevice = pPipeInterfaceMouseOn->directionIndex;
-
-				if(m_pipeInsertData.pipeIndex != SIZE_MAX) {
-					GiveBackPipeNodesEditingToInsertMode();
-					return;
-				} else {
-					MovePipeNodesEditingToPipeNodes();
-
-					FindAvailablePipeInterfaces();
-				}
-			}
-		}
-	}
-
-	return;
-}
-
-void CEditorComponent::Pipe_EraserMode() {
-	size_t pipeNodesIndex = SIZE_MAX;
-
-	SEditorPipeNode * pPipeNodeChosen = nullptr;
-
-	{
-		for(size_t i = 0, siz = m_pipes.size(); i < siz; i++) {
-			for(auto & _pPipeNode : m_pipes[i]) {
-				if(_pPipeNode->pDevice) {
-					const Frame::Vec2 lt = _pPipeNode->pos - __PIPE_BUTTON_SIZE_HALF;
-					const Frame::Vec2 rb = _pPipeNode->pos + __PIPE_BUTTON_SIZE_HALF;
-					Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __ERASER_BUTTON_COLOR, __ERASER_BUTTON_ALPHA);
-					Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __ERASER_BUTTON_EDGE_COLOR, __ERASER_BUTTON_ALPHA, 1.f);
-
-					if(m_bMBLeftHolding && Frame::PointInRectangle(GetMousePosInScene(), lt, rb)) {
-						pipeNodesIndex = i;
-						pPipeNodeChosen = _pPipeNode;
-						//break;
-					}
-				}
-			}
-			//if(pipeNodesIndex != SIZE_MAX) {
-			//break;
-			//}
-		}
-	}
-
-	if(pipeNodesIndex == SIZE_MAX) {
-		return;
-	}
-
-	ErasePipeNode(pipeNodesIndex, pPipeNodeChosen);
-}
-
-void CEditorComponent::Pipe_InsertMode() {
-	const Frame::Vec2 mousePosInScene = GetMousePosInScene();
-
-	for(size_t i = 0, siz = m_pipes.size(); i < siz; i++) {
-		if(m_pipeInsertData.pipeIndex != SIZE_MAX) {
-			break;
-		}
-		const auto & _pPipeNodes = m_pipes[i];
-		for(auto & _pPipeNode : _pPipeNodes) {
-			if(_pPipeNode->pDevice) {
-				const Frame::Vec2 lt = _pPipeNode->pos - __PIPE_BUTTON_SIZE_HALF;
-				const Frame::Vec2 rb = _pPipeNode->pos + __PIPE_BUTTON_SIZE_HALF;
-				Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __PENCIL_BUTTON_COLOR, __PENCIL_BUTTON_ALPHA);
-				Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __PENCIL_BUTTON_EDGE_COLOR, __PENCIL_BUTTON_ALPHA, 1.f);
-
-				if(m_bMBLeftPressed && Frame::PointInRectangle(GetMousePosInScene(), lt, rb)) {
-					m_bMBLeftPressed = false;
-					m_bMBRightPressed = false;
-					m_pipeInsertData.pipeIndex = i;
-					break;
-				}
-			}
-		}
-	}
-
-	if(m_pipeInsertData.pipeIndex == SIZE_MAX) {
-		return;
-	}
-
-	if(m_bMBRightPressed) {
-		m_pipeInsertData.pipeIndex = SIZE_MAX;
-		return;
-	}
-
-	const Frame::ColorRGB pipeColor = GetCurrentColorSet().pipe;
-
-	auto & pipeNodes = m_pipes[m_pipeInsertData.pipeIndex];
-	for(size_t ind = 0, siz = pipeNodes.size(); ind < siz; ind++) {
-		size_t i = siz - ind - 1;
-		SEditorPipeNode * pPipeNode = pipeNodes[i];
-		for(int j = 0; j < 2; j++) {
-			SEditorPipeNode * pPipeNodeAnother = pPipeNode->nodes[j];
-			if(pPipeNodeAnother == nullptr) {
-				continue;
-			}
-			const Frame::Vec2 lineDiffHalf = (pPipeNodeAnother->pos - pPipeNode->pos) * .5f;
-			const Frame::Vec2 lineDiffHalfAbs { std::abs(lineDiffHalf.x), std::abs(lineDiffHalf.y) };
-			const Frame::Vec2 lineMid = pPipeNode->pos + lineDiffHalf;
-			const Frame::Vec2 areaHalf = lineDiffHalfAbs + PIPE_CROSS_SIZE * .5f;
-
-			bool mouseOnCrossAnother = Frame::PointInRectangle(pPipeNodeAnother->pos, mousePosInScene - PIPE_CROSS_SIZE, mousePosInScene + PIPE_CROSS_SIZE);
-			bool mouseOnCross = Frame::PointInRectangle(pPipeNode->pos, mousePosInScene - PIPE_CROSS_SIZE, mousePosInScene + PIPE_CROSS_SIZE);
-			{
-				int _count = 0, _countAnother = 0;
-				for(int _i = 0; _i < 4; _i++) {
-					_countAnother += pPipeNodeAnother->nodes[_i] != nullptr;
-					_count += pPipeNode->nodes[_i] != nullptr;
-				}
-				mouseOnCrossAnother = _countAnother == 4 ? false : mouseOnCrossAnother;
-				mouseOnCross = _count == 4 ? false : mouseOnCross;
-			}
-			const bool mouseOnCrossOrAnotherCross = mouseOnCross || mouseOnCrossAnother;
-			bool crossWhichMouseOnIsOnDevice = (mouseOnCross && pPipeNode->pDevice) || (mouseOnCrossAnother && pPipeNodeAnother->pDevice);
-			if(!crossWhichMouseOnIsOnDevice && (mouseOnCrossOrAnotherCross || Frame::PointInRectangle(mousePosInScene, lineMid + areaHalf, lineMid - areaHalf))) {
-				Frame::Vec2 pos {};
-				if(mouseOnCrossAnother) {
-					pos = pPipeNodeAnother->pos;
-				} else if(mouseOnCross) {
-					pos = pPipeNode->pos;
-				} else {
-					pos = lineMid + lineDiffHalfAbs.GetNormalized() * (mousePosInScene - lineMid);
-				}
-				Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::pipe_interface_color)->GetImage(), pos, pipeColor, .5f);
-				Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::pipe_interface)->GetImage(), pos, 0xFFFFFF, .5f);
-
-				if(m_bMBLeftPressed) {
-					if(mouseOnCrossAnother) {
-						pipeNodes.push_back(pPipeNodeAnother);
-						for(auto _it = pipeNodes.begin(); _it != pipeNodes.end(); _it++) {
-							if(* _it == pPipeNodeAnother) {
-								pipeNodes.erase(_it);
-								break;
-							}
-						}
-					} else if(mouseOnCross) {
-						pipeNodes.push_back(pPipeNode);
-						for(auto _it = pipeNodes.begin(); _it != pipeNodes.end(); _it++) {
-							if(* _it == pPipeNode) {
-								pipeNodes.erase(_it);
-								break;
-							}
-						}
-					}
-					SEditorPipeNode * _pNode = mouseOnCrossOrAnotherCross ? pipeNodes.back() : new SEditorPipeNode { pos };
-
-					if(!mouseOnCrossOrAnotherCross) {
-						pPipeNodeAnother->nodes[GetRevDirIndex(j)] = _pNode;
-						_pNode->nodes[j] = pPipeNodeAnother;
-
-						pPipeNode->nodes[j] = _pNode;
-						_pNode->nodes[GetRevDirIndex(j)] = pPipeNode;
-					}
-
-					CancelPipeNodesEditing();
-					m_pipeNodesEditing.swap(m_pipes[m_pipeInsertData.pipeIndex]);
-					m_pipeInsertData.isNewCross = !mouseOnCrossOrAnotherCross;
-					if(m_pipeInsertData.isNewCross) {
-						m_pipeNodesEditing.push_back(_pNode);
-					}
-					m_pipeInsertData.pipeEditingMinIndex = m_pipeNodesEditing.size() - 1;
-
-					for(const auto & _pPipeNodeEditing : m_pipeNodesEditing) {
-						if(_pPipeNodeEditing->pDevice) {
-							m_pipeInsertData.devicesThatHasAlreadyConnected.insert(_pPipeNodeEditing->pDevice);
-						}
-					}
-
-					m_pipeToolMode = EPipeToolMode::Pencil;
-
-					for(auto & _pPipeNode : m_pipeNodesEditing) {
-						if(_pPipeNode->pDevice) {
-							FindAvailablePipeInterfacesMachinePart(_pPipeNode->pDevice);
-							break;
-						}
-					}
-				}
-
-				ind = siz;
-				break;
-			}
-		}
-	}
-}
-
-void CEditorComponent::Controller() {
-	static Frame::CFont * pFont = new Frame::CFont { Assets::GetFontFilename(), 36.f };
-
-	Frame::CFont * pFontBefore = Frame::gRenderer->pTextRenderer->GetFont();
-
-	const Frame::Vec2 mousePosInScene = GetMousePosInScene();
-
-	const float buttonSizeHalf = GetDevicePixelSize(IDeviceData::Engine).x * .4f;
-
-	bool bMouseHasAlreadyOn = false;
-	for(auto & pEDComp : m_toolControllerStuff.engineEDComps) {
-		const Frame::Vec2 pos = pEDComp->GetEntity()->GetPosition();
-		const Frame::Vec2 lt = pos - buttonSizeHalf, rb = pos + buttonSizeHalf;
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __CONTROLLER_BUTTON_COLOR, std::min(pEDComp->GetAlpha(), __CONTROLLER_BUTTON_ALPHA));
-		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(lt, rb, __CONTROLLER_BUTTON_EDGE_COLOR, std::min(pEDComp->GetAlpha(), __CONTROLLER_BUTTON_ALPHA), 1.f);
-
-		if(auto keyId = pEDComp->GetKeyId(); keyId != Frame::EKeyId::eKI_Unknown || m_toolControllerStuff.pEDCompWaitingForKey == pEDComp) {
-			UnicodeString str;
-			if(m_toolControllerStuff.pEDCompWaitingForKey == pEDComp) {
-				str = Frame::UTF8Utils::ToUnicode("?");
-			} else {
-				str = Frame::UTF8Utils::ToUnicode("[") + GetKeyName(keyId) + Frame::UTF8Utils::ToUnicode("]");
-			}
-			Frame::gRenderer->pTextRenderer->SetFont(str.length() <= 3 ? pFont : m_pFont);
-			Frame::gRenderer->pTextRenderer->DrawTextAutoWrapAlignBlended(str, pos, buttonSizeHalf * 2.f, Frame::ETextHAlign::Center, Frame::ETextVAlign::Middle, 0xFFFFFF, std::min(pEDComp->GetAlpha(), __CONTROLLER_BUTTON_TEXT_ALPHA));
-		}
-
-		const bool bMouseOn = Frame::PointInRectangle(mousePosInScene, lt, rb);
-
-		if(!bMouseHasAlreadyOn && bMouseOn && m_toolControllerStuff.highlightEDComps.empty()) {
-			bMouseHasAlreadyOn = true;
-
-			for(auto & _pEDComp : m_editorDeviceComponents) {
-				_pEDComp->SetAlpha(__DEVICE_HIDE_ALPHA);
-			}
-
-			std::function<void(CEditorDeviceComponent *)> recursion = [& recursion, this](CEditorDeviceComponent * pEDComp) {
-				if(m_toolControllerStuff.highlightEDComps.find(pEDComp) != m_toolControllerStuff.highlightEDComps.end()) {
-					return;
-				}
-				pEDComp->SetAlpha(1.f);
-				m_toolControllerStuff.highlightEDComps.insert(pEDComp);
-
-				std::unordered_set<SEditorPipeNode *> nodes;
-				for(auto & pPipeNode : pEDComp->m_pipeNodes) {
-					PipeRecursion(& nodes, pPipeNode, 0);
-				}
-				for(auto & pPipeNode : nodes) {
-					if(!pPipeNode->pDevice || pEDComp == pPipeNode->pDevice) {
-						continue;
-					}
-					recursion(pPipeNode->pDevice);
-				}
-				};
-			recursion(pEDComp);
-
-			// 能跑就行（
-			for(const auto & _pEDComp : m_toolControllerStuff.highlightEDComps) {
-				for(const auto & _nodesFinding : _pEDComp->m_pipeNodes) {
-					for(size_t _pipeIndex = 0, _siz = m_pipes.size(); _pipeIndex < _siz; _pipeIndex++) {
-						for(const auto & _pipeNode : m_pipes[_pipeIndex]) {
-							if(_pipeNode == _nodesFinding) {
-								m_toolControllerStuff.highlightPipeIndices.insert(_pipeIndex);
-								_pipeIndex = _siz; // break 掉用 _pipeIndex 的那层 for
-								break;
-							}
-						}
-					}
-				}
-			}
-		} else if(bMouseOn && !m_toolControllerStuff.highlightEDComps.empty()) {
-			bMouseHasAlreadyOn = true;
-		}
-
-		if(bMouseOn && m_bMBLeftPressed) {
-			m_toolControllerStuff.pEDCompWaitingForKey = m_toolControllerStuff.pEDCompWaitingForKey == pEDComp ? nullptr : pEDComp;
-		}
-	}
-
-	if(m_bMBRightPressed) {
-		m_toolControllerStuff.pEDCompWaitingForKey = nullptr;
-	}
-
-	if(m_toolControllerStuff.pEDCompWaitingForKey) {
-		if(Frame::EKeyId keyIdPressed = GetAnyKeyPressed(); keyIdPressed != Frame::EKeyId::eKI_Unknown) {
-			if(keyIdPressed == Frame::EKeyId::eKI_Escape) {
-				m_toolControllerStuff.pEDCompWaitingForKey->SetKeyId(Frame::EKeyId::eKI_Unknown);
-			} else {
-				m_toolControllerStuff.pEDCompWaitingForKey->SetKeyId(keyIdPressed);
-			}
-			m_toolControllerStuff.pEDCompWaitingForKey = nullptr;
-		}
-	}
-
-	if(!bMouseHasAlreadyOn && !m_toolControllerStuff.highlightEDComps.empty()) {
-		for(auto & _pEDComp : m_editorDeviceComponents) {
-			_pEDComp->SetAlpha(1.f);
-		}
-		m_toolControllerStuff.highlightEDComps.clear();
-		m_toolControllerStuff.highlightPipeIndices.clear();
-	}
-
-	Frame::gRenderer->pTextRenderer->SetFont(pFontBefore);
 }
 
 void CEditorComponent::SwitchTool(ETool tool) {
@@ -1500,8 +945,6 @@ void CEditorComponent::SwitchTool(ETool tool) {
 	} else if(m_tool == ETool::Controller) {
 		ControllerBegin();
 	}
-
-	PipeToolCleanUp();
 }
 
 void CEditorComponent::UpdateDevicesColor() {
@@ -1595,11 +1038,74 @@ CEditorDeviceComponent * CEditorComponent::Put(const CEditorComponent::SInterfac
 	return nullptr;
 }
 
+struct SPipeInterface {
+	CEditorDeviceComponent * pEditorDeviceComponent = nullptr;
+	Frame::Vec2 pos {};
+	int dirIndex = 0;
+};
+
+static inline std::vector<SPipeInterface> GetPipeInterfaces(CEditorDeviceComponent * pEditorDeviceComp) {
+	IDeviceData::EType deviceType = pEditorDeviceComp->GetDeviceType();
+	if(deviceType == IDeviceData::Unset) {
+		return;
+	}
+
+	int deviceDirIndex = pEditorDeviceComp->GetDirIndex();
+
+	std::vector<SPipeInterface> results;
+
+#define __FORMULA(dirIndex) { \
+	Frame::Vec2 pos = pEditorDeviceComp->GetEntity()->GetPosition() + GetRectangleEdgePosByDirIndex(GetDevicePixelSize(deviceType), deviceDirIndex, dirIndex); \
+	results.push_back({ pEditorDeviceComp, pos, dirIndex }); \
+}
+
+	switch(deviceType) {
+	case IDeviceData::Engine:
+		for(int i = 0; i < 4; i++) {
+			__FORMULA(i)
+		}
+		break;
+	case IDeviceData::Propeller:
+	case IDeviceData::JetPropeller:
+		__FORMULA(GetRevDirIndex(deviceDirIndex))
+		break;
+	}
+
+#undef __FORMULA
+
+	return results;
+}
+
+static inline SPipeInterface GetNearestEnginePipeInterface(CEditorDeviceComponent * currEditorDeviceComp, const std::unordered_set<CEditorDeviceComponent *> & editorDeviceComponents) {
+	float nearestDistance = 9999999.f;
+	SPipeInterface nearestPipeInterface {};
+	bool bFoundPipeInterfaceToConnect = false;
+
+	std::vector<SPipeInterface> currEditorDevicePipeInterfaces = GetPipeInterfaces(currEditorDeviceComp);
+
+	for(const auto & pEditorDeviceComp : editorDeviceComponents) {
+		std::vector<SPipeInterface> pipeInterfaces = GetPipeInterfaces(pEditorDeviceComp);
+		for(auto & pipeInterface : pipeInterfaces) {
+			for(auto & currPipeInterface : currEditorDevicePipeInterfaces) {
+
+				if(float distance = PointDistance(currPipeInterface.pos, pipeInterface.pos); distance < nearestDistance) {
+					nearestDistance = distance;
+					nearestPipeInterface = pipeInterface;
+					bFoundPipeInterfaceToConnect = true;
+				}
+
+			}
+		}
+	}
+
+	return nearestPipeInterface;
+}
+
 CEditorDeviceComponent * CEditorComponent::Put(const Frame::Vec2 & pos, IDeviceData::EType type, int dirIndex) {
 	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
 		pEntity->SetPosition(pos);
 		CEditorDeviceComponent * pEDComp = pEntity->CreateComponent<CEditorDeviceComponent>();
-		if(pEDComp->Initialize(this, type, dirIndex)) {
+		if(pEDComp->Initialize(type, dirIndex)) {
 			m_editorDeviceComponents.insert(pEDComp);
 			pEDComp->UpdateColor(GetCurrentColorSet());
 			return pEDComp;
@@ -1608,110 +1114,6 @@ CEditorDeviceComponent * CEditorComponent::Put(const Frame::Vec2 & pos, IDeviceD
 		}
 	}
 	return nullptr;
-}
-
-void CEditorComponent::GetAvailablePipeInterfaces(std::vector<SPipeInterface> * outToPushBack, CEditorDeviceComponent * pEDComp) const {
-	std::vector<SPipeInterface> pipeInterfacesTemp;
-	pEDComp->GetPipeInterfaces(& pipeInterfacesTemp);
-	for(const auto & _pipeInterface : pipeInterfacesTemp) {
-		bool hasPipe = false;
-		for(const auto & _pipe : m_pipes) {
-			for(const auto & _pPipeNode : _pipe) {
-				if(_pPipeNode->pDevice == pEDComp && _pPipeNode->dirIndexForDevice == _pipeInterface.directionIndex) {
-					hasPipe = true;
-					break;
-				}
-			}
-			if(hasPipe) {
-				break;
-			}
-		}
-		if(!hasPipe) {
-			outToPushBack->push_back(_pipeInterface);
-		}
-	}
-}
-
-void CEditorComponent::FindAvailablePipeInterfaces() {
-	DeselectPipeInterface();
-	m_pipeInterfaces.clear();
-	for(auto & pEDComp : m_editorDeviceComponents) {
-		GetAvailablePipeInterfaces(& m_pipeInterfaces, pEDComp);
-	}
-}
-
-// 注意该函数的参数不要在未来优化的时候给改成引用传参了！
-void CEditorComponent::FindAvailablePipeInterfacesMachinePart(SPipeInterface pipeInterface) {
-	// 因为这一步会改变 m_pipeInterfaces
-	FindAvailablePipeInterfacesMachinePart(pipeInterface.pEditorDeviceComponent);
-
-	size_t i = 0;
-	for(auto & pipeInterfaceAfter : m_pipeInterfaces) {
-		if(pipeInterfaceAfter.pos == pipeInterface.pos) {
-			m_pipeInterfaceSelectingIndex = i;
-			break;
-		}
-		i++;
-	}
-}
-
-void CEditorComponent::FindAvailablePipeInterfacesMachinePart(CEditorDeviceComponent * _pEDComp) {
-	if(!_pEDComp) {
-		return;
-	}
-
-	DeselectPipeInterface();
-	m_pipeInterfaces.clear();
-
-	std::unordered_set<CEditorDeviceComponent *> machinePartEDComps;
-	RecursiveMachinePartEditorDevices(& machinePartEDComps, _pEDComp);
-	for(auto & pEDComp : machinePartEDComps) {
-		GetAvailablePipeInterfaces(& m_pipeInterfaces, pEDComp);
-	}
-}
-
-SEditorPipeNode * CEditorComponent::CreatePipeNodeByInterface(const SPipeInterface & interface) const {
-	SEditorPipeNode * pPipeNode = new SEditorPipeNode { interface.pos };
-	BindPipeNodeWithEditorDeviceComponent(pPipeNode, interface.pEditorDeviceComponent);
-	pPipeNode->dirIndexForDevice = interface.directionIndex;
-	return pPipeNode;
-}
-
-void CEditorComponent::ErasePipeNode(size_t pipeIndex, SEditorPipeNode * pipeNode) {
-	std::unordered_set<SEditorPipeNode *> nodes;
-	PipeRecursion(& nodes, pipeNode, 1);
-
-	m_pipes[pipeIndex].erase(
-		std::remove_if(m_pipes[pipeIndex].begin(), m_pipes[pipeIndex].end(), [& nodes, this](SEditorPipeNode * pNode) {
-			if(nodes.find(pNode) != nodes.end()) {
-				DestroyPipeNode(pNode);
-				return true;
-			}
-			return false;
-			})
-		, m_pipes[pipeIndex].end()
-	);
-
-	if(m_pipes[pipeIndex].size() == 0) {
-		m_pipes.erase(m_pipes.begin() + pipeIndex);
-	}
-}
-
-void CEditorComponent::BindPipeNodeWithEditorDeviceComponent(SEditorPipeNode * pPipeNode, CEditorDeviceComponent * pEDComp) const {
-	if(pPipeNode && pEDComp) {
-		pEDComp->m_pipeNodes.insert(pPipeNode);
-		pPipeNode->pDevice = pEDComp;
-	}
-}
-
-void CEditorComponent::UnbindPipeNodeWithEditorDeviceComponent(SEditorPipeNode * pPipeNode) const {
-	if(pPipeNode && pPipeNode->pDevice) {
-		pPipeNode->pDevice->m_pipeNodes.erase(pPipeNode);
-	}
-}
-
-void CEditorComponent::DrawMyPipe(const std::vector<SEditorPipeNode *> & pipe, float alpha) const {
-	DrawPipe<SEditorPipeNode>(pipe, m_pEntity->GetPosition(), GetCurrentColorSet().pipe, alpha, m_pEntity->GetRotation());
 }
 
 void CEditorComponent::DrawDevicePreview(IDeviceData::EType type, const Frame::Vec2 & pos, float alpha, int dirIndex, float scale, Frame::ColorRGB customColor, bool useCustomColor) const {
@@ -1786,7 +1188,8 @@ void CEditorComponent::SummonMachine() {
 	}
 	if(auto pEnt = Frame::gEntitySystem->SpawnEntity()) {
 		if(auto pComp = pEnt->CreateComponent<CMachineComponent>()) {
-			pComp->Initialize(* it, m_pipes, GetCurrentColorSet());
+			//pComp->Initialize(* it, m_pipes, GetCurrentColorSet());
+			// TODO
 		}
 	}
 }
