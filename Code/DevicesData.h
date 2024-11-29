@@ -174,6 +174,16 @@ static inline Frame::Vec2 GetDeviceInterfaceBias(IDeviceData::EType device, int 
 	return res.GetRotatedDegree(-GetDegreeByDirIndex(dirIndexOfDevice) + rotationAdd);
 }
 
+static inline bool IsDeviceHasPipeInterface(IDeviceData::EType type) {
+	switch(type) {
+	case IDeviceData::Engine:
+	case IDeviceData::Propeller:
+	case IDeviceData::JetPropeller:
+		return true;
+	}
+	return false;
+}
+
 struct SColorSet {
 	SColorSet()
 		: color1 { 0xFFFFFF }

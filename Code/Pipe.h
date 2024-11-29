@@ -11,8 +11,6 @@
 
 #include <vector>
 
-class CEditorDeviceComponent;
-
 struct SPipeNode {
 	SPipeNode(const Frame::Vec2 & _pos)
 		: pos { _pos }

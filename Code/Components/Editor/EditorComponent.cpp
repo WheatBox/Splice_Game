@@ -15,6 +15,7 @@
 #include "../PhysicsWorldComponent.h"
 
 #include "../../Depths.h"
+#include "../../Pipe.h"
 
 REGISTER_ENTITY_COMPONENT(CEditorComponent);
 
@@ -178,6 +179,25 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		} while(false);
 
 		/* ----------------------- Canvas ----------------------- */
+
+		// TODO - 只是临时代码
+		for(auto & pipe : m_pipes) {
+			std::vector<SEditorPipeNode *> pipeP;
+			for(auto & node : pipe) {
+				pipeP.push_back(node.get());
+			}
+			DrawPipe<SEditorPipeNode>(pipeP, 0.f, 0x999999, 1.f, 0.f);
+		}
+		/*for(auto & pipe : m_pipes) {
+			for(auto & node : pipe) {
+				Frame::gRenderer->pShapeRenderer->DrawPointBlended(node->pos, 0xFF0000, .7f, 32.f);
+				for(int i = 0; i < 4; i++) {
+					if(node->nodes[i]) {
+						Frame::gRenderer->pShapeRenderer->DrawLineBlended(node->pos, node->pos + GetDirPosAdd(i) * 32.f, 0xFFFF00, 1.f, 4.f);
+					}
+				}
+			}
+		}*/
 
 		if(m_tool == ETool::Pencil && m_pencilDevice != IDeviceData::EType::Unset) {
 			Pencil();
@@ -916,16 +936,14 @@ void CEditorComponent::Eraser() {
 	}
 	if(itWillBeErase != m_editorDeviceComponents.end()) {
 
-		auto pEDComp = * itWillBeErase;
+		IDeviceData::EType deviceType = (* itWillBeErase)->GetDeviceType();
 
-		/* ----------------- 擦除附着的管道 ----------------- */
-
-		// TODO
-
-		/* ------------------------------------------------ */
-
-		Frame::gEntitySystem->RemoveEntity(pEDComp->GetEntity()->GetId());
+		Frame::gEntitySystem->RemoveEntity((* itWillBeErase)->GetEntity()->GetId());
 		m_editorDeviceComponents.erase(itWillBeErase);
+
+		if(IsDeviceHasPipeInterface(deviceType)) {
+			RegenerateAllPipes(); // TODO - 会崩溃，不知道为啥
+		}
 	}
 }
 
@@ -1026,18 +1044,6 @@ Frame::Vec2 CEditorComponent::GetWillPutPos(const SInterface & interface) const 
 		);
 }
 
-CEditorDeviceComponent * CEditorComponent::Put(const CEditorComponent::SInterface & interface) {
-	Frame::Vec2 putPos = GetWillPutPos(interface);
-	if(CEditorDeviceComponent * pEDComp = Put(putPos, interface.directionIndex)) {
-		interface.pEditorDeviceComponent->ConnectWith(pEDComp, interface.directionIndex);
-		//if(interface.pEditorDeviceComponent->GetDeviceType() == IDeviceData::EType::Engine && pEDComp->GetDeviceType() == IDeviceData::EType::Engine) {
-		// TODO or not - 当放置两个相邻的引擎时自动连接二者的管道
-		//}
-		return pEDComp;
-	}
-	return nullptr;
-}
-
 struct SPipeInterface {
 	CEditorDeviceComponent * pEditorDeviceComponent = nullptr;
 	Frame::Vec2 pos {};
@@ -1047,7 +1053,7 @@ struct SPipeInterface {
 static inline std::vector<SPipeInterface> GetPipeInterfaces(CEditorDeviceComponent * pEditorDeviceComp) {
 	IDeviceData::EType deviceType = pEditorDeviceComp->GetDeviceType();
 	if(deviceType == IDeviceData::Unset) {
-		return;
+		return {};
 	}
 
 	int deviceDirIndex = pEditorDeviceComp->GetDirIndex();
@@ -1076,29 +1082,226 @@ static inline std::vector<SPipeInterface> GetPipeInterfaces(CEditorDeviceCompone
 	return results;
 }
 
-static inline SPipeInterface GetNearestEnginePipeInterface(CEditorDeviceComponent * currEditorDeviceComp, const std::unordered_set<CEditorDeviceComponent *> & editorDeviceComponents) {
+std::unordered_map<const CEditorDeviceComponent *, int> __map_PipeConnectableEDComp_MachinePartIndex;
+
+static inline void RegenerateMachinePartIndices_For_EDCompsHavePipeInterface(const std::unordered_set<CEditorDeviceComponent *> & EDComps) {
+	std::unordered_set<const CEditorDeviceComponent *> ignoreDevices;
+	std::queue<const CEditorDeviceComponent *> nexts;
+
+	for(auto & ed : EDComps) {
+		if(ed->GetDeviceType() == IDeviceData::Cabin) {
+			nexts.push(ed);
+			break;
+		}
+	}
+
+	int currentMachinePartIndex = 0;
+
+	std::function<void (const CEditorDeviceComponent *)> recursive = [&](const CEditorDeviceComponent * pEDComp) {
+		if(!pEDComp || ignoreDevices.find(pEDComp) != ignoreDevices.end()) {
+			return;
+		}
+
+		ignoreDevices.insert(pEDComp);
+
+		if(IsMachinePartJoint(pEDComp->GetDeviceType())) {
+			for(auto & neighbor : pEDComp->m_neighbors) {
+				nexts.push(neighbor);
+			}
+			return;
+		}
+		
+		__map_PipeConnectableEDComp_MachinePartIndex.insert({ pEDComp, currentMachinePartIndex });
+
+		for(const auto & pNeighborEDComp : pEDComp->m_neighbors) {
+			recursive(pNeighborEDComp);
+		}
+
+		return;
+		};
+	
+	while(!nexts.empty()) {
+		recursive(nexts.front());
+		nexts.pop();
+		currentMachinePartIndex++;
+	}
+}
+
+static inline bool InTheSameMachinePart(const CEditorDeviceComponent * pEDComp1, const CEditorDeviceComponent * pEDComp2) {
+	if(auto it1 = __map_PipeConnectableEDComp_MachinePartIndex.find(pEDComp1), it2 = __map_PipeConnectableEDComp_MachinePartIndex.find(pEDComp2);
+		it1 != __map_PipeConnectableEDComp_MachinePartIndex.end() && it2 != __map_PipeConnectableEDComp_MachinePartIndex.end()
+		) {
+		if(it1->second == it2->second) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// 如果无法连接到任何装置，返回的 pair 里的结构体将会都是默认值，也就是说结构体里的 pEditorDeviceComponent 将会是 nullptr.
+static inline std::pair<SPipeInterface, SPipeInterface> GetNearestPipeInterfacesToEngineDevice(CEditorDeviceComponent * currEditorDeviceComp, const std::unordered_set<CEditorDeviceComponent *> & editorDeviceComponents) {
 	float nearestDistance = 9999999.f;
-	SPipeInterface nearestPipeInterface {};
-	bool bFoundPipeInterfaceToConnect = false;
+	std::pair<SPipeInterface, SPipeInterface> nearestPipeInterfaces;
 
 	std::vector<SPipeInterface> currEditorDevicePipeInterfaces = GetPipeInterfaces(currEditorDeviceComp);
 
 	for(const auto & pEditorDeviceComp : editorDeviceComponents) {
+		if(currEditorDeviceComp == pEditorDeviceComp || pEditorDeviceComp->GetDeviceType() != IDeviceData::EType::Engine || !InTheSameMachinePart(currEditorDeviceComp, pEditorDeviceComp)) {
+			continue;
+		}
 		std::vector<SPipeInterface> pipeInterfaces = GetPipeInterfaces(pEditorDeviceComp);
 		for(auto & pipeInterface : pipeInterfaces) {
 			for(auto & currPipeInterface : currEditorDevicePipeInterfaces) {
 
 				if(float distance = PointDistance(currPipeInterface.pos, pipeInterface.pos); distance < nearestDistance) {
 					nearestDistance = distance;
-					nearestPipeInterface = pipeInterface;
-					bFoundPipeInterfaceToConnect = true;
+					
+					nearestPipeInterfaces.first = currPipeInterface;
+					nearestPipeInterfaces.second = pipeInterface;
 				}
 
 			}
 		}
 	}
 
-	return nearestPipeInterface;
+	return nearestPipeInterfaces;
+}
+
+static inline void PipeConnect(const std::pair<SPipeInterface, SPipeInterface> & interfaces, std::vector<std::vector<std::shared_ptr<SEditorPipeNode>>> & pipesToModify) {
+	if(!interfaces.first.pEditorDeviceComponent || !interfaces.second.pEditorDeviceComponent) {
+		return;
+	}
+
+	/*
+	* 从两端同时出发
+	* 朝向对方的方向，互相步进，寻找对方
+	* 当处在同一横线或竖线上的时候，连接彼此
+	*/
+
+	const float stepLength = 32.f;
+	const float targetDir[2] = {
+		-(interfaces.second.pos - interfaces.first.pos).Degree(),
+		-(interfaces.first.pos - interfaces.second.pos).Degree()
+	};
+
+	std::vector<std::shared_ptr<SEditorPipeNode>> pipe {
+		std::make_shared<SEditorPipeNode>(interfaces.first.pos),
+		std::make_shared<SEditorPipeNode>(interfaces.second.pos)
+	};
+	pipe[0]->dirIndexForDevice = interfaces.first.dirIndex;
+	pipe[0]->pDevice = interfaces.first.pEditorDeviceComponent;
+	pipe[1]->dirIndexForDevice = interfaces.second.dirIndex;
+	pipe[1]->pDevice = interfaces.second.pEditorDeviceComponent;
+
+	int nodesMovingDirIndex[2] = { interfaces.first.dirIndex, interfaces.second.dirIndex };
+
+	// 若两节点相邻，直接连接上
+	if(PointDistance(pipe[0]->pos, pipe[1]->pos) <= 33.f) {
+		pipe[0]->nodes[nodesMovingDirIndex[0]] = pipe[1].get();
+		pipe[1]->nodes[nodesMovingDirIndex[1]] = pipe[0].get();
+		pipesToModify.push_back(pipe);
+		return;
+	}
+
+	SEditorPipeNode * prevNode[2] { pipe[0].get(), pipe[1].get() };
+
+	SEditorPipeNode currentStep[2] { { interfaces.first.pos }, { interfaces.second.pos } };
+	currentStep[0].pos += GetDirPosAdd(nodesMovingDirIndex[0]) * stepLength;
+	currentStep[1].pos += GetDirPosAdd(nodesMovingDirIndex[1]) * stepLength;
+
+	static auto appendNewNode = [&](int turn) -> SEditorPipeNode * {
+		auto pNewNode = std::make_shared<SEditorPipeNode>(currentStep[turn]);
+		pipe.push_back(pNewNode);
+		auto pNewNodeRaw = pNewNode.get();
+		pNewNode->nodes[GetRevDirIndex(nodesMovingDirIndex[turn])] = prevNode[turn];
+		prevNode[turn]->nodes[nodesMovingDirIndex[turn]] = pNewNodeRaw;
+		prevNode[turn] = pNewNodeRaw;
+		return pNewNodeRaw;
+		};
+
+	int whoseTurn = 0;
+	for(int safe = static_cast<int>((currentStep[0].pos - currentStep[1].pos).Length() / stepLength) * 2; safe >= 0; safe--, whoseTurn = whoseTurn ? 0 : 1) {
+
+		{
+			int nextDirIndex = nodesMovingDirIndex[whoseTurn];
+			float maxCos = -1.f;
+			for(int i = 0; i < 4; i++) {
+				if(i == GetRevDirIndex(nodesMovingDirIndex[whoseTurn])) {
+					continue;
+				}
+				float currCos = cos(Frame::DegToRad(GetDegreeByDirIndex(i) - targetDir[whoseTurn]));
+				if(currCos > maxCos) {
+					maxCos = currCos;
+					nextDirIndex = i;
+				}
+			}
+			if(nodesMovingDirIndex[whoseTurn] != nextDirIndex) {
+				appendNewNode(whoseTurn);
+
+				nodesMovingDirIndex[whoseTurn] = nextDirIndex;
+			}
+		}
+
+		currentStep[whoseTurn].pos += GetDirPosAdd(nodesMovingDirIndex[whoseTurn]) * stepLength;
+		
+		// 当处在同一横线或竖线上的时候，连接彼此
+		if(abs(currentStep[0].pos.x - currentStep[1].pos.x) <= stepLength - 1.f) {
+			currentStep[0].pos.x = currentStep[1].pos.x;
+
+			SEditorPipeNode * pNodeA = appendNewNode(0);
+			SEditorPipeNode * pNodeB = appendNewNode(1);
+			int dirIndexFromAToB = GetDirIndexByDegree(-(pNodeB->pos - pNodeA->pos).Degree());
+			pNodeA->nodes[dirIndexFromAToB] = pNodeB;
+			pNodeB->nodes[GetRevDirIndex(dirIndexFromAToB)] = pNodeA;
+
+			break;
+		} else
+		if(abs(currentStep[0].pos.y - currentStep[1].pos.y) <= stepLength - 1.f) {
+			currentStep[0].pos.y = currentStep[1].pos.y;
+
+			SEditorPipeNode * pNodeA = appendNewNode(0);
+			SEditorPipeNode * pNodeB = appendNewNode(1);
+			int dirIndexFromAToB = GetDirIndexByDegree(-(pNodeB->pos - pNodeA->pos).Degree());
+			pNodeA->nodes[dirIndexFromAToB] = pNodeB;
+			pNodeB->nodes[GetRevDirIndex(dirIndexFromAToB)] = pNodeA;
+
+			break;
+		}
+	}
+
+	// 移除多余的中间结点
+	for(auto it = pipe.begin(); it != pipe.end();) {
+		auto & pNode = * it;
+		if(pNode->nodes[0] && pNode->nodes[2] && !pNode->nodes[1] && !pNode->nodes[3]) {
+			pNode->nodes[0]->nodes[2] = pNode->nodes[2];
+			pNode->nodes[2]->nodes[0] = pNode->nodes[0];
+			it = pipe.erase(it);
+		} else
+		if(pNode->nodes[1] && pNode->nodes[3] && !pNode->nodes[0] && !pNode->nodes[2]) {
+			pNode->nodes[1]->nodes[3] = pNode->nodes[3];
+			pNode->nodes[3]->nodes[1] = pNode->nodes[1];
+			it = pipe.erase(it);
+		} else {
+			it++;
+		}
+	}
+
+	pipesToModify.push_back(pipe);
+}
+
+CEditorDeviceComponent * CEditorComponent::Put(const CEditorComponent::SInterface & interface) {
+	Frame::Vec2 putPos = GetWillPutPos(interface);
+	if(CEditorDeviceComponent * pEDComp = Put(putPos, interface.directionIndex)) {
+		interface.pEditorDeviceComponent->ConnectWith(pEDComp, interface.directionIndex);
+		//if(interface.pEditorDeviceComponent->GetDeviceType() == IDeviceData::EType::Engine && pEDComp->GetDeviceType() == IDeviceData::EType::Engine) {
+		// TODO or not - 当放置两个相邻的引擎时自动连接二者的管道
+		//}
+
+		RegenerateAllPipes();
+
+		return pEDComp;
+	}
+	return nullptr;
 }
 
 CEditorDeviceComponent * CEditorComponent::Put(const Frame::Vec2 & pos, IDeviceData::EType type, int dirIndex) {
@@ -1114,6 +1317,19 @@ CEditorDeviceComponent * CEditorComponent::Put(const Frame::Vec2 & pos, IDeviceD
 		}
 	}
 	return nullptr;
+}
+
+void CEditorComponent::RegenerateAllPipes() {
+	RegenerateMachinePartIndices_For_EDCompsHavePipeInterface(m_editorDeviceComponents);
+
+	m_pipes.clear();
+	
+	for(auto & ed : m_editorDeviceComponents) {
+		if(!IsDeviceHasPipeInterface(ed->GetDeviceType())) {
+			continue;
+		}
+		PipeConnect(GetNearestPipeInterfacesToEngineDevice(ed, m_editorDeviceComponents), m_pipes);
+	}
 }
 
 void CEditorComponent::DrawDevicePreview(IDeviceData::EType type, const Frame::Vec2 & pos, float alpha, int dirIndex, float scale, Frame::ColorRGB customColor, bool useCustomColor) const {

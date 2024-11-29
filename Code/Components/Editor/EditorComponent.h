@@ -19,6 +19,8 @@
 class CEditorDeviceComponent;
 class CCameraComponent;
 
+struct SEditorPipeNode;
+
 class CEditorComponent final : public Frame::IEntityComponent {
 public:
 
@@ -244,6 +246,7 @@ private:
 	Frame::Vec2 GetWillPutPos(const SInterface & interface) const;
 
 	CEditorDeviceComponent * Put(const SInterface & interface);
+	// TODO - 隐去下面两个函数
 	CEditorDeviceComponent * Put(const Frame::Vec2 & pos, int dirIndex) {
 		return Put(pos, m_pencilDevice == IDeviceData::Unset ? IDeviceData::Shell : m_pencilDevice, dirIndex);
 	}
@@ -255,7 +258,9 @@ private:
 
 	/* -------------------- 管道节点 -------------------- */
 
+	std::vector<std::vector<std::shared_ptr<SEditorPipeNode>>> m_pipes;
 
+	void RegenerateAllPipes();
 
 	/* -------------------- 其它绘制函数 -------------------- */
 
