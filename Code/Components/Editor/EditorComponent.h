@@ -261,6 +261,7 @@ private:
 	std::vector<std::vector<std::shared_ptr<SEditorPipeNode>>> m_pipes;
 
 	void RegenerateAllPipes();
+	void RegenerateNearPipes(CEditorDeviceComponent * pEDComp);
 
 	/* -------------------- 其它绘制函数 -------------------- */
 

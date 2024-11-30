@@ -29,9 +29,10 @@ void CMachinePartComponent::ProcessEvent(const Frame::EntityEvent::SEvent & even
 		}
 		break;
 	case Frame::EntityEvent::Render:
-		for(const auto & pipe : m_pipes) {
-			DrawPipe<SPipeNode>(pipe, m_pEntity->GetPosition(), m_colorSet.pipe, 1.f, m_pEntity->GetRotation());
-		}
+		//for(const auto & pipe : m_pipes) {
+			// DrawPipe<SPipeNode>(pipe, m_pEntity->GetPosition(), m_colorSet.pipe, 1.f, m_pEntity->GetRotation());
+			// TODO
+		//}
 		break;
 	}
 }

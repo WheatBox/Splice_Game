@@ -10,6 +10,7 @@
 #include "Components/Machine/DeviceComponent.h"
 
 #include <vector>
+#include <memory>
 
 struct SPipeNode {
 	SPipeNode(const Frame::Vec2 & _pos)
@@ -102,14 +103,16 @@ void DrawPipe(const PipeT & pipeNodes, const Frame::Vec2 & pos, Frame::ColorRGB 
 			}
 		}
 		if(markVal == 0) {
-			DrawPipeCross(pPipeNode, pos, color, alpha, rotation);
+			DrawPipeCross(pPipeNode.get(), pos, color, alpha, rotation);
 		}
-		pipeNodesMark.insert({ pPipeNode, markVal });
+		pipeNodesMark.insert({ pPipeNode.get(), markVal });
 	}
 
 	for(auto & pPipeNode : pipeNodes) {
+		auto pPipeNodeRaw = pPipeNode.get();
+
 		for(int i = 0; i < 2; i++) {
-			if(!pipeNodesMark[pPipeNode]) {
+			if(!pipeNodesMark[pPipeNodeRaw]) {
 				break;
 			}
 			if(!pPipeNode->nodes[i]) {
@@ -117,10 +120,10 @@ void DrawPipe(const PipeT & pipeNodes, const Frame::Vec2 & pos, Frame::ColorRGB 
 			}
 			DrawPipeSingleLine(pos + pPipeNode->pos.GetRotatedDegree(rotation), pos + pPipeNode->nodes[i]->pos.GetRotatedDegree(rotation), color, alpha);
 
-			pipeNodesMark[pPipeNode] &= ~(0b1 << i);
+			pipeNodesMark[pPipeNodeRaw] &= ~(0b1 << i);
 			pipeNodesMark[pPipeNode->nodes[i]] &= ~(0b100 << i);
-			if(!pipeNodesMark[pPipeNode]) {
-				DrawPipeCross(pPipeNode, pos, color, alpha, rotation);
+			if(!pipeNodesMark[pPipeNodeRaw]) {
+				DrawPipeCross(pPipeNodeRaw, pos, color, alpha, rotation);
 			}
 			if(!pipeNodesMark[pPipeNode->nodes[i]]) {
 				DrawPipeCross(pPipeNode->nodes[i], pos, color, alpha, rotation);

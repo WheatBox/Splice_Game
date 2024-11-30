@@ -17,6 +17,8 @@
 #include "../../Depths.h"
 #include "../../Pipe.h"
 
+#include <algorithm>
+
 REGISTER_ENTITY_COMPONENT(CEditorComponent);
 
 constexpr float __INTERFACESET_BUTTON_SIZE_HALF = 48.f;
@@ -182,22 +184,8 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
 		// TODO - 只是临时代码
 		for(auto & pipe : m_pipes) {
-			std::vector<SEditorPipeNode *> pipeP;
-			for(auto & node : pipe) {
-				pipeP.push_back(node.get());
-			}
-			DrawPipe<SEditorPipeNode>(pipeP, 0.f, 0x999999, 1.f, 0.f);
+			DrawPipe<SEditorPipeNode>(pipe, 0.f, 0x999999, 1.f, 0.f);
 		}
-		/*for(auto & pipe : m_pipes) {
-			for(auto & node : pipe) {
-				Frame::gRenderer->pShapeRenderer->DrawPointBlended(node->pos, 0xFF0000, .7f, 32.f);
-				for(int i = 0; i < 4; i++) {
-					if(node->nodes[i]) {
-						Frame::gRenderer->pShapeRenderer->DrawLineBlended(node->pos, node->pos + GetDirPosAdd(i) * 32.f, 0xFFFF00, 1.f, 4.f);
-					}
-				}
-			}
-		}*/
 
 		if(m_tool == ETool::Pencil && m_pencilDevice != IDeviceData::EType::Unset) {
 			Pencil();
@@ -1086,18 +1074,19 @@ std::unordered_map<const CEditorDeviceComponent *, int> __map_PipeConnectableEDC
 
 static inline void RegenerateMachinePartIndices_For_EDCompsHavePipeInterface(const std::unordered_set<CEditorDeviceComponent *> & EDComps) {
 	std::unordered_set<const CEditorDeviceComponent *> ignoreDevices;
+	std::queue<const CEditorDeviceComponent *> nextJoints;
 	std::queue<const CEditorDeviceComponent *> nexts;
 
 	for(auto & ed : EDComps) {
 		if(ed->GetDeviceType() == IDeviceData::Cabin) {
-			nexts.push(ed);
+			nextJoints.push(ed);
 			break;
 		}
 	}
 
 	int currentMachinePartIndex = 0;
 
-	std::function<void (const CEditorDeviceComponent *)> recursive = [&](const CEditorDeviceComponent * pEDComp) {
+	std::function<void (const CEditorDeviceComponent *)> machinePartHandle = [&](const CEditorDeviceComponent * pEDComp) {
 		if(!pEDComp || ignoreDevices.find(pEDComp) != ignoreDevices.end()) {
 			return;
 		}
@@ -1106,7 +1095,7 @@ static inline void RegenerateMachinePartIndices_For_EDCompsHavePipeInterface(con
 
 		if(IsMachinePartJoint(pEDComp->GetDeviceType())) {
 			for(auto & neighbor : pEDComp->m_neighbors) {
-				nexts.push(neighbor);
+				nextJoints.push(neighbor);
 			}
 			return;
 		}
@@ -1114,15 +1103,19 @@ static inline void RegenerateMachinePartIndices_For_EDCompsHavePipeInterface(con
 		__map_PipeConnectableEDComp_MachinePartIndex.insert({ pEDComp, currentMachinePartIndex });
 
 		for(const auto & pNeighborEDComp : pEDComp->m_neighbors) {
-			recursive(pNeighborEDComp);
+			nexts.push(pNeighborEDComp);
 		}
 
 		return;
 		};
 	
-	while(!nexts.empty()) {
-		recursive(nexts.front());
-		nexts.pop();
+	while(!nextJoints.empty()) {
+		nexts.push(nextJoints.front());
+		nextJoints.pop();
+		while(!nexts.empty()) {
+			machinePartHandle(nexts.front());
+			nexts.pop();
+		}
 		currentMachinePartIndex++;
 	}
 }
@@ -1167,7 +1160,8 @@ static inline std::pair<SPipeInterface, SPipeInterface> GetNearestPipeInterfaces
 	return nearestPipeInterfaces;
 }
 
-static inline void PipeConnect(const std::pair<SPipeInterface, SPipeInterface> & interfaces, std::vector<std::vector<std::shared_ptr<SEditorPipeNode>>> & pipesToModify) {
+// 重要！新增的 vector 的前两个元素将会为 起始节点 和 结束节点
+static inline void PipeConnect(const std::pair<SPipeInterface, SPipeInterface> & interfaces, std::vector<std::vector<std::shared_ptr<SEditorPipeNode>>> & outToPushBack) {
 	if(!interfaces.first.pEditorDeviceComponent || !interfaces.second.pEditorDeviceComponent) {
 		return;
 	}
@@ -1199,7 +1193,7 @@ static inline void PipeConnect(const std::pair<SPipeInterface, SPipeInterface> &
 	if(PointDistance(pipe[0]->pos, pipe[1]->pos) <= 33.f) {
 		pipe[0]->nodes[nodesMovingDirIndex[0]] = pipe[1].get();
 		pipe[1]->nodes[nodesMovingDirIndex[1]] = pipe[0].get();
-		pipesToModify.push_back(pipe);
+		outToPushBack.push_back(pipe);
 		return;
 	}
 
@@ -1286,18 +1280,15 @@ static inline void PipeConnect(const std::pair<SPipeInterface, SPipeInterface> &
 		}
 	}
 
-	pipesToModify.push_back(pipe);
+	outToPushBack.push_back(pipe);
 }
 
 CEditorDeviceComponent * CEditorComponent::Put(const CEditorComponent::SInterface & interface) {
 	Frame::Vec2 putPos = GetWillPutPos(interface);
 	if(CEditorDeviceComponent * pEDComp = Put(putPos, interface.directionIndex)) {
 		interface.pEditorDeviceComponent->ConnectWith(pEDComp, interface.directionIndex);
-		//if(interface.pEditorDeviceComponent->GetDeviceType() == IDeviceData::EType::Engine && pEDComp->GetDeviceType() == IDeviceData::EType::Engine) {
-		// TODO or not - 当放置两个相邻的引擎时自动连接二者的管道
-		//}
 
-		RegenerateAllPipes();
+		RegenerateNearPipes(pEDComp);
 
 		return pEDComp;
 	}
@@ -1328,8 +1319,45 @@ void CEditorComponent::RegenerateAllPipes() {
 		if(!IsDeviceHasPipeInterface(ed->GetDeviceType())) {
 			continue;
 		}
+
 		PipeConnect(GetNearestPipeInterfacesToEngineDevice(ed, m_editorDeviceComponents), m_pipes);
 	}
+}
+
+void CEditorComponent::RegenerateNearPipes(CEditorDeviceComponent * pEDComp) {
+	RegenerateMachinePartIndices_For_EDCompsHavePipeInterface(m_editorDeviceComponents);
+
+	std::vector<CEditorDeviceComponent *> devicesConnectable;
+
+	for(auto & ed : m_editorDeviceComponents) {
+		if(!IsDeviceHasPipeInterface(ed->GetDeviceType()) || !InTheSameMachinePart(pEDComp, ed)) {
+			continue;
+		}
+		devicesConnectable.push_back(ed);
+	}
+
+	Frame::Vec2 myPos = pEDComp->GetEntity()->GetPosition();
+
+	std::sort(devicesConnectable.begin(), devicesConnectable.end(), [& myPos](const CEditorDeviceComponent * p1, const CEditorDeviceComponent * p2) {
+		return PointDistance(myPos, p1->GetEntity()->GetPosition()) < PointDistance(myPos, p2->GetEntity()->GetPosition());
+		});
+
+	int count = 8;
+	for(auto & ed : devicesConnectable) {
+		if(count-- <= 0) {
+			break;
+		}
+
+		for(auto it = m_pipes.begin(); it != m_pipes.end(); it++) {
+			if((* it)[0]->pDevice == ed) {
+				m_pipes.erase(it);
+				PipeConnect(GetNearestPipeInterfacesToEngineDevice(ed, m_editorDeviceComponents), m_pipes);
+				break;
+			}
+		}
+	}
+
+	PipeConnect(GetNearestPipeInterfacesToEngineDevice(pEDComp, m_editorDeviceComponents), m_pipes);
 }
 
 void CEditorComponent::DrawDevicePreview(IDeviceData::EType type, const Frame::Vec2 & pos, float alpha, int dirIndex, float scale, Frame::ColorRGB customColor, bool useCustomColor) const {
