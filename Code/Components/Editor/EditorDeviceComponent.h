@@ -23,7 +23,6 @@ public:
 	virtual void OnShutDown() override;
 
 	void GetAvailableInterfaces(std::vector<CEditorComponent::SInterface> * outToPushBack);
-	//void GetPipeInterfaces(std::vector<CEditorComponent::SPipeInterface> * outToPushBack); // TODO
 
 	IDeviceData::EType GetDeviceType() const {
 		return m_deviceType;

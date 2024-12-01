@@ -5,6 +5,7 @@
 #include <FrameRender/Renderer.h>
 
 #include "../Utility.h"
+#include "../Assets.h"
 
 REGISTER_ENTITY_COMPONENT(CSpriteComponent);
 
@@ -23,7 +24,7 @@ void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	{
 		frameTime = event.params[0].f;
 		for(auto & layer : layers) {
-			if(layer.m_bStatic) {
+			if(!layer.m_bAnimated) {
 				break;
 			}
 			layer.m_frameIntervalCounting += frameTime;
@@ -42,14 +43,11 @@ void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	{
 		const float entityRot = m_pEntity->GetRotation();
 		for(const auto & layer : layers) {
-			const Frame::SSpriteImage * pImage = nullptr;
-			if(layer.m_bStatic) {
-				if(layer.m_pStaticSprite) pImage = layer.m_pStaticSprite->GetImage();
-				else break;
-			} else {
-				if(layer.m_pAnimatedSprite) pImage = layer.m_pAnimatedSprite->GetFrame(layer.m_currentFrame);
-				else break;
+			const Frame::SSpriteImage * pImage = layer.GetCurrentImage();
+			if(!pImage) {
+				continue;
 			}
+
 			const Frame::Vec2 pos = m_pEntity->GetPosition() - layer.m_offset.GetRotatedDegree(entityRot);
 			DrawSpriteBlendedPro(pImage, pos, layer.m_color, layer.m_alpha, layer.m_rotation, layer.m_scale, entityRot);
 
@@ -59,5 +57,17 @@ void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		}
 	}
 	break;
+	}
+}
+
+void CSpriteComponent::GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
+	for(auto & layer : layers) {
+		auto it = Assets::gSpriteImageInstanceBufferMap.find(layer.GetCurrentImage());
+		if(it == Assets::gSpriteImageInstanceBufferMap.end()) {
+			continue;
+		}
+
+		// TODO - 应用上该组件的变换等
+		buffersToPushBack.push_back(it->second);
 	}
 }

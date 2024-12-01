@@ -2,6 +2,7 @@
 
 #include <FrameAsset/Sprite.h>
 #include <FrameAsset/Font.h>
+#include <FrameRender/Renderer.h>
 
 #include <unordered_map>
 
@@ -83,6 +84,10 @@ namespace Assets {
 	extern std::unordered_map<EGUIStaticSprite, Frame::CStaticSprite *> gGUIStaticSpriteMap;
 	extern std::unordered_map<EDeviceStaticSprite, Frame::CStaticSprite *> gDeviceStaticSpriteMap;
 	extern std::unordered_map<EOtherStaticSprite, Frame::CStaticSprite *> gOtherStaticSpriteMap;
+
+	// transform 为 相对于 长宽为 1.f 的正方形 进行的缩放
+	// uvMulti 和 uvAdd 为 相对于 默认的完整 UV 进行的变化
+	extern std::unordered_map<const Frame::SSpriteImage *, Frame::CRenderer::SInstanceBuffer> gSpriteImageInstanceBufferMap;
 
 	// 加载永久资产，这类资产因为需要经常使用，因此在游戏开始时就加载进内存中，且在整个游戏运行期间内不会进行释放
 	void LoadPermanentAssets();

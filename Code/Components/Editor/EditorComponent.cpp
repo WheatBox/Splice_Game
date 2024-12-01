@@ -182,11 +182,6 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
 		/* ----------------------- Canvas ----------------------- */
 
-		// TODO - 只是临时代码
-		for(auto & pipe : m_pipes) {
-			DrawPipe<SEditorPipeNode>(pipe, 0.f, 0x999999, 1.f, 0.f);
-		}
-
 		if(m_tool == ETool::Pencil && m_pencilDevice != IDeviceData::EType::Unset) {
 			Pencil();
 		} else
@@ -923,15 +918,8 @@ void CEditorComponent::Eraser() {
 		}
 	}
 	if(itWillBeErase != m_editorDeviceComponents.end()) {
-
-		IDeviceData::EType deviceType = (* itWillBeErase)->GetDeviceType();
-
 		Frame::gEntitySystem->RemoveEntity((* itWillBeErase)->GetEntity()->GetId());
 		m_editorDeviceComponents.erase(itWillBeErase);
-
-		if(IsDeviceHasPipeInterface(deviceType)) {
-			RegenerateAllPipes(); // TODO - 会崩溃，不知道为啥
-		}
 	}
 }
 
@@ -1287,9 +1275,6 @@ CEditorDeviceComponent * CEditorComponent::Put(const CEditorComponent::SInterfac
 	Frame::Vec2 putPos = GetWillPutPos(interface);
 	if(CEditorDeviceComponent * pEDComp = Put(putPos, interface.directionIndex)) {
 		interface.pEditorDeviceComponent->ConnectWith(pEDComp, interface.directionIndex);
-
-		RegenerateNearPipes(pEDComp);
-
 		return pEDComp;
 	}
 	return nullptr;

@@ -6,6 +6,8 @@ namespace Assets {
 	std::unordered_map<EDeviceStaticSprite, Frame::CStaticSprite *> gDeviceStaticSpriteMap {};
 	std::unordered_map<EOtherStaticSprite, Frame::CStaticSprite *> gOtherStaticSpriteMap {};
 
+	std::unordered_map<const Frame::SSpriteImage *, Frame::CRenderer::SInstanceBuffer> gSpriteImageInstanceBufferMap {};
+
 	static void SetSpriteOffsetToCenter(Frame::ISprite * pSpr) {
 		pSpr->SetOffset({ .5f * static_cast<float>(pSpr->GetWidth()), .5f * static_cast<float>(pSpr->GetHeight()) });
 	}
@@ -159,6 +161,8 @@ namespace Assets {
 		}
 		for(auto & spr : gDeviceStaticSpriteMap) {
 			SetSpriteOffsetToCenter(spr.second);
+
+			gSpriteImageInstanceBufferMap.insert({ spr.second->GetImage(), Frame::CRenderer::SInstanceBuffer { Frame::Matrix33::CreateScale(Frame::Vec2Cast(spr.second->GetSize())) }.SetUVTransformation(spr.second->GetImage()->GetUVLeftTop(), spr.second->GetImage()->GetUVRightBottom()) });
 		}
 		for(auto & spr : gOtherStaticSpriteMap) {
 			SetSpriteOffsetToCenter(spr.second);

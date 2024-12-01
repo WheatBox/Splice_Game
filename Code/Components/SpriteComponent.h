@@ -2,6 +2,7 @@
 
 #include <FrameEntity/IEntityComponent.h>
 #include <FrameAsset/Sprite.h>
+#include <FrameRender/Renderer.h>
 
 #include <vector>
 #include <functional>
@@ -35,23 +36,31 @@ public:
 		void SetSprite(Frame::CStaticSprite * pStaticSprite) {
 			m_pStaticSprite = pStaticSprite;
 			m_pAnimatedSprite = nullptr;
-			m_bStatic = true;
+			m_bAnimated = false;
 			m_frameCount = 1;
 		}
 		void SetSprite(Frame::CAnimatedSprite * pAnimatedSprite) {
 			m_pStaticSprite = nullptr;
 			m_pAnimatedSprite = pAnimatedSprite;
-			m_bStatic = false;
+			m_bAnimated = true;
 			m_frameCount = m_pAnimatedSprite->GetFrameCount();
 		}
-		bool IsStaticSprite() const {
-			return m_bStatic;
+		bool IsAnimated() const {
+			return m_bAnimated;
 		}
 		Frame::CStaticSprite * GetStaticSprite() const {
 			return m_pStaticSprite;
 		}
 		Frame::CAnimatedSprite * GetAnimatedSprite() const {
 			return m_pAnimatedSprite;
+		}
+
+		const Frame::SSpriteImage * GetCurrentImage() const {
+			if(m_bAnimated) {
+				return m_pAnimatedSprite ? m_pAnimatedSprite->GetFrame(m_currentFrame) : nullptr;
+			} else {
+				return m_pStaticSprite ? m_pStaticSprite->GetImage() : nullptr;
+			}
 		}
 
 		void SetFrame(int frame) {
@@ -119,7 +128,7 @@ public:
 		Frame::CStaticSprite * m_pStaticSprite = nullptr;
 		Frame::CAnimatedSprite * m_pAnimatedSprite = nullptr;
 
-		bool m_bStatic = true;
+		bool m_bAnimated = false;
 		int m_currentFrame = 0;
 		float m_frameInterval = .1f; // 秒 | seconds
 
@@ -137,7 +146,10 @@ public:
 	};
 
 	std::vector<SLayer> layers {};
-	bool working = true;
+	bool working = false;
+
+	// 请确保 layers 中的所有精灵都处在同一纹理页
+	void GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const;
 
 private:
 	float frameTime = 0.f;

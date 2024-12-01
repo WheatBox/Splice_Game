@@ -188,31 +188,6 @@ if(m_neighbors[dirIndex] == nullptr) { \
 #undef __FORMULA
 }
 
-//void CEditorDeviceComponent::GetPipeInterfaces(std::vector<CEditorComponent::SPipeInterface> * outToPushBack) {
-//	if(m_deviceType == IDeviceData::Unset) {
-//		return;
-//	}
-//
-//#define __FORMULA(dirIndex) { \
-//	Frame::Vec2 pos = m_pEntity->GetPosition() + GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_deviceType), m_directionIndex, dirIndex); \
-//	outToPushBack->push_back({ this, pos, dirIndex }); \
-//}
-//
-//	switch(m_deviceType) {
-//	case IDeviceData::Engine:
-//		for(int i = 0; i < 4; i++) {
-//			__FORMULA(i)
-//		}
-//		break;
-//	case IDeviceData::Propeller:
-//	case IDeviceData::JetPropeller:
-//		__FORMULA(GetRevDirIndex(m_directionIndex))
-//		break;
-//	}
-//
-//#undef __FORMULA
-//}
-
 bool CEditorDeviceComponent::ConnectWith(CEditorDeviceComponent * pEDComp, int dirIndex) {
 	if(!pEDComp) {
 		return false;
