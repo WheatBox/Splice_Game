@@ -12,21 +12,25 @@ CSmokeEmitterComponent * CSmokeEmitterComponent::s_pSmokeEmitterComponent = null
 CSmokeEmitterComponent::SSmokeParticlesBuffer CSmokeEmitterComponent::s_smokeParticlesBuffer {};
 std::vector<CSmokeEmitterComponent::SSmokeParticle> CSmokeEmitterComponent::s_smokeParticles;
 
-const Frame::SSpriteImage * CSmokeEmitterComponent::images[5] {};
-Frame::Vec2 CSmokeEmitterComponent::uvAdds[5] {};
+const Frame::SSpriteImage * CSmokeEmitterComponent::s_images[5] {};
+Frame::Vec2 CSmokeEmitterComponent::s_uvAdds[5] {};
+Frame::STextureVertexBuffer CSmokeEmitterComponent::s_defaultTexVertBuf {};
 
 void CSmokeEmitterComponent::Initialize() {
 	s_pSmokeEmitterComponent = this;
 	m_pEntity->SetZDepth(Depths::SmokeEmitter);
 
 	for(int i = 0; i < 5; i++) {
-		if(images[i]) {
+		if(s_images[i]) {
 			continue;
 		}
-		images[i] = Assets::GetStaticSprite(SSmokeParticle::sprites[i])->GetImage();
-		uvAdds[i] = Assets::GetImageInstanceBuffer(images[i]).uvAdd;
-		printf("%f %f\n", uvAdds[i].x, uvAdds[i].y);
+		s_images[i] = Assets::GetStaticSprite(SSmokeParticle::sprites[i])->GetImage();
+		s_uvAdds[i] = Assets::GetImageInstanceBuffer(s_images[i]).uvAdd;
 	}
+	const Frame::SSpriteImage * img = CSmokeEmitterComponent::s_images[0];
+	s_defaultTexVertBuf.SetPositions(img->GetTopLeftOffset(), img->GetBottomRightOffset());
+	s_defaultTexVertBuf.SetBlends(0xFFFFFF, 1.f);
+	s_defaultTexVertBuf.SetTexCoord(0.f, img->GetUVRightBottom() - img->GetUVLeftTop());
 }
 
 Frame::EntityEvent::Flags CSmokeEmitterComponent::GetEventFlags() const {
@@ -67,7 +71,7 @@ void CSmokeEmitterComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 				instances.push_back({
 					Frame::Matrix33::CreateTranslation(part.pos) * Frame::Matrix33::CreateRotationZ(part.rotation) * Frame::Matrix33::CreateScale(part.scale)
 					, { ONERGB(part.color), part.alpha }
-					, 1.f, CSmokeEmitterComponent::uvAdds[part.smokeSprIndex]
+					, 1.f, CSmokeEmitterComponent::s_uvAdds[part.smokeSprIndex]
 					});
 				return false;
 			}
@@ -75,9 +79,7 @@ void CSmokeEmitterComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 			});
 		s_smokeParticles.erase(itToErase, s_smokeParticles.end());
 
-		auto img = CSmokeEmitterComponent::images[0];
-		Frame::STextureVertexBuffer vertBuf { img->GetTopLeftOffset(), img->GetBottomRightOffset(), 0xFFFFFF, 1.f };
-		Frame::gRenderer->DrawTexturesInstanced(CSmokeEmitterComponent::images[0]->GetTextureId(), vertBuf, instances);
+		Frame::gRenderer->DrawTexturesInstanced(CSmokeEmitterComponent::s_images[0]->GetTextureId(), CSmokeEmitterComponent::s_defaultTexVertBuf, instances);
 
 		sec += m_frametime;
 		times.push_back(m_frametime);

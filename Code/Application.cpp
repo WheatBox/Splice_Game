@@ -91,7 +91,7 @@ void CApplication::MainLoopLast() {
 	}
 
 #ifdef SMOKE_TEST
-	for(int i = 0; i < 100; i++) {
+	for(int i = 0; i < 700; i++) {
 		CSmokeEmitterComponent::SSmokeParticle part { { float(rand() % 800 - 400), float(rand() % 500 - 250) }, 1.f, 0xFFFFFF, { 0.f } };
 		pSmokeComp->SummonSmokeParticle(part);
 	}

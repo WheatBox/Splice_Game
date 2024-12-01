@@ -3,6 +3,7 @@
 #include <FrameEntity/IEntityComponent.h>
 #include <FrameMath/Vector2.h>
 #include <FrameMath/ColorMath.h>
+#include <FrameRender/TextureVertexBuffer.h>
 
 #include "../Assets.h"
 
@@ -87,8 +88,9 @@ public:
 	static SSmokeParticlesBuffer s_smokeParticlesBuffer; // 两个缓存交替给 s_smokeParticles 传递新烟雾粒子的数据，用以解决多线程方面的冲突问题
 	static std::vector<SSmokeParticle> s_smokeParticles;
 	
-	static const Frame::SSpriteImage * images[5];
-	static Frame::Vec2 uvAdds[5];
+	static const Frame::SSpriteImage * s_images[5];
+	static Frame::Vec2 s_uvAdds[5];
+	static Frame::STextureVertexBuffer s_defaultTexVertBuf;
 
 public:
 	virtual void Initialize() override;
