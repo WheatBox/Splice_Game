@@ -3,7 +3,6 @@
 #include <FrameEntity/IEntityComponent.h>
 #include <FrameMath/Vector2.h>
 #include <FrameMath/ColorMath.h>
-#include <FrameMath/Matrix33.h>
 
 #include "../Assets.h"
 
@@ -75,8 +74,6 @@ public:
 			Assets::EOtherStaticSprite::smoke5
 		};
 		static constexpr int spritesCount = 5;
-
-		static Frame::Matrix33 spritesTexCoordTrans[spritesCount];
 	};
 
 	static void SummonSmokeParticle(const SSmokeParticle & particle) {
@@ -89,6 +86,9 @@ public:
 	};
 	static SSmokeParticlesBuffer s_smokeParticlesBuffer; // 两个缓存交替给 s_smokeParticles 传递新烟雾粒子的数据，用以解决多线程方面的冲突问题
 	static std::vector<SSmokeParticle> s_smokeParticles;
+	
+	static const Frame::SSpriteImage * images[5];
+	static Frame::Vec2 uvAdds[5];
 
 public:
 	virtual void Initialize() override;
@@ -104,7 +104,7 @@ public:
 
 	static void Register(Frame::SComponentType<CSmokeEmitterComponent> type) {
 		type.SetGUID("{A52B0B3F-CD66-4349-A565-749971515235}");
-	}
+	}	
 
 private:
 	float m_frametime = 0.f;
