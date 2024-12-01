@@ -156,16 +156,21 @@ namespace Assets {
 #undef __S_Device
 #undef __S_Other
 
+		static auto generateStaticSpritesInstanceBuffers = [](const Frame::CStaticSprite * spr) {
+			gSpriteImageInstanceBufferMap.insert({ spr->GetImage(), Frame::CRenderer::SInstanceBuffer { Frame::Matrix33::CreateScale(Frame::Vec2Cast(spr->GetSize())) }.SetUVTransformation(spr->GetImage()->GetUVLeftTop(), spr->GetImage()->GetUVRightBottom()) });
+		};
+
 		for(auto & spr : gGUIStaticSpriteMap) {
 			SetSpriteOffsetToCenter(spr.second);
+			generateStaticSpritesInstanceBuffers(spr.second);
 		}
 		for(auto & spr : gDeviceStaticSpriteMap) {
 			SetSpriteOffsetToCenter(spr.second);
-
-			gSpriteImageInstanceBufferMap.insert({ spr.second->GetImage(), Frame::CRenderer::SInstanceBuffer { Frame::Matrix33::CreateScale(Frame::Vec2Cast(spr.second->GetSize())) }.SetUVTransformation(spr.second->GetImage()->GetUVLeftTop(), spr.second->GetImage()->GetUVRightBottom()) });
+			generateStaticSpritesInstanceBuffers(spr.second);
 		}
 		for(auto & spr : gOtherStaticSpriteMap) {
 			SetSpriteOffsetToCenter(spr.second);
+			generateStaticSpritesInstanceBuffers(spr.second);
 		}
 
 		gDeviceStaticSpriteMap[EDeviceStaticSprite::jet_propeller]->SetOffset({ 108.f, 64.f });
