@@ -14,14 +14,13 @@ Frame::EntityEvent::Flags CSpriteComponent::GetEventFlags() const {
 }
 
 void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
-
-	if(!working) {
-		return;
-	}
-
 	switch(event.flag) {
 	case Frame::EntityEvent::EFlag::Update:
 	{
+		if(!bUpdating) {
+			break;
+		}
+
 		frameTime = event.params[0].f;
 		for(auto & layer : layers) {
 			if(!layer.m_bAnimated) {
@@ -35,12 +34,20 @@ void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 				if(layer.m_currentFrame >= layer.m_frameCount) {
 					layer.m_currentFrame -= layer.m_frameCount;
 				}
+
+				layer.__Changed();
 			}
 		}
+
+		CheckOrUpdateInsBuffers();
 	}
 	break;
 	case Frame::EntityEvent::EFlag::Render:
 	{
+		if(!bRendering) {
+			break;
+		}
+
 		const float entityRot = m_pEntity->GetRotation();
 		for(const auto & layer : layers) {
 			const Frame::SSpriteImage * pImage = layer.GetCurrentImage();
@@ -60,14 +67,30 @@ void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	}
 }
 
-void CSpriteComponent::GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
-	for(auto & layer : layers) {
-		auto it = Assets::gSpriteImageInstanceBufferMap.find(layer.GetCurrentImage());
-		if(it == Assets::gSpriteImageInstanceBufferMap.end()) {
+void CSpriteComponent::CheckOrUpdateInsBuffers() {
+	for(int i = 0, siz = static_cast<int>(layers.size()); i < siz; i++) {
+		SLayer & layer = layers[i];
+
+		if(!layer.__bChanged) {
 			continue;
 		}
+		layer.__bChanged = false;
 
-		// TODO - 应用上该组件的变换等
-		buffersToPushBack.push_back(it->second);
+		const Frame::SSpriteImage * img = layer.GetCurrentImage();
+		const auto & buf = Assets::GetImageInstanceBuffer(img);
+
+		const Frame::Matrix33 trans =
+			Frame::Matrix33::CreateTranslation(layer.GetOffset() + m_pEntity->GetPosition())
+			* Frame::Matrix33::CreateRotationZ(Frame::DegToRad(m_pEntity->GetRotation() + layer.GetRotation()))
+			* Frame::Matrix33::CreateScale(layer.GetScale())
+			* Frame::Matrix33::CreateTranslation(-img->GetOffset())
+			* buf.transform;
+		const Frame::ColorRGB col = layer.GetColor();
+
+		if(static_cast<int>(m_insBuffers.size()) <= i) {
+			m_insBuffers.push_back({ trans, { ONERGB(col), layer.GetAlpha() }, buf.uvMulti, buf.uvAdd });
+		} else {
+			m_insBuffers[i] = { trans, { ONERGB(col), layer.GetAlpha() }, buf.uvMulti, buf.uvAdd };
+		}
 	}
 }

@@ -40,6 +40,9 @@ public:
 	}
 
 	void DrawConnectors();
+	void GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
+		m_pSpriteComponent->GetRenderingInstanceData(buffersToPushBack);
+	}
 
 	void SetAlpha(float alpha) {
 		m_alpha = alpha;
@@ -65,7 +68,7 @@ public:
 	void SetWorking(bool b) {
 		m_bWorking = b;
 		if(m_pSpriteComponent) {
-			m_pSpriteComponent->working = b;
+			m_pSpriteComponent->bRendering = m_pSpriteComponent->bUpdating = b;
 		}
 	}
 	

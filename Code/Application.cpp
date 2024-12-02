@@ -29,7 +29,7 @@ void CApplication::Initialize() {
 	Texts::InitializeTexts(Texts::ELanguage::Chinese);
 	//Texts::InitializeTexts(Texts::ELanguage::English);
 
-#define SMOKE_TEST 1
+#define SMOKE_TEST 0
 
 #if !SMOKE_TEST
 	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
@@ -50,8 +50,8 @@ void CApplication::Initialize() {
 	//Frame::gRenderer->SetBackgroundColor(0x00004F);
 	//Frame::gRenderer->SetBackgroundColor(0xFFFFFF);
 	//Frame::gRenderer->SetBackgroundColor(0xDDDDDD);
-	//Frame::gRenderer->SetBackgroundColor(0xB1B1C1);
-	Frame::gRenderer->SetBackgroundColor(0x000000);
+	Frame::gRenderer->SetBackgroundColor(0xB1B1C1);
+	//Frame::gRenderer->SetBackgroundColor(0x000000);
 
 	m_cursors[eCursor_Arrow] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
 	m_cursors[eCursor_Ibeam] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
@@ -90,7 +90,7 @@ void CApplication::MainLoopLast() {
 		GUI::gCurrentGUI->Work();
 	}
 
-#ifdef SMOKE_TEST
+#if SMOKE_TEST
 	for(int i = 0; i < 700; i++) {
 		CSmokeEmitterComponent::SSmokeParticle part { { float(rand() % 800 - 400), float(rand() % 500 - 250) }, 1.f, 0xFFFFFF, { 0.f } };
 		pSmokeComp->SummonSmokeParticle(part);

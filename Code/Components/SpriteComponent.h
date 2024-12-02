@@ -38,12 +38,16 @@ public:
 			m_pAnimatedSprite = nullptr;
 			m_bAnimated = false;
 			m_frameCount = 1;
+
+			__Changed();
 		}
 		void SetSprite(Frame::CAnimatedSprite * pAnimatedSprite) {
 			m_pStaticSprite = nullptr;
 			m_pAnimatedSprite = pAnimatedSprite;
 			m_bAnimated = true;
 			m_frameCount = m_pAnimatedSprite->GetFrameCount();
+
+			__Changed();
 		}
 		bool IsAnimated() const {
 			return m_bAnimated;
@@ -65,6 +69,7 @@ public:
 
 		void SetFrame(int frame) {
 			m_currentFrame = frame;
+			__Changed();
 		}
 		int GetFrame() const {
 			return m_currentFrame;
@@ -79,6 +84,7 @@ public:
 
 		void SetColor(Frame::ColorRGB color) {
 			m_color = color;
+			__Changed();
 		}
 		Frame::ColorRGB GetColor() const {
 			return m_color;
@@ -86,6 +92,7 @@ public:
 
 		void SetAlpha(float alpha) {
 			m_alpha = alpha;
+			__Changed();
 		}
 		float GetAlpha() const {
 			return m_alpha;
@@ -93,6 +100,7 @@ public:
 
 		void SetRotation(float angle) {
 			m_rotation = angle;
+			__Changed();
 		}
 		float GetRotation() const {
 			return m_rotation;
@@ -100,6 +108,7 @@ public:
 
 		void SetScale(const Frame::Vec2 & scale) {
 			m_scale = scale;
+			__Changed();
 		}
 		const Frame::Vec2 & GetScale() const {
 			return m_scale;
@@ -107,6 +116,7 @@ public:
 
 		void SetOffset(const Frame::Vec2 & offset) {
 			m_offset = offset;
+			__Changed();
 		}
 		const Frame::Vec2 & GetOffset() const {
 			return m_offset;
@@ -143,15 +153,33 @@ public:
 
 		//bool m_bExtraFunc = false;
 		std::function<void (float)> m_extraFunc; // 参数：float frameTime
+
+	public:
+		void __Changed() {
+			__bChanged = true;
+		}
+		bool __bChanged = true;
 	};
 
-	std::vector<SLayer> layers {};
-	bool working = false;
+	bool bUpdating = true;
+	bool bRendering = false;
 
 	// 请确保 layers 中的所有精灵都处在同一纹理页
-	void GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const;
+	void GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
+		buffersToPushBack.insert(buffersToPushBack.end(), m_insBuffers.begin(), m_insBuffers.end());
+	}
+	std::vector<SLayer> layers {};
 
 private:
 	float frameTime = 0.f;
+
+	std::vector<Frame::CRenderer::SInstanceBuffer> m_insBuffers;
+	
+	void CheckOrUpdateInsBuffers();
+public:
+	static inline const Frame::STextureVertexBuffer & GetTextureVertexBufferForInstances() {
+		static Frame::STextureVertexBuffer texVertBuf { 0.f, 1.f, 0xFFFFFF, 1.f };
+		return texVertBuf;
+	}
 
 };

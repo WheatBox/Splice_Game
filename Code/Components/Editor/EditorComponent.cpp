@@ -181,6 +181,15 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		} while(false);
 
 		/* ----------------------- Canvas ----------------------- */
+		
+		if(1) { // 临时代码
+			std::vector<Frame::CRenderer::SInstanceBuffer> instances;
+			for(auto & pEDComp : m_editorDeviceComponents) {
+				pEDComp->GetRenderingInstanceData(instances);
+			}
+			const auto img = Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage();
+			Frame::gRenderer->DrawTexturesInstanced(img->GetTextureId(), CSpriteComponent::GetTextureVertexBufferForInstances(), instances);
+		}
 
 		if(m_tool == ETool::Pencil && m_pencilDevice != IDeviceData::EType::Unset) {
 			Pencil();
