@@ -79,10 +79,14 @@ void CSpriteComponent::CheckOrUpdateInsBuffers() {
 		const Frame::SSpriteImage * img = layer.GetCurrentImage();
 		const auto & buf = Assets::GetImageInstanceBuffer(img);
 
+		const float entRot = m_pEntity->GetRotation();
+		const Frame::Vec2 entPos = m_pEntity->GetPosition();
+
 		const Frame::Matrix33 trans =
-			Frame::Matrix33::CreateTranslation(layer.GetOffset() + m_pEntity->GetPosition())
-			* Frame::Matrix33::CreateRotationZ(Frame::DegToRad(m_pEntity->GetRotation() + layer.GetRotation()))
+			Frame::Matrix33::CreateTranslation(entPos - layer.GetOffset().GetRotatedDegree(entRot))
+			* Frame::Matrix33::CreateRotationZ(Frame::DegToRad(entRot))
 			* Frame::Matrix33::CreateScale(layer.GetScale())
+			* Frame::Matrix33::CreateRotationZ(Frame::DegToRad(layer.GetRotation()))
 			* Frame::Matrix33::CreateTranslation(-img->GetOffset())
 			* buf.transform;
 		const Frame::ColorRGB col = layer.GetColor();
