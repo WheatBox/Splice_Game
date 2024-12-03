@@ -7,6 +7,11 @@ set(EXE_NAME Game)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
 
+if(WIN32)
+	set(CMAKE_STATIC_LIBRARY_PREFIX "")
+	set(CMAKE_STATIC_LIBRARY_SUFFIX ".lib")
+endif()
+
 find_package(glfw3 CONFIG REQUIRED)
 find_package(Freetype CONFIG REQUIRED)
 find_package(OpenAL CONFIG REQUIRED) # OpenAL-soft
@@ -43,6 +48,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		-Wall
 		-Werror
 		-Wno-switch
+		-static
+		-Wno-overloaded-virtual
 	)
 endif()
 
@@ -94,6 +101,9 @@ add_executable(${EXE_NAME}
 	${CODE_FILES}
 	${ASSET_FILES}
 	${SHADER_FILES}
+	
+	${CMAKE_SOURCE_DIR}/Framework/
+	${CMAKE_SOURCE_DIR}/ThirdInclude/
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -102,13 +112,21 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 )
 
 if(WIN32)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
-	$<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/Framework_x64_debug.lib>
-	$<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/Framework_x64_release.lib>
-	$<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/box2dd.lib>
-	$<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/box2d.lib>
-	${THIRD_LIBS}
-)
+	if(MSVC)
+	target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+		$<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/Framework_x64_debug.lib>
+		$<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/Framework_x64_release.lib>
+		$<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/box2dd.lib>
+		$<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/box2d.lib>
+		${THIRD_LIBS}
+	)
+	else()
+	target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+		${CMAKE_SOURCE_DIR}/Framework_mingw.lib
+		${CMAKE_SOURCE_DIR}/box2d_mingw.lib
+		${THIRD_LIBS}
+	)
+	endif()
 else()
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
 	${CMAKE_SOURCE_DIR}/libFramework.a

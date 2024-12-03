@@ -6,6 +6,7 @@
 
 #include <list>
 #include <memory>
+#include <algorithm> // For std::remove_if
 
 #include "GUIMouseData.h"
 #include "Style.h"

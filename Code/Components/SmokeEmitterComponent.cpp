@@ -6,6 +6,8 @@
 
 #include "../Depths.h"
 
+#include <algorithm>
+
 REGISTER_ENTITY_COMPONENT(CSmokeEmitterComponent);
 
 CSmokeEmitterComponent * CSmokeEmitterComponent::s_pSmokeEmitterComponent = nullptr;
