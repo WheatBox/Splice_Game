@@ -6,6 +6,7 @@
 #include "EditorComponent.h"
 #include "../SpriteComponent.h"
 #include "../ColliderComponent.h"
+#include "FrameRender/Renderer.h"
 
 class CEditorDeviceComponent final : public Frame::IEntityComponent {
 public:
@@ -39,9 +40,11 @@ public:
 		}
 	}
 
-	void DrawConnectors();
 	void GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
 		m_pSpriteComponent->GetRenderingInstanceData(buffersToPushBack);
+	}
+	void GetConnectorsRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
+		buffersToPushBack.insert(buffersToPushBack.end(), m_connectorsInsBuffers.begin(), m_connectorsInsBuffers.end());
 	}
 
 	void SetAlpha(float alpha) {
@@ -93,5 +96,10 @@ private:
 public:
 
 	static void GetEditorDeviceColliders(CColliderComponent * outColliderComp, IDeviceData::EType type, int dirIndex);
+
+private:
+	std::vector<Frame::CRenderer::SInstanceBuffer> m_connectorsInsBuffers;
+	CEditorDeviceComponent * m_neighborsPrev_forCheckingConnectorsUpdatedOrNot[2] {};
+	void CheckOrUpdateConnectorsInsBuffers();
 
 };

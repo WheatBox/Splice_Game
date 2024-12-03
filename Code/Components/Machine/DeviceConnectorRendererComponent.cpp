@@ -29,9 +29,10 @@ void CDeviceConnectorRendererComponent::ProcessEvent(const Frame::EntityEvent::S
 			}
 		} else
 		if(m_pEditorDeviceComps) {
-			for(const auto pComp : * m_pEditorDeviceComps) {
-				pComp->DrawConnectors();
-			}
+			//for(const auto pComp : * m_pEditorDeviceComps) {
+				// pComp->DrawConnectors();
+						// TODO
+			//}
 		}
 	}
 	break;
