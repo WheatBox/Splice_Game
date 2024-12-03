@@ -62,7 +62,7 @@ void CCameraComponent::CameraControl(bool bCanZoom) {
 		if(Frame::CEntity * pEnt = GetEntityBeingFollowed()) {
 			Frame::gCamera->SetPos(pEnt->GetPosition());
 			if(GetFollowRotation()) {
-				Frame::gCamera->SetViewRotationDegree(pEnt->GetRotation());
+				Frame::gCamera->SetViewRotation(pEnt->GetRotation());
 			}
 		}
 	}

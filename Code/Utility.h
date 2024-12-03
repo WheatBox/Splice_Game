@@ -62,6 +62,10 @@ constexpr float GetDegreeByDirIndex(int dirIndex) {
 	return arr[dirIndex];
 }
 
+constexpr float GetRadianByDirIndex(int dirIndex) {
+	return Frame::DegToRad(GetDegreeByDirIndex(dirIndex));
+}
+
 static inline Frame::Vec2 GetRectangleEdgePosByDirIndex(const Frame::Vec2 & rectSize, int rectDirIndex, int edgeDirIndex) {
 	return GetDirPosAdd(edgeDirIndex) * (((rectDirIndex == edgeDirIndex || rectDirIndex == GetRevDirIndex(edgeDirIndex)) ? rectSize.x : rectSize.y) * .5f);
 }
@@ -88,7 +92,7 @@ namespace Frame {
 	struct SSpriteImage;
 }
 // TODO - 进引擎
-void DrawSpriteBlendedPro(const Frame::SSpriteImage * pSpriteImage, const Frame::Vec2 & vPos, const Frame::ColorRGB & rgb, float alpha, float angle, const Frame::Vec2 & vScale, float angleAfterScale);
+void DrawSpriteBlendedPro(const Frame::SSpriteImage * pSpriteImage, const Frame::Vec2 & vPos, const Frame::ColorRGB & rgb, float alpha, float rotation, const Frame::Vec2 & vScale, float rotationAfterScale);
 
 constexpr float Lerp(float a, float b, float t) {
 	return a + (b - a) * t;

@@ -28,9 +28,9 @@ void CEditorDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 		const float frametime = event.params[0].f;
 		
 		if(m_pNode && m_pNode->pDeviceData && m_pNode->pDeviceData->device == IDeviceData::Propeller) {
-			//m_pEntity->SetRotation(m_pEntity->GetRotation() + frametime * 30.f);
+			//m_pEntity->SetRotation(m_pEntity->GetRotation() + Frame::DegToRad(frametime * 30.f));
 
-			const float rot = m_pSpriteComponent->layers[3].GetRotation() + 720.f * frametime;
+			const float rot = m_pSpriteComponent->layers[3].GetRotation() + Frame::DegToRad(720.f * frametime);
 			m_pSpriteComponent->layers[3].SetRotation(rot);
 			m_pSpriteComponent->layers[4].SetRotation(rot);
 		}
@@ -55,7 +55,7 @@ void CEditorDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 bool CEditorDeviceComponent::Initialize(IDeviceData::EType type, int dirIndex) {
 	m_pEntity->SetZDepth(Depths::EditorDevice);
 
-	m_pEntity->SetRotation(-GetDegreeByDirIndex(dirIndex));
+	m_pEntity->SetRotation(-GetRadianByDirIndex(dirIndex));
 	m_directionIndex = dirIndex;
 
 	m_deviceType = type;
@@ -108,14 +108,14 @@ m_colorUpdatesInSpriteLayers.push_back(& SColorSet::__colorSetMemberVariable);
 			auto & layerTemp = m_pSpriteComponent->layers.back();
 			layerTemp.SetScale({ .3f, 1.f });
 			layerTemp.SetOffset({ -20.f, 0.f });
-			layerTemp.SetRotation(30.f);
+			layerTemp.SetRotationDegree(30.f);
 		}
 		__ADD_SPRITE_LAYER(propeller_blade);
 		{
 			auto & layerTemp = m_pSpriteComponent->layers.back();
 			layerTemp.SetScale({ .3f, 1.f });
 			layerTemp.SetOffset({ -20.f, 0.f });
-			layerTemp.SetRotation(30.f);
+			layerTemp.SetRotationDegree(30.f);
 		}
 
 		__ADD_SPRITE_LAYER_EXT(propeller_top_color, color1);
@@ -125,11 +125,11 @@ m_colorUpdatesInSpriteLayers.push_back(& SColorSet::__colorSetMemberVariable);
 		{
 			auto & layerTemp = m_pSpriteComponent->layers.back();
 			layerTemp.SetOffset({ -32.f, 20.f });
-			layerTemp.SetRotation(45.f);
+			layerTemp.SetRotationDegree(45.f);
 		}
 	} else if(type == IDeviceData::Joint) {
-		m_pSpriteComponent->layers[1].SetRotation(180.f);
-		m_pSpriteComponent->layers[2].SetRotation(180.f);
+		m_pSpriteComponent->layers[1].SetRotationDegree(180.f);
+		m_pSpriteComponent->layers[2].SetRotationDegree(180.f);
 		__ADD_SPRITE_LAYER_EXT(joint_top_color, color2);
 		__ADD_SPRITE_LAYER(joint_top);
 	}
@@ -210,7 +210,7 @@ void CEditorDeviceComponent::DrawConnectors() {
 			+ GetDeviceInterfaceBias(m_deviceType, m_directionIndex, i, 0.f)
 			+ GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_deviceType) + CONNECTOR_HALF_LENGTH * 2.f, m_directionIndex, i)
 			;
-		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::connector)->GetImage(), pos, m_colorSet.connector, std::min(m_alpha, m_neighbors[i]->GetAlpha()), { 1.f }, i * 90.f);
+		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::connector)->GetImage(), pos, m_colorSet.connector, std::min(m_alpha, m_neighbors[i]->GetAlpha()), { 1.f }, i * Frame::DegToRad(90.f));
 	}
 }
 

@@ -39,7 +39,7 @@ void CDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	{
 		if(m_pMachinePartEntity) {
 			const float machineRot = m_pMachinePartEntity->GetRotation();
-			m_pEntity->SetPosition(m_pMachinePartEntity->GetPosition() + m_relativePosition.GetRotatedDegree(machineRot));
+			m_pEntity->SetPosition(m_pMachinePartEntity->GetPosition() + m_relativePosition.GetRotated(machineRot));
 			m_pEntity->SetRotation(machineRot + m_relativeRotation);
 		}
 
@@ -118,14 +118,14 @@ m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceSt
 			auto & layerTemp = m_pSpriteComponent->layers.back();
 			layerTemp.SetScale({ .3f, 1.f });
 			layerTemp.SetOffset({ -20.f, 0.f });
-			layerTemp.SetRotation(30.f);
+			layerTemp.SetRotationDegree(30.f);
 		}
 		__ADD_SPRITE_LAYER(propeller_blade);
 		{
 			auto & layerTemp = m_pSpriteComponent->layers.back();
 			layerTemp.SetScale({ .3f, 1.f });
 			layerTemp.SetOffset({ -20.f, 0.f });
-			layerTemp.SetRotation(30.f);
+			layerTemp.SetRotationDegree(30.f);
 		}
 
 		__ADD_SPRITE_LAYER_EXT(propeller_top_color, color1);
@@ -135,11 +135,11 @@ m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceSt
 		{
 			auto & layerTemp = m_pSpriteComponent->layers.back();
 			layerTemp.SetOffset({ -32.f, 20.f });
-			layerTemp.SetRotation(45.f);
+			layerTemp.SetRotationDegree(45.f);
 		}
 	} else if(deviceType == IDeviceData::Joint) {
-		m_pSpriteComponent->layers[1].SetRotation(180.f);
-		m_pSpriteComponent->layers[2].SetRotation(180.f);
+		m_pSpriteComponent->layers[1].SetRotationDegree(180.f);
+		m_pSpriteComponent->layers[2].SetRotationDegree(180.f);
 		__ADD_SPRITE_LAYER_EXT(joint_top_color, color2);
 		__ADD_SPRITE_LAYER(joint_top);
 	}
@@ -160,7 +160,7 @@ m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceSt
 			const Frame::Vec2 entPos = m_pEntity->GetPosition();
 			const float entRot = m_pEntity->GetRotation();
 
-			const Frame::Vec2 pos = entPos - Frame::Vec2 { 32.f, 0.f }.GetRotatedDegree(entRot);
+			const Frame::Vec2 pos = entPos - Frame::Vec2 { 32.f, 0.f }.GetRotated(entRot);
 			const float alpha = std::min(1.f, pData->accumulatingShowing / pData->accumulationShowingMax) * .35f;
 
 			pData->smokeRotation1 += frameTime * (40.f + 30000.f * (pData->accumulatingShowing - pData->accumulatingShowingPrev));
@@ -173,7 +173,7 @@ m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceSt
 				Frame::gRenderer->DrawSpriteBlended(
 					Assets::GetStaticSprite(CSmokeEmitterComponent::SSmokeParticle::sprites[i])->GetImage(),
 					pos + Frame::Vec2 { 16.f, 0.f }.GetRotatedDegree(static_cast<float>(i * (360 / CSmokeEmitterComponent::SSmokeParticle::spritesCount)) + pData->smokeRotation1), 0xFFFFFF, alpha,
-					{ .75f }, pData->smokeRotation2
+					{ .75f }, Frame::DegToRad(pData->smokeRotation2)
 				);
 			}
 		});
@@ -227,10 +227,10 @@ void CDeviceComponent::WeldWith(CDeviceComponent * pDeviceComp, int dirIndex) {
 static void __DrawConnector(const Frame::Vec2 & entityPos, const SDeviceTreeNode * m_pNode, int m_directionIndex, int drawDirIndex, float rot, const SColorSet & m_colorSet) {
 	Frame::Vec2 pos = entityPos
 		+ GetDeviceInterfaceBias(m_pNode->pDeviceData->device, m_directionIndex, drawDirIndex, rot)
-		+ GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_pNode->pDeviceData->device) + CONNECTOR_HALF_LENGTH * 2.f, m_directionIndex, drawDirIndex).GetRotatedDegree(rot)
+		+ GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_pNode->pDeviceData->device) + CONNECTOR_HALF_LENGTH * 2.f, m_directionIndex, drawDirIndex).GetRotated(rot)
 		;
 	Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::connector)->GetImage(), pos, m_colorSet.connector, 1.f,
-		{ 1.f }, drawDirIndex * 90.f + rot
+		{ 1.f }, drawDirIndex * Frame::DegToRad(90.f) + rot
 	);
 }
 
@@ -321,7 +321,6 @@ std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> CDeviceComp
 #undef __NEW_DEF
 
 	const Frame::Vec2 devicePosMeter = PixelToMeterVec2(devicePos);
-	rotation = Frame::DegToRad(rotation); // 注意 rotation 在此处转换为了弧度
 
 #define __NEW_SHAPE(_shape, _b2ShapeType) \
 	defs[_ind++].second = { _shape, _b2ShapeType };
@@ -432,8 +431,8 @@ void CDeviceComponent::Step(float timeStep) {
 			}
 			if(auto pRigidbodyComp = m_pMachinePartEntity->GetComponent<CRigidbodyComponent>()) {
 				pRigidbodyComp->ApplyForce(
-					Frame::Vec2 { -1200.f * power, 0.f }.GetRotatedDegree(m_pEntity->GetRotation())
-					, m_relativePosition.GetRotatedDegree(m_pMachinePartEntity->GetRotation()) + m_pMachinePartEntity->GetPosition()
+					Frame::Vec2 { -1200.f * power, 0.f }.GetRotated(m_pEntity->GetRotation())
+					, m_relativePosition.GetRotated(m_pMachinePartEntity->GetRotation()) + m_pMachinePartEntity->GetPosition()
 				);
 			}
 			break;
@@ -451,8 +450,8 @@ void CDeviceComponent::Step(float timeStep) {
 			if(pData->accumulating >= pData->accumulationMax) {
 				if(auto pRigidbodyComp = m_pMachinePartEntity->GetComponent<CRigidbodyComponent>()) {
 					pRigidbodyComp->ApplyLinearImpulse(
-						Frame::Vec2 { -6000.f * power, 0.f }.GetRotatedDegree(m_pEntity->GetRotation())
-						, m_relativePosition.GetRotatedDegree(m_pMachinePartEntity->GetRotation()) + m_pMachinePartEntity->GetPosition()
+						Frame::Vec2 { -6000.f * power, 0.f }.GetRotated(m_pEntity->GetRotation())
+						, m_relativePosition.GetRotated(m_pMachinePartEntity->GetRotation()) + m_pMachinePartEntity->GetPosition()
 					);
 				}
 				pData->accumulating = -.5f;
@@ -488,25 +487,25 @@ void CDeviceComponent::Step(float timeStep) {
 			if(!working) {
 				break;
 			}
-			const float rot = m_pSpriteComponent->layers[3].GetRotation() + (1000.f + 600.f * power) * timeStep;
-			m_pSpriteComponent->layers[3].SetRotation(rot);
-			m_pSpriteComponent->layers[4].SetRotation(rot);
+			const float rot = m_pSpriteComponent->layers[3].GetRotationDegree() + (1000.f + 600.f * power) * timeStep;
+			m_pSpriteComponent->layers[3].SetRotationDegree(rot);
+			m_pSpriteComponent->layers[4].SetRotationDegree(rot);
 		}
 		break;
 		case IDeviceData::JetPropeller:
 		{
 			SJetPropellerDeviceData * pData = reinterpret_cast<SJetPropellerDeviceData *>(m_pNode->pDeviceData);
-			const float rot = 45.f
-				+ 270.f * Frame::Clamp(pData->accumulatingShowing, 0.f, pData->accumulationShowingMax) / pData->accumulationShowingMax
-				+ (pData->accumulatingShowing <= pData->accumulationShowingMax ? 0.f : 12.f * -std::sin(30.f * (pData->accumulationShowingMax - pData->accumulatingShowing)))
+			const float rot = Frame::DegToRad(45.f)
+				+ Frame::DegToRad(270.f) * Frame::Clamp(pData->accumulatingShowing, 0.f, pData->accumulationShowingMax) / pData->accumulationShowingMax
+				+ (pData->accumulatingShowing <= pData->accumulationShowingMax ? 0.f : Frame::DegToRad(12.f) * -std::sin(Frame::DegToRad(30.f) * (pData->accumulationShowingMax - pData->accumulatingShowing)))
 				;
-			m_pSpriteComponent->layers[4].SetRotation(rot);
+			m_pSpriteComponent->layers[4].SetRotationDegree(rot);
 
 			if(pData->accumulatingShowing > .002f && pData->accumulating < 0.f) {
 				for(int i = 0; i < 4; i++) {
 					CSmokeEmitterComponent::SSmokeParticle particle {
-						m_pEntity->GetPosition() + Frame::Vec2 { 96.f, 0.f }.GetRotatedDegree(m_pEntity->GetRotation()),
-						1.f, 0xFFFFFF, Frame::Vec2 { 4000.f, 0.f }.GetRotatedDegree(m_pEntity->GetRotation() + static_cast<float>(rand() % 41 - 20))
+						m_pEntity->GetPosition() + Frame::Vec2 { 96.f, 0.f }.GetRotated(m_pEntity->GetRotation()),
+						1.f, 0xFFFFFF, Frame::Vec2 { 4000.f, 0.f }.GetRotated(m_pEntity->GetRotation() + static_cast<float>(rand() % 41 - 20))
 					};
 					particle.alpha *= -pData->accumulating * 3.f;
 					particle.scaleAdd *= 5.f;
@@ -531,9 +530,9 @@ ForThoseDevicesHasNoGroup:
 		if(CDeviceComponent * pAnotherComp = pData->GetPointMachinePartDeviceComponent()) {
 			if(const Frame::Vec2 anotherPos = pAnotherComp->GetEntity()->GetPosition(), myPos = m_pEntity->GetPosition(); anotherPos != myPos) {
 				float rot = (anotherPos - myPos).Degree() - m_pEntity->GetRotation() + pData->GetRotationAdd();
-				m_pSpriteComponent->layers[0].SetRotation(rot);
-				m_pSpriteComponent->layers[3].SetRotation(rot);
-				m_pSpriteComponent->layers[4].SetRotation(rot);
+				m_pSpriteComponent->layers[0].SetRotationDegree(rot);
+				m_pSpriteComponent->layers[3].SetRotationDegree(rot);
+				m_pSpriteComponent->layers[4].SetRotationDegree(rot);
 			}
 		}
 	}

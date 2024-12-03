@@ -89,8 +89,8 @@ struct SJetPropellerDeviceData : public IDeviceData {
 	SJetPropellerDeviceData() {
 		device = EType::JetPropeller;
 
-		smokeRotation1 = static_cast<float>(rand() % 360);
-		smokeRotation2 = static_cast<float>(rand() % 360);
+		smokeRotation1 = Frame::DegToRad(static_cast<float>(rand() % 360));
+		smokeRotation2 = Frame::DegToRad(static_cast<float>(rand() % 360));
 	}
 	virtual ~SJetPropellerDeviceData() = default;
 
@@ -171,7 +171,7 @@ static inline Frame::Vec2 GetDeviceInterfaceBias(IDeviceData::EType device, int 
 		break;
 	}
 
-	return res.GetRotatedDegree(-GetDegreeByDirIndex(dirIndexOfDevice) + rotationAdd);
+	return res.GetRotated(-GetRadianByDirIndex(dirIndexOfDevice) + rotationAdd);
 }
 
 static inline bool IsDeviceHasPipeInterface(IDeviceData::EType type) {

@@ -165,7 +165,7 @@ void DrawBlockBackground() {
     }
 }
 
-void DrawSpriteBlendedPro(const Frame::SSpriteImage * pSpriteImage, const Frame::Vec2 & vPos, const Frame::ColorRGB & rgb, float alpha, float angle, const Frame::Vec2 & vScale, float angleAfterScale) {
+void DrawSpriteBlendedPro(const Frame::SSpriteImage * pSpriteImage, const Frame::Vec2 & vPos, const Frame::ColorRGB & rgb, float alpha, float rotation, const Frame::Vec2 & vScale, float rotationAfterScale) {
     Frame::STextureVertexBuffer vertexBuffer = Frame::gRenderer->GetTextureVertexBuffer();
     vertexBuffer.SetBlends(rgb, alpha);
 
@@ -174,12 +174,12 @@ void DrawSpriteBlendedPro(const Frame::SSpriteImage * pSpriteImage, const Frame:
     Frame::Vec2 bl = pSpriteImage->GetBottomLeftOffset();
     Frame::Vec2 br = pSpriteImage->GetBottomRightOffset();
 
-    Frame::Rotate2DVectorsDegree(angle, { & tl, & tr, & bl, & br });
+    Frame::Rotate2DVectors(rotation, { & tl, & tr, & bl, & br });
     tl *= vScale;
     tr *= vScale;
     bl *= vScale;
     br *= vScale;
-    Frame::Rotate2DVectorsDegree(angleAfterScale, { & tl, & tr, & bl, & br });
+    Frame::Rotate2DVectors(rotationAfterScale, { & tl, & tr, & bl, & br });
 
     vertexBuffer.SetPositions(vPos + tl, vPos + tr, vPos + bl, vPos + br);
     vertexBuffer.SetTexCoord(pSpriteImage->GetUVLeftTop(), pSpriteImage->GetUVRightBottom());

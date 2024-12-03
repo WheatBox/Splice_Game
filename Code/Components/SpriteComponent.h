@@ -102,8 +102,14 @@ public:
 			m_rotation = angle;
 			__Changed();
 		}
+		void SetRotationDegree(float angle) {
+			SetRotation(Frame::DegToRad(angle));
+		}
 		float GetRotation() const {
 			return m_rotation;
+		}
+		float GetRotationDegree() const {
+			return Frame::RadToDeg(m_rotation);
 		}
 
 		void SetScale(const Frame::Vec2 & scale) {

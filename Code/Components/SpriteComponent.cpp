@@ -83,10 +83,10 @@ void CSpriteComponent::CheckOrUpdateInsBuffers() {
 		const Frame::Vec2 entPos = m_pEntity->GetPosition();
 
 		const Frame::Matrix33 trans =
-			Frame::Matrix33::CreateTranslation(entPos - layer.GetOffset().GetRotatedDegree(entRot))
-			* Frame::Matrix33::CreateRotationZ(Frame::DegToRad(entRot))
+			Frame::Matrix33::CreateTranslation(entPos - layer.GetOffset().GetRotated(entRot))
+			* Frame::Matrix33::CreateRotationZ(entRot)
 			* Frame::Matrix33::CreateScale(layer.GetScale())
-			* Frame::Matrix33::CreateRotationZ(Frame::DegToRad(layer.GetRotation()))
+			* Frame::Matrix33::CreateRotationZ(layer.GetRotation())
 			* Frame::Matrix33::CreateTranslation(-img->GetOffset())
 			* buf.transform;
 		const Frame::ColorRGB col = layer.GetColor();
