@@ -3,3 +3,7 @@ Build/
 Build_mingw/
 .cache/
 compile_commands.json
+
+Framework_x64_debug.lib
+Framework_mingw.lib
+libFramework.a
