@@ -38,7 +38,6 @@ void CEditorDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 			m_pSpriteComponent->layers[4].SetRotation(rot);
 		}
 		*/
-		CheckOrUpdateConnectorsInsBuffers();
 	}
 	break;
 	case Frame::EntityEvent::Render:
@@ -205,6 +204,30 @@ bool CEditorDeviceComponent::ConnectWith(CEditorDeviceComponent * pEDComp, int d
 	return true;
 }
 
+void CEditorDeviceComponent::GetConnectorsRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
+
+	const Frame::SSpriteImage * img = Assets::GetStaticSprite(Assets::EDeviceStaticSprite::connector)->GetImage();
+	const auto & buf = Assets::GetImageInstanceBuffer(img);
+	const Frame::ColorRGB & color = GetColorSet().connector;
+
+	const Frame::Matrix33 baseTrans = Frame::Matrix33::CreateTranslation(-img->GetOffset()) * buf.transform;
+
+	for(int i = 0; i < 2; i++) {
+		if(m_neighbors[i] == nullptr) {
+			continue;
+		}
+		const Frame::Vec2 pos = m_pEntity->GetPosition()
+			+ GetDeviceInterfaceBias(m_deviceType, m_directionIndex, i, 0.f)
+			+ GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_deviceType) + CONNECTOR_HALF_LENGTH * 2.f, m_directionIndex, i)
+			;
+		Frame::Matrix33 trans =
+			Frame::Matrix33::CreateTranslation(pos)
+			* Frame::Matrix33::CreateRotationZ(i * Frame::DegToRad(90.f))
+			* baseTrans;
+		buffersToPushBack.push_back({ trans, { ONERGB(color), std::min(m_alpha, m_neighbors[i]->GetAlpha()) }, buf.uvMulti, buf.uvAdd });	
+	}
+}
+
 void CEditorDeviceComponent::GetEditorDeviceColliders(CColliderComponent * outColliderComp, IDeviceData::EType type, int dirIndex) {
 #define __FORMULA(w, h, offx, offy) \
 { \
@@ -225,42 +248,4 @@ void CEditorDeviceComponent::GetEditorDeviceColliders(CColliderComponent * outCo
 	}
 
 #undef __FORMULA
-}
-
-void CEditorDeviceComponent::CheckOrUpdateConnectorsInsBuffers() {
-	bool bUpdated = false;
-	for(int i = 0; i < 2; i++) {
-		if(m_neighborsPrev_forCheckingConnectorsUpdatedOrNot[i] == m_neighbors[i]) {
-			continue;
-		}
-		m_neighborsPrev_forCheckingConnectorsUpdatedOrNot[i] = m_neighbors[i];
-		bUpdated = true;
-		break;
-	}
-	if(!bUpdated) {
-		return;
-	}
-
-	m_connectorsInsBuffers.clear();
-
-	const Frame::SSpriteImage * img = Assets::GetStaticSprite(Assets::EDeviceStaticSprite::connector)->GetImage();
-	const auto & buf = Assets::GetImageInstanceBuffer(img);
-	const Frame::ColorRGB & color = GetColorSet().connector;
-
-	const Frame::Matrix33 baseTrans = Frame::Matrix33::CreateTranslation(-img->GetOffset()) * buf.transform;
-
-	for(int i = 0; i < 2; i++) {
-		if(m_neighbors[i] == nullptr) {
-			continue;
-		}
-		const Frame::Vec2 pos = m_pEntity->GetPosition()
-			+ GetDeviceInterfaceBias(m_deviceType, m_directionIndex, i, 0.f)
-			+ GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_deviceType) + CONNECTOR_HALF_LENGTH * 2.f, m_directionIndex, i)
-			;
-		Frame::Matrix33 trans =
-			Frame::Matrix33::CreateTranslation(pos)
-			* Frame::Matrix33::CreateRotationZ(i * Frame::DegToRad(90.f))
-			* baseTrans;
-		m_connectorsInsBuffers.push_back({ trans, { ONERGB(color), std::min(m_alpha, m_neighbors[i]->GetAlpha()) }, buf.uvMulti, buf.uvAdd });	
-	}
 }

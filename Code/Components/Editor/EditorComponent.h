@@ -276,4 +276,11 @@ private:
 
 	void SummonMachine();
 
+	std::vector<Frame::CRenderer::SInstanceBuffer> m_insBuffers;
+	int __regenerateInsBuffersDelay = 0;
+	void RegenerateInsBuffers() {
+		__regenerateInsBuffersDelay = 1;
+	}
+	void __RegenerateInsBuffers();
+
 };

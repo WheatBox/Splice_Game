@@ -43,9 +43,7 @@ public:
 	void GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
 		m_pSpriteComponent->GetRenderingInstanceData(buffersToPushBack);
 	}
-	void GetConnectorsRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
-		buffersToPushBack.insert(buffersToPushBack.end(), m_connectorsInsBuffers.begin(), m_connectorsInsBuffers.end());
-	}
+	void GetConnectorsRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const;
 
 	void SetAlpha(float alpha) {
 		m_alpha = alpha;
@@ -96,10 +94,5 @@ private:
 public:
 
 	static void GetEditorDeviceColliders(CColliderComponent * outColliderComp, IDeviceData::EType type, int dirIndex);
-
-private:
-	std::vector<Frame::CRenderer::SInstanceBuffer> m_connectorsInsBuffers;
-	CEditorDeviceComponent * m_neighborsPrev_forCheckingConnectorsUpdatedOrNot[2] {};
-	void CheckOrUpdateConnectorsInsBuffers();
 
 };

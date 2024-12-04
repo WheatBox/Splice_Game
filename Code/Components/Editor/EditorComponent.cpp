@@ -182,20 +182,9 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
 		/* ----------------------- Canvas ----------------------- */
 		
-		if(1) { // 临时代码
-			std::vector<Frame::CRenderer::SInstanceBuffer> instances;
+		__RegenerateInsBuffers();
 
-			for(auto & pEDComp : m_editorDeviceComponents) {
-				pEDComp->GetConnectorsRenderingInstanceData(instances);
-			}
-
-			for(auto & pEDComp : m_editorDeviceComponents) {
-				pEDComp->GetRenderingInstanceData(instances);
-			}
-
-			const auto img = Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage();
-			Frame::gRenderer->DrawTexturesInstanced(img->GetTextureId(), CSpriteComponent::GetTextureVertexBufferForInstances(), instances);
-		}
+		Frame::gRenderer->DrawTexturesInstanced(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId(), CSpriteComponent::GetTextureVertexBufferForInstances(), m_insBuffers);
 
 		if(m_tool == ETool::Pencil && m_pencilDevice != IDeviceData::EType::Unset) {
 			Pencil();
@@ -227,9 +216,8 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
 		// ---- Legacy ----
 
-		const float camZoomBeforeGUI = Frame::gCamera->GetZoom();
-		const Frame::Vec2 camPosBeforeGUI = Frame::gCamera->GetPos();
-		const float camRotBeforeGUI = Frame::gCamera->GetRotation();
+		Frame::gCamera->PushOntoStack();
+
 		Frame::gCamera->SetZoom(1.f);
 		const Frame::Vec2 viewSize = Frame::Vec2Cast(Frame::gCamera->GetViewSize());
 		Frame::gCamera->SetPos(viewSize * .5f);
@@ -260,9 +248,7 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 			m_mouseLabelText = Texts::EText::EMPTY;
 		}
 
-		Frame::gCamera->SetZoom(camZoomBeforeGUI);
-		Frame::gCamera->SetPos(camPosBeforeGUI);
-		Frame::gCamera->SetRotation(camRotBeforeGUI);
+		Frame::gCamera->PopFromStack();
 
 		/* --------------------------------------------------- */
 	}
@@ -902,6 +888,8 @@ void CEditorComponent::Pencil() {
 	if(bPutFinished) { // 上文提到的 注1
 		ClearAvailableInterfaces();
 		FindAvailableInterfaces();
+		// ------
+		RegenerateInsBuffers();
 	}
 
 	if(!pInterfaceMouseOn) {
@@ -935,6 +923,8 @@ void CEditorComponent::Eraser() {
 	if(itWillBeErase != m_editorDeviceComponents.end()) {
 		Frame::gEntitySystem->RemoveEntity((* itWillBeErase)->GetEntity()->GetId());
 		m_editorDeviceComponents.erase(itWillBeErase);
+		
+		RegenerateInsBuffers();
 	}
 }
 
@@ -960,6 +950,7 @@ void CEditorComponent::UpdateDevicesColor() {
 	for(auto & pEDComp : m_editorDeviceComponents) {
 		pEDComp->UpdateColor(GetCurrentColorSet());
 	}
+	RegenerateInsBuffers();
 }
 
 void CEditorComponent::ControllerBegin() {
@@ -1436,6 +1427,28 @@ void CEditorComponent::SummonMachine() {
 			// TODO
 		//}
 	//}
+}
+
+void CEditorComponent::__RegenerateInsBuffers() {
+	if(__regenerateInsBuffersDelay > 0) {
+		__regenerateInsBuffersDelay--;
+		return;
+	}
+	if(__regenerateInsBuffersDelay == 0) {
+		__regenerateInsBuffersDelay = -1;
+	} else {
+		return;
+	}
+
+	m_insBuffers.clear();
+
+	for(auto & pEDComp : m_editorDeviceComponents) {
+		pEDComp->GetConnectorsRenderingInstanceData(m_insBuffers);
+	}
+
+	for(auto & pEDComp : m_editorDeviceComponents) {
+		pEDComp->GetRenderingInstanceData(m_insBuffers);
+	}
 }
 
 #undef __DRAW_TEXT_BUTTON

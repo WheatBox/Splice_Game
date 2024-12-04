@@ -181,8 +181,11 @@ private:
 
 	std::vector<Frame::CRenderer::SInstanceBuffer> m_insBuffers;
 	
-	void CheckOrUpdateInsBuffers();
 public:
+	// 当 bUpdating 为 true 时，事件轮询中会去自动执行
+	// 或者也可以在别处去手动调用
+	void CheckOrUpdateInsBuffers();
+
 	static inline const Frame::STextureVertexBuffer & GetTextureVertexBufferForInstances() {
 		static Frame::STextureVertexBuffer texVertBuf { 0.f, 1.f, 0xFFFFFF, 1.f };
 		return texVertBuf;
