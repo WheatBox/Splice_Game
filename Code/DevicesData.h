@@ -8,7 +8,7 @@
 
 class CDeviceComponent;
 
-constexpr float CONNECTOR_LENGTH = 32.f;
+constexpr float CONNECTOR_LENGTH = 16.f;
 constexpr float CONNECTOR_HALF_LENGTH = CONNECTOR_LENGTH / 2.f;
 constexpr float PIPE_CROSS_SIZE = 32.f;
 

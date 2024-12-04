@@ -162,7 +162,7 @@ if(m_neighbors[dirIndex] == nullptr) { \
 	Frame::Vec2 pos = m_pEntity->GetPosition() \
 		+ GetDeviceInterfaceBias(m_deviceType, m_directionIndex, dirIndex, 0.f) \
 		+ GetRectangleEdgePosByDirIndex(GetDevicePixelSize(m_deviceType) \
-		+ 32.f \
+		+ CONNECTOR_LENGTH \
 	, m_directionIndex, dirIndex); \
 	outToPushBack->push_back({ this, pos, dirIndex }); \
 }
