@@ -139,7 +139,15 @@ public:
 			return m_extraFunc;
 		}
 
-	public:
+		void SetInsBufferGroup(unsigned int group) {
+			m_insBufferGroup = group;
+			__Changed();
+		}
+		unsigned int GetInsBufferGroup() const {
+			return m_insBufferGroup;
+		}
+
+	private:
 
 		Frame::CStaticSprite * m_pStaticSprite = nullptr;
 		Frame::CAnimatedSprite * m_pAnimatedSprite = nullptr;
@@ -155,10 +163,14 @@ public:
 		Frame::Vec2 m_offset { 0.f };
 
 		int m_frameCount = 0;
-		float m_frameIntervalCounting = 0.f;
 
 		//bool m_bExtraFunc = false;
 		std::function<void (float)> m_extraFunc; // 参数：float frameTime
+
+		unsigned int m_insBufferGroup = 0;
+
+	public:
+		float m_frameIntervalCounting = 0.f;
 
 	public:
 		void __Changed() {
@@ -174,6 +186,14 @@ public:
 	void GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
 		buffersToPushBack.insert(buffersToPushBack.end(), m_insBuffers.begin(), m_insBuffers.end());
 	}
+	// groups[i] 中的 i 就是组号
+	// 请确保 layers 中的所有精灵都处在同一纹理页
+	void GetRenderingInstanceDataGrouped(const std::vector<std::vector<Frame::CRenderer::SInstanceBuffer> &> & groups) const {
+		unsigned int len = static_cast<unsigned int>(groups.size());
+		for(auto & layer : layers)
+		//buffersToPushBack.insert(buffersToPushBack.end(), m_insBuffers.begin(), m_insBuffers.end());
+	}
+
 	std::vector<SLayer> layers {};
 
 private:

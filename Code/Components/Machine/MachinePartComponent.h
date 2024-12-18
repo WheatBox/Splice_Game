@@ -4,6 +4,7 @@
 
 #include "../../DevicesData.h"
 #include "../../Utility.h"
+#include "FrameRender/Renderer.h"
 
 #include <unordered_set>
 
@@ -11,7 +12,6 @@ class CEditorDeviceComponent;
 class CDeviceComponent;
 class CRigidbodyComponent;
 class CMachineComponent;
-struct SEditorPipeNode;
 struct SPipeNode;
 
 class CMachinePartComponent final : public Frame::IEntityComponent {
@@ -24,7 +24,7 @@ public:
 		type.SetGUID("{5BC5522E-DABD-4EA4-9CD5-5136C89DF74B}");
 	}
 
-	void Initialize(std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> * out_map_EDCompDeviceComp_or_nullptr, CMachineComponent * pMachine, const std::unordered_set<CEditorDeviceComponent *> & editorDeviceComps, const std::unordered_set<const std::vector<SEditorPipeNode *> *> & pipes, const SColorSet & colorSet);
+	void Initialize(std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> * out_map_EDCompDeviceComp_or_nullptr, CMachineComponent * pMachine, const std::unordered_set<CEditorDeviceComponent *> & editorDeviceComps, const SColorSet & colorSet);
 	virtual void OnShutDown() override;
 
 	typedef std::unordered_set<SPipeNode *> PipeT;
@@ -62,5 +62,12 @@ private:
 	std::unordered_set<SGroup *> m_groups;
 
 	std::vector<PipeT> m_pipes;
+
+private:
+	std::vector<Frame::CRenderer::SInstanceBuffer> m_staticInsBuffers;
+	std::vector<Frame::CRenderer::SInstanceBuffer> m_dynamicInsBuffers;
+
+	void __RegenerateStaticInsBuffers();
+	void __RegenerateDynamicInsBuffers();
 
 };

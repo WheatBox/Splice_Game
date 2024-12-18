@@ -98,4 +98,10 @@ public:
 		return m_colorSet;
 	}
 
+public:
+
+	void GetRenderingStaticInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
+		m_pSpriteComponent->GetRenderingInstanceData(buffersToPushBack);
+	}
+
 };

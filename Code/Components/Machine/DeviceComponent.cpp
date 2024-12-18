@@ -74,7 +74,9 @@ void CDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 }
 
 void CDeviceComponent::Initialize(Frame::CEntity * pMachinePartEntity, IDeviceData::EType deviceType, Frame::EKeyId keyId, int dirIndex, const SColorSet & colorSet) {
+	Frame::Log::Log(Frame::Log::ELevel::Debug, "device init start");
 	if(deviceType <= IDeviceData::EType::Unset || deviceType >= IDeviceData::EType::END) {
+		Frame::Log::Log(Frame::Log::ELevel::Error, "device init unknown device type");
 		return;
 	}
 
@@ -184,6 +186,7 @@ m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceSt
 	}
 
 	s_workingDevices.insert(this);
+	Frame::Log::Log(Frame::Log::ELevel::Debug, "device init end");
 }
 
 void CDeviceComponent::OnShutDown() {

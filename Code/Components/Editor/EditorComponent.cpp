@@ -1421,12 +1421,12 @@ void CEditorComponent::SummonMachine() {
 	if(it == m_editorDeviceComponents.end()) {
 		return;
 	}
-	//if(auto pEnt = Frame::gEntitySystem->SpawnEntity()) {
-		//if(auto pComp = pEnt->CreateComponent<CMachineComponent>()) {
-			//pComp->Initialize(* it, m_pipes, GetCurrentColorSet());
+	if(auto pEnt = Frame::gEntitySystem->SpawnEntity()) {
+		if(auto pComp = pEnt->CreateComponent<CMachineComponent>()) {
+			pComp->Initialize(* it, GetCurrentColorSet());
 			// TODO
-		//}
-	//}
+		}
+	}
 }
 
 void CEditorComponent::__RegenerateInsBuffers() {

@@ -33,7 +33,7 @@ void CMachineComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	break;
 	}
 }
-#if 0 // TODO
+
 static bool __HasConnected(const std::unordered_map<CEditorDeviceComponent *, std::unordered_set<CEditorDeviceComponent *>> & connectedEDComps, CEditorDeviceComponent * pEDComp1, CEditorDeviceComponent * pEDComp2) {
 	if(!pEDComp1 || !pEDComp2) {
 		return false;
@@ -142,7 +142,7 @@ static bool __ConnectMachinePartsByDevices(
 	return pBasicMachinePart->CreateJointWith(pAnotherMachinePart, pDevice1);
 }
 
-void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const std::vector<std::vector<SEditorPipeNode *>> & pipes, const SColorSet & colorSet) {
+void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const SColorSet & colorSet) {
 
 	std::unordered_set<CEditorDeviceComponent *> ignoreDevices; // 已经建立的装置
 	std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> map_EDCompDeviceComp;
@@ -163,23 +163,6 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 
 		RecursiveMachinePartEditorDevices(& currentPartDevices, & jointDevices, pEDComp, ignoreDevices);
 
-		std::unordered_set<const std::vector<SEditorPipeNode *> *> pipesForThisMachinePart;
-
-		for(auto & pNotJointDevice : currentPartDevices) {
-			const auto & pipeNodes = pNotJointDevice->GetPipeNodes();
-			for(auto & pPipeNodeOfCurrentDevice : pipeNodes) {
-				for(auto & pipe : pipes) {
-					for(auto & pPipeNode : pipe) {
-						if(pPipeNode == pPipeNodeOfCurrentDevice) {
-							pipesForThisMachinePart.insert(& pipe);
-							goto NextPipeNodeOfCurrentDevice;
-						}
-					}
-				}
-			NextPipeNodeOfCurrentDevice: {}
-			}
-		}
-
 		for(auto & pJointEDComp : jointDevices) {
 			if(auto pBack = pJointEDComp->m_neighbors[GetRevDirIndex(pJointEDComp->GetDirIndex())]) {
 				if(currentPartDevices.find(pBack) != currentPartDevices.end()) {
@@ -199,7 +182,7 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 				m_machineParts.insert(pComp);
 
 				std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> mapTemp;
-				pComp->Initialize(& mapTemp, this, currentPartDevices, pipesForThisMachinePart, colorSet);
+				pComp->Initialize(& mapTemp, this, currentPartDevices, colorSet);
 				map_EDCompDeviceComp.insert(mapTemp.begin(), mapTemp.end());
 			}
 		}
@@ -261,7 +244,7 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 		} while(false);
 	}
 }
-#endif
+
 void CMachineComponent::OnShutDown() {
 	for(auto & pMachinePartComp : m_machineParts) {
 		Frame::gEntitySystem->RemoveEntity(pMachinePartComp->GetEntity()->GetId());

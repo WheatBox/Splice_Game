@@ -20,7 +20,7 @@ public:
 		type.SetGUID("{77F48F89-3F1F-4905-8783-6BDB8A759B71}");
 	}
 
-	void Initialize(CEditorDeviceComponent * pDeviceCabin, const std::vector<std::vector<SEditorPipeNode *>> & pipes, const SColorSet & colorSet);
+	void Initialize(CEditorDeviceComponent * pDeviceCabin, const SColorSet & colorSet);
 	virtual void OnShutDown() override;
 
 private:

@@ -10,6 +10,7 @@
 
 #include "../../Depths.h"
 #include "../../Pipe.h"
+#include "FrameCore/Log.h"
 
 #include <algorithm>
 
@@ -33,13 +34,19 @@ void CMachinePartComponent::ProcessEvent(const Frame::EntityEvent::SEvent & even
 			// DrawPipe<SPipeNode>(pipe, m_pEntity->GetPosition(), m_colorSet.pipe, 1.f, m_pEntity->GetRotation());
 			// TODO
 		//}
+		
+		for(const auto & pDevice : m_deviceComponents) {
+			pDevice->
+		}
+
 		break;
 	}
 }
 
-void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> * out_map_EDCompDeviceComp_or_nullptr, CMachineComponent * pMachine, const std::unordered_set<CEditorDeviceComponent *> & editorDeviceComps, const std::unordered_set<const std::vector<SEditorPipeNode *> *> & pipes, const SColorSet & colorSet) {
+void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> * out_map_EDCompDeviceComp_or_nullptr, CMachineComponent * pMachine, const std::unordered_set<CEditorDeviceComponent *> & editorDeviceComps, const SColorSet & colorSet) {
 
 	m_pMachineBelonging = pMachine;
+	Frame::Log::Log(Frame::Log::ELevel::Debug, "machine part init start!");
 
 	m_pEntity->SetZDepth(Depths::Machine);
 
@@ -100,11 +107,11 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 		bodyDef.angularDamping = 1.f;
 
 		m_pRigidbodyComponent->Physicalize(bodyDef, shapeDefs);
-		//m_pRigidbodyComponent->SetEnableRendering(true);
+		m_pRigidbodyComponent->SetEnableRendering(true);
 	}
 
 	/* --------------------- 创建管道 --------------------- */
-
+#if 0 // TODO
 	std::unordered_map<SEditorPipeNode *, SPipeNode *> map_EPNodePNode;
 	
 	std::unordered_set<SPipeNode *> wrongPipeNodes; // 具体信息见下方的注释【关于 wrongPipeNodes】
@@ -195,7 +202,7 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 		}
 		m_groups.insert(pGroup);
 	}
-
+#endif
 	/* --------------------------------------------------- */
 
 	m_pDeviceConnectorRendererEntity = Frame::gEntitySystem->SpawnEntity();
@@ -208,6 +215,7 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 	if(out_map_EDCompDeviceComp_or_nullptr) {
 		* out_map_EDCompDeviceComp_or_nullptr = map_EDCompDeviceComp;
 	}
+	Frame::Log::Log(Frame::Log::ELevel::Debug, "machine part init over!");
 }
 
 void CMachinePartComponent::OnShutDown() {
@@ -317,4 +325,17 @@ void CMachinePartComponent::SGroup::InsertAndBind(CDeviceComponent * pDeviceComp
 	}
 	(pNode->pDeviceData->device == IDeviceData::Engine ? engines : devices).insert(pDeviceComp);
 	pDeviceComp->SetGroup(this);
+}
+
+void CMachinePartComponent::__RegenerateStaticInsBuffers() {
+	m_staticInsBuffers.clear();
+
+	for(auto & pDevice : m_deviceComponents) {
+		//pDevice->GetConnectorsRenderingInstanceData(m_insBuffers);
+		// TODO
+	}
+
+	for(auto & pDevice : m_deviceComponents) {
+		pDevice->GetRenderingStaticInstanceData(m_staticInsBuffers);
+	}
 }
