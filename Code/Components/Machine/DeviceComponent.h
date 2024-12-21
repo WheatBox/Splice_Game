@@ -100,8 +100,12 @@ public:
 
 public:
 
-	void GetRenderingStaticInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
-		m_pSpriteComponent->GetRenderingInstanceData(buffersToPushBack);
+	static constexpr int staticInsBufferGroupIndex = 0;
+	static constexpr int dynamicInsBufferGroupIndex = 1;
+	static constexpr int staticTopInsBufferGroupIndex = 2;
+
+	void GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack, int insBufferGroupIndex) const {
+		m_pSpriteComponent->GetRenderingInstanceData(buffersToPushBack, insBufferGroupIndex);
 	}
 
 };

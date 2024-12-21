@@ -35,13 +35,13 @@ public:
 		m_colorSet = colorSet;
 		for(size_t i = 0, siz = m_colorUpdatesInSpriteLayers.size(); i < siz; i++) {
 			if(const auto & p = m_colorUpdatesInSpriteLayers[i]; p) {
-				m_pSpriteComponent->layers[i].SetColor(colorSet.* p);
+				m_pSpriteComponent->GetLayers()[i].SetColor(colorSet.* p);
 			}
 		}
 	}
 
 	void GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
-		m_pSpriteComponent->GetRenderingInstanceData(buffersToPushBack);
+		m_pSpriteComponent->GetAllRenderingInstanceData(buffersToPushBack);
 	}
 	void GetConnectorsRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const;
 
@@ -50,7 +50,7 @@ public:
 		if(!m_pSpriteComponent) {
 			return;
 		}
-		for(auto & layer : m_pSpriteComponent->layers) {
+		for(auto & layer : m_pSpriteComponent->GetLayers()) {
 			layer.SetAlpha(alpha);
 		}
 	}

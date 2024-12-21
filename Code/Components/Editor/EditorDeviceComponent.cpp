@@ -74,11 +74,11 @@ bool CEditorDeviceComponent::Initialize(IDeviceData::EType type, int dirIndex) {
 	m_pSpriteComponent = m_pEntity->CreateComponent<CSpriteComponent>();
 
 #define __ADD_SPRITE_LAYER(__EDeviceStaticSprite) \
-m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), 0xFFFFFF, 1.f }); \
+m_pSpriteComponent->AddLayer({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), 0xFFFFFF, 1.f }); \
 m_colorUpdatesInSpriteLayers.push_back(nullptr);
 
 #define __ADD_SPRITE_LAYER_EXT(__EDeviceStaticSprite, __colorSetMemberVariable) \
-m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), 0xFFFFFF, 1.f }); \
+m_pSpriteComponent->AddLayer({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), 0xFFFFFF, 1.f }); \
 m_colorUpdatesInSpriteLayers.push_back(& SColorSet::__colorSetMemberVariable);
 
 	bool bSkipColor2OfMainPart = false;
@@ -96,26 +96,26 @@ m_colorUpdatesInSpriteLayers.push_back(& SColorSet::__colorSetMemberVariable);
 	if(!bSkipColor2OfMainPart) m_colorUpdatesInSpriteLayers.push_back(& SColorSet::color2);
 	m_colorUpdatesInSpriteLayers.push_back(nullptr);
 #if !__DEBUG_COLLIDER
-	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color1), 0xFFFFFF, 1.f });
-	if(!bSkipColor2OfMainPart) m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color2), 0xFFFFFF, 1.f });
-	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::basic), 0xFFFFFF, 1.f });
+	m_pSpriteComponent->AddLayer({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color1), 0xFFFFFF, 1.f });
+	if(!bSkipColor2OfMainPart) m_pSpriteComponent->AddLayer({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color2), 0xFFFFFF, 1.f });
+	m_pSpriteComponent->AddLayer({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::basic), 0xFFFFFF, 1.f });
 #else
-	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color1), 0xFFFFFF, .5f });
-	if(!bSkipColor2OfMainPart) m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color2), 0xFFFFFF, .5f });
-	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::basic), 0xFFFFFF, .5f });
+	m_pSpriteComponent->AddLayer({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color1), 0xFFFFFF, .5f });
+	if(!bSkipColor2OfMainPart) m_pSpriteComponent->AddLayer({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::color2), 0xFFFFFF, .5f });
+	m_pSpriteComponent->AddLayer({ Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::basic), 0xFFFFFF, .5f });
 #endif
 
 	if(type == IDeviceData::Propeller) {
 		__ADD_SPRITE_LAYER_EXT(propeller_blade_color, color2);
 		{
-			auto & layerTemp = m_pSpriteComponent->layers.back();
+			auto & layerTemp = m_pSpriteComponent->GetLayers().back();
 			layerTemp.SetScale({ .3f, 1.f });
 			layerTemp.SetOffset({ -20.f, 0.f });
 			layerTemp.SetRotationDegree(30.f);
 		}
 		__ADD_SPRITE_LAYER(propeller_blade);
 		{
-			auto & layerTemp = m_pSpriteComponent->layers.back();
+			auto & layerTemp = m_pSpriteComponent->GetLayers().back();
 			layerTemp.SetScale({ .3f, 1.f });
 			layerTemp.SetOffset({ -20.f, 0.f });
 			layerTemp.SetRotationDegree(30.f);
@@ -126,13 +126,13 @@ m_colorUpdatesInSpriteLayers.push_back(& SColorSet::__colorSetMemberVariable);
 	} else if(type == IDeviceData::JetPropeller) {
 		__ADD_SPRITE_LAYER(jet_propeller_needle);
 		{
-			auto & layerTemp = m_pSpriteComponent->layers.back();
+			auto & layerTemp = m_pSpriteComponent->GetLayers().back();
 			layerTemp.SetOffset({ -32.f, 20.f });
 			layerTemp.SetRotationDegree(45.f);
 		}
 	} else if(type == IDeviceData::Joint) {
-		m_pSpriteComponent->layers[1].SetRotationDegree(180.f);
-		m_pSpriteComponent->layers[2].SetRotationDegree(180.f);
+		m_pSpriteComponent->GetLayers()[1].SetRotationDegree(180.f);
+		m_pSpriteComponent->GetLayers()[2].SetRotationDegree(180.f);
 		__ADD_SPRITE_LAYER_EXT(joint_top_color, color2);
 		__ADD_SPRITE_LAYER(joint_top);
 	}

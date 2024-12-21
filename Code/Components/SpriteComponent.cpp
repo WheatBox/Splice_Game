@@ -23,20 +23,7 @@ void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
 		frameTime = event.params[0].f;
 		for(auto & layer : layers) {
-			if(!layer.m_bAnimated) {
-				break;
-			}
-			layer.m_frameIntervalCounting += frameTime;
-			if(layer.m_frameIntervalCounting >= layer.m_frameInterval) {
-				layer.m_frameIntervalCounting -= layer.m_frameInterval;
-
-				layer.m_currentFrame++;
-				if(layer.m_currentFrame >= layer.m_frameCount) {
-					layer.m_currentFrame -= layer.m_frameCount;
-				}
-
-				layer.__Changed();
-			}
+			layer.Animate(frameTime);
 		}
 
 		CheckOrUpdateInsBuffers();
@@ -55,11 +42,11 @@ void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 				continue;
 			}
 
-			const Frame::Vec2 pos = m_pEntity->GetPosition() - layer.m_offset.GetRotatedDegree(entityRot);
-			DrawSpriteBlendedPro(pImage, pos, layer.m_color, layer.m_alpha, layer.m_rotation, layer.m_scale, entityRot);
+			const Frame::Vec2 pos = m_pEntity->GetPosition() - layer.GetOffset().GetRotatedDegree(entityRot);
+			DrawSpriteBlendedPro(pImage, pos, layer.GetColor(), layer.GetAlpha(), layer.GetRotation(), layer.GetScale(), entityRot);
 
-			if(layer.m_extraFunc) {
-				layer.m_extraFunc(frameTime);
+			if(auto & extraFunc = layer.GetExtraFunction()) {
+				extraFunc(frameTime);
 			}
 		}
 	}
@@ -68,9 +55,7 @@ void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 }
 
 void CSpriteComponent::CheckOrUpdateInsBuffers() {
-	for(int i = 0, siz = static_cast<int>(layers.size()); i < siz; i++) {
-		SLayer & layer = layers[i];
-
+	for(SLayer & layer : layers) {
 		if(!layer.__bChanged) {
 			continue;
 		}
@@ -91,10 +76,6 @@ void CSpriteComponent::CheckOrUpdateInsBuffers() {
 			* buf.transform;
 		const Frame::ColorRGB col = layer.GetColor();
 
-		if(static_cast<int>(m_insBuffers.size()) <= i) {
-			m_insBuffers.push_back({ trans, { ONERGB(col), layer.GetAlpha() }, buf.uvMulti, buf.uvAdd });
-		} else {
-			m_insBuffers[i] = { trans, { ONERGB(col), layer.GetAlpha() }, buf.uvMulti, buf.uvAdd };
-		}
+		m_insBufferGroups[layer.GetInsBufferGroup()][layer.__indexInGroup] = { trans, { ONERGB(col), layer.GetAlpha() }, buf.uvMulti, buf.uvAdd };
 	}
 }

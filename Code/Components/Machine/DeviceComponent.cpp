@@ -94,9 +94,14 @@ void CDeviceComponent::Initialize(Frame::CEntity * pMachinePartEntity, IDeviceDa
 #define __SPRITE_ALPHA 1.f // 为了方便调试，放了这么个宏在这里
 
 #define __ADD_SPRITE_LAYER(__EDeviceStaticSprite) \
-m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), 0xFFFFFF, __SPRITE_ALPHA });
+m_pSpriteComponent->AddLayer({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), 0xFFFFFF, __SPRITE_ALPHA });
 #define __ADD_SPRITE_LAYER_EXT(__EDeviceStaticSprite, __colorSetMemberVariable) \
-m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), colorSet.__colorSetMemberVariable, __SPRITE_ALPHA });
+m_pSpriteComponent->AddLayer({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), colorSet.__colorSetMemberVariable, __SPRITE_ALPHA });
+
+#define __ADD_SPRITE_LAYER_GROUPED(__EDeviceStaticSprite, __group) \
+m_pSpriteComponent->AddLayer({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), 0xFFFFFF, __SPRITE_ALPHA }, __group);
+#define __ADD_SPRITE_LAYER_EXT_GROUPED(__EDeviceStaticSprite, __colorSetMemberVariable, __group) \
+m_pSpriteComponent->AddLayer({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), colorSet.__colorSetMemberVariable, __SPRITE_ALPHA }, __group);
 
 	m_pSpriteComponent = m_pEntity->CreateComponent<CSpriteComponent>();
 
@@ -108,40 +113,40 @@ m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceSt
 		__ADD_SPRITE_LAYER_EXT(joint_bottom, color2);
 	}
 
-	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::color1), colorSet.color1, __SPRITE_ALPHA });
+	m_pSpriteComponent->AddLayer({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::color1), colorSet.color1, __SPRITE_ALPHA });
 	if(deviceType != IDeviceData::Joint) {
-		m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::color2), colorSet.color2, __SPRITE_ALPHA });
+		m_pSpriteComponent->AddLayer({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::color2), colorSet.color2, __SPRITE_ALPHA });
 	}
-	m_pSpriteComponent->layers.push_back({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::basic), 0xFFFFFF, __SPRITE_ALPHA });
+	m_pSpriteComponent->AddLayer({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::basic), 0xFFFFFF, __SPRITE_ALPHA });
 
 	if(deviceType == IDeviceData::Propeller) {
-		__ADD_SPRITE_LAYER_EXT(propeller_blade_color, color2);
+		__ADD_SPRITE_LAYER_EXT_GROUPED(propeller_blade_color, color2, dynamicInsBufferGroupIndex);
 		{
-			auto & layerTemp = m_pSpriteComponent->layers.back();
+			auto & layerTemp = m_pSpriteComponent->GetLayers().back();
 			layerTemp.SetScale({ .3f, 1.f });
 			layerTemp.SetOffset({ -20.f, 0.f });
 			layerTemp.SetRotationDegree(30.f);
 		}
-		__ADD_SPRITE_LAYER(propeller_blade);
+		__ADD_SPRITE_LAYER_GROUPED(propeller_blade, dynamicInsBufferGroupIndex);
 		{
-			auto & layerTemp = m_pSpriteComponent->layers.back();
+			auto & layerTemp = m_pSpriteComponent->GetLayers().back();
 			layerTemp.SetScale({ .3f, 1.f });
 			layerTemp.SetOffset({ -20.f, 0.f });
 			layerTemp.SetRotationDegree(30.f);
 		}
 
-		__ADD_SPRITE_LAYER_EXT(propeller_top_color, color1);
-		__ADD_SPRITE_LAYER(propeller_top);
+		__ADD_SPRITE_LAYER_EXT_GROUPED(propeller_top_color, color1, staticTopInsBufferGroupIndex);
+		__ADD_SPRITE_LAYER_GROUPED(propeller_top, staticTopInsBufferGroupIndex);
 	} else if(deviceType == IDeviceData::JetPropeller) {
 		__ADD_SPRITE_LAYER(jet_propeller_needle);
 		{
-			auto & layerTemp = m_pSpriteComponent->layers.back();
+			auto & layerTemp = m_pSpriteComponent->GetLayers().back();
 			layerTemp.SetOffset({ -32.f, 20.f });
 			layerTemp.SetRotationDegree(45.f);
 		}
 	} else if(deviceType == IDeviceData::Joint) {
-		m_pSpriteComponent->layers[1].SetRotationDegree(180.f);
-		m_pSpriteComponent->layers[2].SetRotationDegree(180.f);
+		m_pSpriteComponent->GetLayers()[1].SetRotationDegree(180.f);
+		m_pSpriteComponent->GetLayers()[2].SetRotationDegree(180.f);
 		__ADD_SPRITE_LAYER_EXT(joint_top_color, color2);
 		__ADD_SPRITE_LAYER(joint_top);
 	}
@@ -149,10 +154,12 @@ m_pSpriteComponent->layers.push_back({ Assets::GetStaticSprite(Assets::EDeviceSt
 #undef __SPRITE_ALPHA
 #undef __ADD_SPRITE_LAYER
 #undef __ADD_SPRITE_LAYER_EXT
+#undef __ADD_SPRITE_LAYER_GROUPED
+#undef __ADD_SPRITE_LAYER_EXT_GROUPED
 
 	switch(deviceType) {
 	case IDeviceData::JetPropeller:
-		m_pSpriteComponent->layers[0].SetExtraFunction([this](float frameTime) {
+		m_pSpriteComponent->GetLayers()[0].SetExtraFunction([this](float frameTime) {
 			if(!m_pNode || !m_pNode->pDeviceData) {
 				return;
 			}
@@ -490,9 +497,9 @@ void CDeviceComponent::Step(float timeStep) {
 			if(!working) {
 				break;
 			}
-			const float rot = m_pSpriteComponent->layers[3].GetRotationDegree() + (1000.f + 600.f * power) * timeStep;
-			m_pSpriteComponent->layers[3].SetRotationDegree(rot);
-			m_pSpriteComponent->layers[4].SetRotationDegree(rot);
+			const float rot = m_pSpriteComponent->GetLayers()[3].GetRotationDegree() + (1000.f + 600.f * power) * timeStep;
+			m_pSpriteComponent->GetLayers()[3].SetRotationDegree(rot);
+			m_pSpriteComponent->GetLayers()[4].SetRotationDegree(rot);
 		}
 		break;
 		case IDeviceData::JetPropeller:
@@ -502,7 +509,7 @@ void CDeviceComponent::Step(float timeStep) {
 				+ Frame::DegToRad(270.f) * Frame::Clamp(pData->accumulatingShowing, 0.f, pData->accumulationShowingMax) / pData->accumulationShowingMax
 				+ (pData->accumulatingShowing <= pData->accumulationShowingMax ? 0.f : Frame::DegToRad(12.f) * -std::sin(Frame::DegToRad(30.f) * (pData->accumulationShowingMax - pData->accumulatingShowing)))
 				;
-			m_pSpriteComponent->layers[4].SetRotationDegree(rot);
+			m_pSpriteComponent->GetLayers()[4].SetRotationDegree(rot);
 
 			if(pData->accumulatingShowing > .002f && pData->accumulating < 0.f) {
 				for(int i = 0; i < 4; i++) {
@@ -533,9 +540,9 @@ ForThoseDevicesHasNoGroup:
 		if(CDeviceComponent * pAnotherComp = pData->GetPointMachinePartDeviceComponent()) {
 			if(const Frame::Vec2 anotherPos = pAnotherComp->GetEntity()->GetPosition(), myPos = m_pEntity->GetPosition(); anotherPos != myPos) {
 				float rot = (anotherPos - myPos).Degree() - m_pEntity->GetRotation() + pData->GetRotationAdd();
-				m_pSpriteComponent->layers[0].SetRotationDegree(rot);
-				m_pSpriteComponent->layers[3].SetRotationDegree(rot);
-				m_pSpriteComponent->layers[4].SetRotationDegree(rot);
+				m_pSpriteComponent->GetLayers()[0].SetRotationDegree(rot);
+				m_pSpriteComponent->GetLayers()[3].SetRotationDegree(rot);
+				m_pSpriteComponent->GetLayers()[4].SetRotationDegree(rot);
 			}
 		}
 	}

@@ -7,9 +7,14 @@
 #include <vector>
 #include <functional>
 
-class CSpriteComponent : public Frame::IEntityComponent {
+#define InsBufferGroupT std::vector<Frame::CRenderer::SInstanceBuffer>
 
+class CSpriteComponent : public Frame::IEntityComponent {
 public:
+
+	virtual void Initialize() override {
+		CreateInsBufferGroup();
+	}
 
 	virtual Frame::EntityEvent::Flags GetEventFlags() const override;
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
@@ -139,12 +144,29 @@ public:
 			return m_extraFunc;
 		}
 
-		void SetInsBufferGroup(unsigned int group) {
-			m_insBufferGroup = group;
+		void SetInsBufferGroup(unsigned int groupIndex) {
+			m_groupIndex = groupIndex;
 			__Changed();
 		}
 		unsigned int GetInsBufferGroup() const {
-			return m_insBufferGroup;
+			return m_groupIndex;
+		}
+
+		void Animate(const float frameTime) {
+			if(!m_bAnimated) {
+				return;
+			}
+			m_frameIntervalCounting += frameTime;
+			if(m_frameIntervalCounting >= m_frameInterval) {
+				m_frameIntervalCounting -= m_frameInterval;
+
+				m_currentFrame++;
+				if(m_currentFrame >= m_frameCount) {
+					m_currentFrame -= m_frameCount;
+				}
+
+				__Changed();
+			}
 		}
 
 	private:
@@ -163,45 +185,91 @@ public:
 		Frame::Vec2 m_offset { 0.f };
 
 		int m_frameCount = 0;
+		float m_frameIntervalCounting = 0.f;
 
 		//bool m_bExtraFunc = false;
 		std::function<void (float)> m_extraFunc; // 参数：float frameTime
 
-		unsigned int m_insBufferGroup = 0;
-
-	public:
-		float m_frameIntervalCounting = 0.f;
+		unsigned int m_groupIndex = 0;
 
 	public:
 		void __Changed() {
 			__bChanged = true;
 		}
 		bool __bChanged = true;
+
+		unsigned int __indexInGroup = 0;
 	};
 
 	bool bUpdating = true;
 	bool bRendering = false;
 
 	// 请确保 layers 中的所有精灵都处在同一纹理页
-	void GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
-		buffersToPushBack.insert(buffersToPushBack.end(), m_insBuffers.begin(), m_insBuffers.end());
+	void GetAllRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
+		for(const auto & group : m_insBufferGroups) {
+			buffersToPushBack.insert(buffersToPushBack.end(), group.begin(), group.end());
+		}
 	}
-	// groups[i] 中的 i 就是组号
 	// 请确保 layers 中的所有精灵都处在同一纹理页
-	void GetRenderingInstanceDataGrouped(const std::vector<std::vector<Frame::CRenderer::SInstanceBuffer> &> & groups) const {
-		unsigned int len = static_cast<unsigned int>(groups.size());
-		for(auto & layer : layers)
-		//buffersToPushBack.insert(buffersToPushBack.end(), m_insBuffers.begin(), m_insBuffers.end());
+	void GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack, unsigned int index) const {
+		if(m_insBufferGroups.size() <= index) {
+			return;
+		}
+		buffersToPushBack.insert(buffersToPushBack.end(), m_insBufferGroups[index].begin(), m_insBufferGroups[index].end());
 	}
 
-	std::vector<SLayer> layers {};
+	void AddLayer(const SLayer & layer, unsigned int groupIndex) {
+		if(groupIndex <= m_insBufferGroups.size()) {
+			m_insBufferGroups.resize(groupIndex + 1);
+		}
+
+		unsigned int indInGroup = 0;
+		for(const auto & _layer : layers) {
+			indInGroup += _layer.GetInsBufferGroup() == groupIndex;
+		}
+		
+		layers.push_back(layer);
+		auto & newlayer = layers.back();
+		newlayer.SetInsBufferGroup(groupIndex);
+		newlayer.__indexInGroup = indInGroup;
+
+		m_insBufferGroups[groupIndex].push_back({});
+	}
+	void AddLayer(const SLayer & layer) {
+		AddLayer(layer, 0);
+	}
+
+	std::vector<SLayer> & GetLayers() {
+		return layers;
+	}
+	const std::vector<SLayer> & GetLayers() const {
+		return layers;
+	}
 
 private:
+	std::vector<SLayer> layers {};
 	float frameTime = 0.f;
 
-	std::vector<Frame::CRenderer::SInstanceBuffer> m_insBuffers;
+	std::vector<InsBufferGroupT> m_insBufferGroups;
 	
 public:
+	InsBufferGroupT * CreateInsBufferGroup() {
+		m_insBufferGroups.push_back({});
+		return & m_insBufferGroups.back();
+	}
+	InsBufferGroupT * GetDefaultInsBufferGroup() {
+		return & m_insBufferGroups[0];
+	}
+	const InsBufferGroupT * GetDefaultInsBufferGroup() const {
+		return & m_insBufferGroups[0];
+	}
+	std::vector<InsBufferGroupT> & GetInsBufferGroups() {
+		return m_insBufferGroups;
+	}
+	const std::vector<InsBufferGroupT> & GetInsBufferGroups() const {
+		return m_insBufferGroups;
+	}
+
 	// 当 bUpdating 为 true 时，事件轮询中会去自动执行
 	// 或者也可以在别处去手动调用
 	void CheckOrUpdateInsBuffers();
@@ -212,3 +280,5 @@ public:
 	}
 
 };
+
+#undef InsBufferGroupT

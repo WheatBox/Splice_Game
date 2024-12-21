@@ -64,8 +64,12 @@ private:
 	std::vector<PipeT> m_pipes;
 
 private:
+	bool m_bInsBuffersInited = false;
+
+
 	std::vector<Frame::CRenderer::SInstanceBuffer> m_staticInsBuffers;
 	std::vector<Frame::CRenderer::SInstanceBuffer> m_dynamicInsBuffers;
+	std::vector<Frame::CRenderer::SInstanceBuffer> m_staticTopInsBuffers;
 
 	void __RegenerateStaticInsBuffers();
 	void __RegenerateDynamicInsBuffers();

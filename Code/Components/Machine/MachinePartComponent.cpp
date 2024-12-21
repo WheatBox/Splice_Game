@@ -35,9 +35,17 @@ void CMachinePartComponent::ProcessEvent(const Frame::EntityEvent::SEvent & even
 			// TODO
 		//}
 		
-		for(const auto & pDevice : m_deviceComponents) {
-			pDevice->
+		if(!m_bInsBuffersInited) {
+			m_bInsBuffersInited = true;
+			__RegenerateStaticInsBuffers();
 		}
+		__RegenerateDynamicInsBuffers();
+
+		const auto texId = Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId();
+		const auto & vertBuf = CSpriteComponent::GetTextureVertexBufferForInstances();
+		Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticInsBuffers);
+		Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_dynamicInsBuffers); // TODO - m_dynamicInsBuffers 和 m_staticTopInsBuffers 还并没有在 CDeviceComponent 中实装
+		Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticTopInsBuffers);
 
 		break;
 	}
@@ -69,6 +77,7 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 				pEntity->SetRotation(deviceRot);
 
 				//pComp->Initialize(m_pEntity, pEDComp->GetDeviceType(), pEDComp->GetKeyId(), pEDComp->GetDirIndex(), colorSet); // TODO
+				pComp->Initialize(m_pEntity, pEDComp->GetDeviceType(), Frame::EKeyId::eKI_0, pEDComp->GetDirIndex(), colorSet);
 				pComp->SetRelativePositionRotation(devicePos, deviceRot);
 
 				auto defs = CDeviceComponent::MakeShapeDefs(pEDComp->GetDeviceType(), devicePos, deviceRot);
@@ -329,13 +338,16 @@ void CMachinePartComponent::SGroup::InsertAndBind(CDeviceComponent * pDeviceComp
 
 void CMachinePartComponent::__RegenerateStaticInsBuffers() {
 	m_staticInsBuffers.clear();
-
+	m_staticTopInsBuffers.clear();
 	for(auto & pDevice : m_deviceComponents) {
-		//pDevice->GetConnectorsRenderingInstanceData(m_insBuffers);
-		// TODO
+		pDevice->GetRenderingInstanceData(m_staticInsBuffers, CDeviceComponent::staticInsBufferGroupIndex);
+		pDevice->GetRenderingInstanceData(m_staticTopInsBuffers, CDeviceComponent::staticTopInsBufferGroupIndex);
 	}
+}
 
+void CMachinePartComponent::__RegenerateDynamicInsBuffers() {
+	m_dynamicInsBuffers.clear();
 	for(auto & pDevice : m_deviceComponents) {
-		pDevice->GetRenderingStaticInstanceData(m_staticInsBuffers);
+		pDevice->GetRenderingInstanceData(m_dynamicInsBuffers, CDeviceComponent::dynamicInsBufferGroupIndex);
 	}
 }

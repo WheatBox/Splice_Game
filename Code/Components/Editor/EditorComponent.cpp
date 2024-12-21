@@ -182,7 +182,7 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
 		/* ----------------------- Canvas ----------------------- */
 		
-		__RegenerateInsBuffers();
+		__RegenerateInsBuffers(); // TODO - 优化
 
 		Frame::gRenderer->DrawTexturesInstanced(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId(), CSpriteComponent::GetTextureVertexBufferForInstances(), m_insBuffers);
 
