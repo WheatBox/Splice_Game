@@ -42,10 +42,11 @@ void CMachinePartComponent::ProcessEvent(const Frame::EntityEvent::SEvent & even
 		__RegenerateDynamicInsBuffers();
 
 		const auto texId = Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId();
-		const auto & vertBuf = CSpriteComponent::GetTextureVertexBufferForInstances();
+		Frame::STextureVertexBuffer vertBuf = CSpriteComponent::GetTextureVertexBufferForInstances();
 		Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticInsBuffers);
-		Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_dynamicInsBuffers); // TODO - m_dynamicInsBuffers 和 m_staticTopInsBuffers 还并没有在 CDeviceComponent 中实装
+		Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_dynamicInsBuffers);
 		Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticTopInsBuffers);
+		// TODO - 统一的 位移、旋转 等，这方面也许可以写一个新的 Shader 来解决
 
 		break;
 	}
