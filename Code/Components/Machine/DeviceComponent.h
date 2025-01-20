@@ -49,7 +49,7 @@ public:
 
 	void DrawConnectors() const;
 
-	void Step(float timeStep);
+	void Step(float timeStep, void * userdata);
 
 	static std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> MakeShapeDefs(IDeviceData::EType deviceType, const Frame::Vec2 & devicePos, float rotation);
 	
@@ -80,6 +80,9 @@ public:
 	void SetRelativePositionRotation(const Frame::Vec2 & pos, float rot) {
 		m_relativePosition = pos;
 		m_relativeRotation = rot;
+	}
+	float GetRelativeRotation() const {
+		return m_relativeRotation;
 	}
 
 	Frame::CEntity * GetMachinePartEntity() const {

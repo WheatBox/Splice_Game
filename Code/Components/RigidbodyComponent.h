@@ -70,7 +70,7 @@ public:
 		if(!IsBodyValid()) {
 			return 0.f;
 		}
-		return Frame::RadToDeg(b2Rot_GetAngle(b2Body_GetRotation(m_bodyId)));
+		return b2Rot_GetAngle(b2Body_GetRotation(m_bodyId));
 	}
 
 	void ApplyForce(const Frame::Vec2 & force) {

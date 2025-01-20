@@ -11,6 +11,9 @@
 
 REGISTER_ENTITY_COMPONENT(CMachineComponent);
 
+std::unordered_set<CMachineComponent *> CMachineComponent::s_workingMachines {};
+std::mutex CMachineComponent::s_workingMachinesMutex {};
+
 Frame::EntityEvent::Flags CMachineComponent::GetEventFlags() const {
 	return Frame::EntityEvent::EFlag::Update;
 }
@@ -29,6 +32,25 @@ void CMachineComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 			}
 			RemoveEntityAtTheEndOfThisFrame(m_pEntity->GetId());
 		}
+
+		std::lock_guard<std::mutex> lock { m_stepMutex };
+
+		const int xRelative = -static_cast<int>(Frame::gInput->pKeyboard->GetHolding(Frame::EKeyId::eKI_A)) + static_cast<int>(Frame::gInput->pKeyboard->GetHolding(Frame::EKeyId::eKI_D));
+		const int yRelative = -static_cast<int>(Frame::gInput->pKeyboard->GetHolding(Frame::EKeyId::eKI_W)) + static_cast<int>(Frame::gInput->pKeyboard->GetHolding(Frame::EKeyId::eKI_S));
+		if(xRelative == 0 && yRelative == 0) {
+			m_targetMovingDir = 0.f;
+		} else {
+			m_targetMovingDir = Frame::Vec2 { static_cast<float>(xRelative), static_cast<float>(yRelative) };
+			m_targetMovingDir.Rotate(Frame::gCamera->GetRotation());
+			m_targetMovingDir.Normalize();
+		}
+
+		float rot = Frame::gCamera->GetViewRotation();
+		GUIBegin();
+		Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(100.f - 70.f, 100.f + 70.f, 0x000000, .5f);
+		Frame::gRenderer->pShapeRenderer->DrawLineBlended(100.f, m_targetMovingDir * 70.f + 100.f, 0xFFFFFF, 1.f, 2.f);
+		Frame::gRenderer->pShapeRenderer->DrawLineBlended(100.f, m_targetMovingDir.GetRotated(rot) * 70.f + 100.f, 0xFFFFFF, .5f, 2.f);
+		GUIEnd();
 	}
 	break;
 	}
@@ -87,7 +109,7 @@ static void __Connect(std::unordered_map<CEditorDeviceComponent *, std::unordere
 
 			auto pAnotherEDComp = pJointEDComp->m_neighbors[dirIndexToAnotherEDComp];
 			auto pBehindEDComp = pJointEDComp->m_neighbors[GetRevDirIndex(pJointEDComp->GetDirIndex())];
-
+			
 			auto itAnotherEDComp = map_EDCompDeviceComp.find(pAnotherEDComp);
 			auto itBehindEDComp = map_EDCompDeviceComp.find(pBehindEDComp);
 			Frame::Vec2 myPos = pJointDevice->GetEntity()->GetPosition();
@@ -143,6 +165,9 @@ static bool __ConnectMachinePartsByDevices(
 }
 
 void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const SColorSet & colorSet) {
+
+	std::lock_guard<std::mutex> machinesLock { s_workingMachinesMutex };
+	s_workingMachines.insert(this);
 
 	std::unordered_set<CEditorDeviceComponent *> ignoreDevices; // 已经建立的装置
 	std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> map_EDCompDeviceComp;
@@ -246,7 +271,29 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 }
 
 void CMachineComponent::OnShutDown() {
+	std::lock_guard<std::mutex> machinesLock { s_workingMachinesMutex };
+	
+	if(auto it = s_workingMachines.find(this); it != s_workingMachines.end()) {
+		s_workingMachines.erase(it);
+	}
+
 	for(auto & pMachinePartComp : m_machineParts) {
 		Frame::gEntitySystem->RemoveEntity(pMachinePartComp->GetEntity()->GetId());
+	}
+}
+
+void CMachineComponent::Step(float timeStep) {
+
+	std::lock_guard<std::mutex> lock { m_stepMutex };
+
+	for(auto & pPart : m_machineParts) {
+		if(!pPart->IsMainPart()) {
+			continue;
+		}
+		pPart->SetTargetMovingDir(m_targetMovingDir);
+	}
+
+	for(auto & pPart : m_machineParts) {
+		pPart->Step(timeStep);
 	}
 }

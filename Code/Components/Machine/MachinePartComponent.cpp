@@ -41,12 +41,23 @@ void CMachinePartComponent::ProcessEvent(const Frame::EntityEvent::SEvent & even
 		}
 		__RegenerateDynamicInsBuffers();
 
+		Frame::gCamera->PushOntoStack();
+
+		{ // 统一的 位移、旋转 ，通过镜头变换来做到
+			const float rot = Frame::gCamera->GetRotation() - m_pEntity->GetRotation();
+			const Frame::Vec2 vEntCam = (Frame::gCamera->GetPos() - m_pEntity->GetPosition()).GetRotated(-Frame::gCamera->GetRotation());
+			const Frame::Vec2 camCalib = vEntCam.GetRotated(rot) - vEntCam;
+			Frame::gCamera->SetRotation(rot);
+			Frame::gCamera->SetPos(vEntCam + camCalib);
+		}
+		
 		const auto texId = Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId();
 		Frame::STextureVertexBuffer vertBuf = CSpriteComponent::GetTextureVertexBufferForInstances();
 		Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticInsBuffers);
 		Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_dynamicInsBuffers);
 		Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticTopInsBuffers);
-		// TODO - 统一的 位移、旋转 等，这方面也许可以写一个新的 Shader 来解决
+
+		Frame::gCamera->PopFromStack();
 
 		break;
 	}
@@ -225,6 +236,14 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 	if(out_map_EDCompDeviceComp_or_nullptr) {
 		* out_map_EDCompDeviceComp_or_nullptr = map_EDCompDeviceComp;
 	}
+
+	for(const auto & pDevice : m_deviceComponents) {
+		if(pDevice && pDevice->GetDeviceType() == IDeviceData::EType::Cabin) {
+			m_bMainPart = true;
+			break;
+		}
+	}
+
 	Frame::Log::Log(Frame::Log::ELevel::Debug, "machine part init over!");
 }
 
@@ -351,4 +370,20 @@ void CMachinePartComponent::__RegenerateDynamicInsBuffers() {
 	for(auto & pDevice : m_deviceComponents) {
 		pDevice->GetRenderingInstanceData(m_dynamicInsBuffers, CDeviceComponent::dynamicInsBufferGroupIndex);
 	}
+}
+
+void CMachinePartComponent::Step(float timeStep) {
+	for(auto & pDevice : m_deviceComponents) {
+		switch(pDevice->GetDeviceType()) {
+		case IDeviceData::Propeller:
+		{
+			const Frame::Vec2 facingDir = Frame::Vec2 { 1.f, 0.f }.Rotate(m_pRigidbodyComponent->GetRotation() + pDevice->GetRelativeRotation());
+			float dotval = facingDir.Dot(m_targetMovingDir);
+			float power = dotval >= 0.f ? 0.f : -dotval;
+			pDevice->Step(timeStep, & power);
+		}
+		break;
+		}
+	}
+	timeStep;
 }

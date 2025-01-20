@@ -9,7 +9,7 @@
 #include "../Utility.h"
 
 #include "SmokeEmitterComponent.h"
-#include "Machine/DeviceComponent.h"
+#include "Machine/MachineComponent.h"
 
 #include <thread>
 
@@ -147,8 +147,10 @@ void CPhysicsWorldComponent::Step(float timeStep) {
 		s_physicalizeQueue.pop();
 	}
 
-	for(auto & pDevice : CDeviceComponent::s_workingDevices) {
-		pDevice->Step(timeStep);
+	std::lock_guard<std::mutex> machinesLock { CMachineComponent::s_workingMachinesMutex };
+
+	for(auto & pMachine : CMachineComponent::s_workingMachines) {
+		pMachine->Step(timeStep);
 	}
 
 	b2World_Step(gWorldId, timeStep, 4);

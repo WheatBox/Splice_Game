@@ -74,4 +74,23 @@ private:
 	void __RegenerateStaticInsBuffers();
 	void __RegenerateDynamicInsBuffers();
 
+public:
+	bool IsMainPart() const {
+		return m_bMainPart;
+	}
+
+	const Frame::Vec2 & GetTargetMovingDir() const {
+		return m_targetMovingDir;
+	}
+	void SetTargetMovingDir(const Frame::Vec2 & dir) {
+		m_targetMovingDir = dir;
+	}
+
+	void Step(float timeStep);
+
+private:
+	bool m_bMainPart = false; // 主部分 就是 有驾驶舱的机器部分
+
+	Frame::Vec2 m_targetMovingDir {};
+
 };

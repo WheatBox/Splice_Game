@@ -162,3 +162,14 @@ private:
 	Frame::Vec2 m_leftTopRelativeToMouse {};
 	bool m_bDragging = false;
 };
+
+static inline void GUIBegin() {
+	Frame::gCamera->PushOntoStack();
+
+	Frame::gCamera->SetZoom(1.f);
+	Frame::gCamera->SetPos(Frame::Vec2Cast(Frame::gCamera->GetViewSize()) * .5f);
+	Frame::gCamera->SetRotation(0.f);
+}
+static inline void GUIEnd() {
+	Frame::gCamera->PopFromStack();
+}

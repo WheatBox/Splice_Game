@@ -376,6 +376,28 @@ std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> CDeviceComp
 
 #undef F
 
+void CDeviceComponent::Step(float timeStep, void * userdata) {
+	if(!m_pNode || !m_pNode->pDeviceData || !m_pMachinePartEntity) {
+		return;
+	}
+	const IDeviceData::EType deviceType = m_pNode->pDeviceData->device;
+
+	switch(deviceType) {
+	case IDeviceData::Propeller:
+		if(auto pRigidbodyComp = m_pMachinePartEntity->GetComponent<CRigidbodyComponent>()) {
+			const float power = * reinterpret_cast<float *>(userdata);
+			pRigidbodyComp->ApplyForce(
+				Frame::Vec2 { -1200.f * power, 0.f }.GetRotated(m_pEntity->GetRotation())
+				, m_relativePosition.GetRotated(m_pMachinePartEntity->GetRotation()) + m_pMachinePartEntity->GetPosition()
+			);
+		}
+		break;
+	}
+
+	timeStep;
+}
+
+#if 0
 void CDeviceComponent::Step(float timeStep) {
 	if(!m_pNode || !m_pNode->pDeviceData || !m_pMachinePartEntity) {
 		return;
@@ -549,3 +571,4 @@ ForThoseDevicesHasNoGroup:
 	break;
 	}
 }
+#endif
