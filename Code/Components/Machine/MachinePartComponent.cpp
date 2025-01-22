@@ -396,11 +396,18 @@ void CMachinePartComponent::Step(float timeStep) {
 		}
 	}
 
-	printf("\n");
+	float powerUsed = 0.f;
 	for(auto & [pDevice, powerRatio] : devicePowerRatios) {
-		printf("%5.2f ", (powerRatio / totalRatio) * totalPower);
-		pDevice->Step(timeStep, (powerRatio / totalRatio) * totalPower);
+		float power = (powerRatio / totalRatio) * totalPower;
+		switch(pDevice->GetDeviceType()) {
+		case IDeviceData::Propeller: power = Frame::Min(power, 4.f); break;
+		}
+		printf("%5.2f ", power);
+		pDevice->Step(timeStep, power);
+		
+		powerUsed += power;
 	}
+	printf("| (%.2f/%.2f)\n", powerUsed, totalPower);
 
 	timeStep;
 }
