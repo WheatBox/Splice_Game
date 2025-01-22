@@ -279,6 +279,13 @@ public:
 		return texVertBuf;
 	}
 
+private:
+	Frame::Matrix33 m_insBuffersAfterTransform { Frame::Matrix33::CreateIdentity() };
+public:
+	void SetInsBuffersAfterTransform(const Frame::Matrix33 & trans) {
+		m_insBuffersAfterTransform = trans;
+	}
+
 };
 
 #undef InsBufferGroupT

@@ -42,7 +42,7 @@ void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 				continue;
 			}
 
-			const Frame::Vec2 pos = m_pEntity->GetPosition() - layer.GetOffset().GetRotatedDegree(entityRot);
+			const Frame::Vec2 pos = m_pEntity->GetPosition() - layer.GetOffset().GetRotated(entityRot);
 			DrawSpriteBlendedPro(pImage, pos, layer.GetColor(), layer.GetAlpha(), layer.GetRotation(), layer.GetScale(), entityRot);
 
 			if(auto & extraFunc = layer.GetExtraFunction()) {
@@ -64,16 +64,15 @@ void CSpriteComponent::CheckOrUpdateInsBuffers() {
 		const Frame::SSpriteImage * img = layer.GetCurrentImage();
 		const auto & buf = Assets::GetImageInstanceBuffer(img);
 
-		const float entRot = m_pEntity->GetRotation();
-		const Frame::Vec2 entPos = m_pEntity->GetPosition();
+		//const float entRot = m_pEntity->GetRotation();
 
 		const Frame::Matrix33 trans =
-			Frame::Matrix33::CreateTranslation(entPos - layer.GetOffset().GetRotated(entRot))
-			* Frame::Matrix33::CreateRotationZ(entRot)
-			* Frame::Matrix33::CreateScale(layer.GetScale())
-			* Frame::Matrix33::CreateRotationZ(layer.GetRotation())
-			* Frame::Matrix33::CreateTranslation(-img->GetOffset())
-			* buf.transform;
+			m_insBuffersAfterTransform *
+			Frame::Matrix33::CreateTranslation(-layer.GetOffset()) *
+			Frame::Matrix33::CreateScale(layer.GetScale()) *
+			Frame::Matrix33::CreateRotationZ(layer.GetRotation()) *
+			Frame::Matrix33::CreateTranslation(-img->GetOffset()) *
+			buf.transform;
 		const Frame::ColorRGB col = layer.GetColor();
 
 		m_insBufferGroups[layer.GetInsBufferGroup()][layer.__indexInGroup] = { trans, { ONERGB(col), layer.GetAlpha() }, buf.uvMulti, buf.uvAdd };

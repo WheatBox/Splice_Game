@@ -41,6 +41,7 @@ void CDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 			const float machineRot = m_pMachinePartEntity->GetRotation();
 			m_pEntity->SetPosition(m_pMachinePartEntity->GetPosition() + m_relativePosition.GetRotated(machineRot));
 			m_pEntity->SetRotation(machineRot + m_relativeRotation);
+			// 关于机器部分(MachinePart)实体的坐标与旋转，见 CMachinePartComponent 的注释
 		}
 
 		if(m_keyId != Frame::EKeyId::eKI_Unknown && m_pGroup) {
@@ -51,6 +52,10 @@ void CDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	}
 	break;
 	case Frame::EntityEvent::EFlag::Render:
+
+		Frame::gRenderer->pTextRenderer->DrawText("------------------------------------" + std::to_string(m_relativePosition.x) + ", " + std::to_string(m_relativePosition.y) + ",,, " + std::to_string(m_relativeRotation), m_pEntity->GetPosition());
+		Frame::gRenderer->pTextRenderer->DrawText("\n------------------------------------" + std::to_string(m_pMachinePartEntity->GetPosition().x) + ", " + std::to_string(m_pMachinePartEntity->GetPosition().y) + ",,, " + std::to_string(m_pMachinePartEntity->GetRotation()), m_pEntity->GetPosition());
+		
 		//Frame::gRenderer->pTextRenderer->DrawTextBlended(std::to_string((size_t)m_pGroup), m_pEntity->GetPosition(), 0x000000, 1.f);
 
 #if 0
@@ -383,6 +388,9 @@ void CDeviceComponent::Step(float timeStep, float power, void * userdata) {
 				, m_relativePosition.GetRotated(m_pMachinePartEntity->GetRotation()) + m_pMachinePartEntity->GetPosition()
 			);
 		}
+		const float rot = m_pSpriteComponent->GetLayers()[3].GetRotationDegree() + (1000.f + 600.f * power) * timeStep;
+		m_pSpriteComponent->GetLayers()[3].SetRotationDegree(rot);
+		m_pSpriteComponent->GetLayers()[4].SetRotationDegree(rot);
 		break;
 	}
 

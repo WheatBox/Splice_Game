@@ -80,6 +80,8 @@ public:
 	void SetRelativePositionRotation(const Frame::Vec2 & pos, float rot) {
 		m_relativePosition = pos;
 		m_relativeRotation = rot;
+
+		m_pSpriteComponent->SetInsBuffersAfterTransform(Frame::Matrix33::CreateTranslation(pos) * Frame::Matrix33::CreateRotationZ(rot));
 	}
 	float GetRelativeRotation() const {
 		return m_relativeRotation;

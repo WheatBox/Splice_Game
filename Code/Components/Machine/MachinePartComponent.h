@@ -14,6 +14,9 @@ class CRigidbodyComponent;
 class CMachineComponent;
 struct SPipeNode;
 
+// 该组件所属实体的坐标并不是视觉上所直观看到的坐标
+// 实体的坐标与旋转从物理引擎中获取，具体请见该组件的 Update 事件
+// 所以该组件所属实体的坐标初始状态下是 (0, 0)，旋转是 0
 class CMachinePartComponent final : public Frame::IEntityComponent {
 public:
 

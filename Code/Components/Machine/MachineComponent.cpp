@@ -288,7 +288,7 @@ void CMachineComponent::Step(float timeStep) {
 
 	for(auto & pPart : m_machineParts) {
 		if(!pPart->IsMainPart()) {
-			continue;
+			//continue;
 		}
 		pPart->SetTargetMovingDir(m_targetMovingDir);
 	}

@@ -72,6 +72,7 @@ bool CEditorDeviceComponent::Initialize(IDeviceData::EType type, int dirIndex) {
 	}
 
 	m_pSpriteComponent = m_pEntity->CreateComponent<CSpriteComponent>();
+	m_pSpriteComponent->SetInsBuffersAfterTransform(Frame::Matrix33::CreateTranslation(m_pEntity->GetPosition()) * Frame::Matrix33::CreateRotationZ(m_pEntity->GetRotation()));
 
 #define __ADD_SPRITE_LAYER(__EDeviceStaticSprite) \
 m_pSpriteComponent->AddLayer({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), 0xFFFFFF, 1.f }); \

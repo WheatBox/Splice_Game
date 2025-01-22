@@ -52,7 +52,7 @@ void CMachinePartComponent::ProcessEvent(const Frame::EntityEvent::SEvent & even
 		}
 		
 		const auto texId = Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId();
-		Frame::STextureVertexBuffer vertBuf = CSpriteComponent::GetTextureVertexBufferForInstances();
+		const Frame::STextureVertexBuffer & vertBuf = CSpriteComponent::GetTextureVertexBufferForInstances();
 		Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticInsBuffers);
 		Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_dynamicInsBuffers);
 		Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticTopInsBuffers);
@@ -91,6 +91,7 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 				//pComp->Initialize(m_pEntity, pEDComp->GetDeviceType(), pEDComp->GetKeyId(), pEDComp->GetDirIndex(), colorSet); // TODO
 				pComp->Initialize(m_pEntity, pEDComp->GetDeviceType(), Frame::EKeyId::eKI_0, pEDComp->GetDirIndex(), colorSet);
 				pComp->SetRelativePositionRotation(devicePos, deviceRot);
+				printf("%f %f,,, %f\n", devicePos.x, devicePos.y, deviceRot);
 
 				auto defs = CDeviceComponent::MakeShapeDefs(pEDComp->GetDeviceType(), devicePos, deviceRot);
 				shapeDefs.insert(shapeDefs.end(), defs.begin(), defs.end());
@@ -387,13 +388,17 @@ void CMachinePartComponent::Step(float timeStep) {
 			const Frame::Vec2 facingDir = Frame::Vec2 { 1.f, 0.f }.Rotate(m_pRigidbodyComponent->GetRotation() + pDevice->GetRelativeRotation());
 			const float dotval = facingDir.Dot(m_targetMovingDir);
 			const float powerRatio = dotval >= 0.f ? 0.f : -dotval;
-			if(powerRatio > 0.f) {
+			if(powerRatio > 0.001f) {
 				totalRatio += powerRatio;
 				devicePowerRatios.push_back({ pDevice, powerRatio });
 			}
 		}
 		break;
 		}
+	}
+
+	if(totalRatio == 0.f || totalPower == 0.f) {
+		return;
 	}
 
 	float powerUsed = 0.f;
