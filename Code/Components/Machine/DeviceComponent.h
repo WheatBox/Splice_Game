@@ -49,7 +49,7 @@ public:
 
 	void DrawConnectors() const;
 
-	void Step(float timeStep, void * userdata);
+	void Step(float timeStep, float power, void * userdata = nullptr);
 
 	static std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> MakeShapeDefs(IDeviceData::EType deviceType, const Frame::Vec2 & devicePos, float rotation);
 	

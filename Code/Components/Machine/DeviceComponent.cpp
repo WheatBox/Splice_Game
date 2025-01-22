@@ -74,12 +74,6 @@ void CDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 }
 
 void CDeviceComponent::Initialize(Frame::CEntity * pMachinePartEntity, IDeviceData::EType deviceType, Frame::EKeyId keyId, int dirIndex, const SColorSet & colorSet) {
-	Frame::Log::Log(Frame::Log::ELevel::Debug, "device init start");
-	if(deviceType <= IDeviceData::EType::Unset || deviceType >= IDeviceData::EType::END) {
-		Frame::Log::Log(Frame::Log::ELevel::Error, "device init unknown device type");
-		return;
-	}
-
 	m_pEntity->SetZDepth(Depths::Device);
 
 	m_pMachinePartEntity = pMachinePartEntity;
@@ -193,7 +187,6 @@ m_pSpriteComponent->AddLayer({ Assets::GetStaticSprite(Assets::EDeviceStaticSpri
 	}
 
 	s_workingDevices.insert(this);
-	Frame::Log::Log(Frame::Log::ELevel::Debug, "device init end");
 }
 
 void CDeviceComponent::OnShutDown() {
@@ -376,7 +369,7 @@ std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> CDeviceComp
 
 #undef F
 
-void CDeviceComponent::Step(float timeStep, void * userdata) {
+void CDeviceComponent::Step(float timeStep, float power, void * userdata) {
 	if(!m_pNode || !m_pNode->pDeviceData || !m_pMachinePartEntity) {
 		return;
 	}
@@ -385,7 +378,6 @@ void CDeviceComponent::Step(float timeStep, void * userdata) {
 	switch(deviceType) {
 	case IDeviceData::Propeller:
 		if(auto pRigidbodyComp = m_pMachinePartEntity->GetComponent<CRigidbodyComponent>()) {
-			const float power = * reinterpret_cast<float *>(userdata);
 			pRigidbodyComp->ApplyForce(
 				Frame::Vec2 { -1200.f * power, 0.f }.GetRotated(m_pEntity->GetRotation())
 				, m_relativePosition.GetRotated(m_pMachinePartEntity->GetRotation()) + m_pMachinePartEntity->GetPosition()
@@ -394,7 +386,7 @@ void CDeviceComponent::Step(float timeStep, void * userdata) {
 		break;
 	}
 
-	timeStep;
+	timeStep, userdata;
 }
 
 #if 0

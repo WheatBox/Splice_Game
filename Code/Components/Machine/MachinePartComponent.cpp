@@ -373,17 +373,34 @@ void CMachinePartComponent::__RegenerateDynamicInsBuffers() {
 }
 
 void CMachinePartComponent::Step(float timeStep) {
-	for(auto & pDevice : m_deviceComponents) {
+
+	std::vector<std::pair<CDeviceComponent *, float>> devicePowerRatios; // 用于存储所有将会消耗动力的装置
+	float totalPower = 0.f;
+	float totalRatio = 0.f;
+	for(const auto & pDevice : m_deviceComponents) {
 		switch(pDevice->GetDeviceType()) {
+		case IDeviceData::Engine:
+			totalPower++;
+			break;
 		case IDeviceData::Propeller:
 		{
 			const Frame::Vec2 facingDir = Frame::Vec2 { 1.f, 0.f }.Rotate(m_pRigidbodyComponent->GetRotation() + pDevice->GetRelativeRotation());
-			float dotval = facingDir.Dot(m_targetMovingDir);
-			float power = dotval >= 0.f ? 0.f : -dotval;
-			pDevice->Step(timeStep, & power);
+			const float dotval = facingDir.Dot(m_targetMovingDir);
+			const float powerRatio = dotval >= 0.f ? 0.f : -dotval;
+			if(powerRatio > 0.f) {
+				totalRatio += powerRatio;
+				devicePowerRatios.push_back({ pDevice, powerRatio });
+			}
 		}
 		break;
 		}
 	}
+
+	printf("\n");
+	for(auto & [pDevice, powerRatio] : devicePowerRatios) {
+		printf("%5.2f ", (powerRatio / totalRatio) * totalPower);
+		pDevice->Step(timeStep, (powerRatio / totalRatio) * totalPower);
+	}
+
 	timeStep;
 }
