@@ -27,6 +27,8 @@ public:
 	void Initialize(Frame::CEntity * pMachinePartEntity, IDeviceData::EType deviceType, Frame::EKeyId keyId, int dirIndex, const SColorSet & colorSet);
 	virtual void OnShutDown() override;
 
+	std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> MakeShapeDefs();
+
 	IDeviceData::EType GetDeviceType() const {
 		if(m_pNode && m_pNode->pDeviceData) {
 			return m_pNode->pDeviceData->device;
@@ -50,8 +52,6 @@ public:
 	void DrawConnectors() const;
 
 	void Step(float timeStep, float power, void * userdata = nullptr);
-
-	static std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> MakeShapeDefs(IDeviceData::EType deviceType, const Frame::Vec2 & devicePos, float rotation);
 	
 private:
 

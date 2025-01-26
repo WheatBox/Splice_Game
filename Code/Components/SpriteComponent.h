@@ -38,21 +38,23 @@ public:
 		}
 		virtual ~SLayer() = default;
 
-		void SetSprite(Frame::CStaticSprite * pStaticSprite) {
+		SLayer & SetSprite(Frame::CStaticSprite * pStaticSprite) {
 			m_pStaticSprite = pStaticSprite;
 			m_pAnimatedSprite = nullptr;
 			m_bAnimated = false;
 			m_frameCount = 1;
 
 			__Changed();
+			return * this;
 		}
-		void SetSprite(Frame::CAnimatedSprite * pAnimatedSprite) {
+		SLayer & SetSprite(Frame::CAnimatedSprite * pAnimatedSprite) {
 			m_pStaticSprite = nullptr;
 			m_pAnimatedSprite = pAnimatedSprite;
 			m_bAnimated = true;
 			m_frameCount = m_pAnimatedSprite->GetFrameCount();
 
 			__Changed();
+			return * this;
 		}
 		bool IsAnimated() const {
 			return m_bAnimated;
@@ -72,43 +74,49 @@ public:
 			}
 		}
 
-		void SetFrame(int frame) {
+		SLayer & SetFrame(int frame) {
 			m_currentFrame = frame;
 			__Changed();
+			return * this;
 		}
 		int GetFrame() const {
 			return m_currentFrame;
 		}
 
-		void SetFrameInterval(float seconds) {
+		SLayer & SetFrameInterval(float seconds) {
 			m_frameInterval = seconds;
+			return * this;
 		}
 		float GetFrameInterval() const {
 			return m_frameInterval;
 		}
 
-		void SetColor(Frame::ColorRGB color) {
+		SLayer & SetColor(Frame::ColorRGB color) {
 			m_color = color;
 			__Changed();
+			return * this;
 		}
 		Frame::ColorRGB GetColor() const {
 			return m_color;
 		}
 
-		void SetAlpha(float alpha) {
+		SLayer & SetAlpha(float alpha) {
 			m_alpha = alpha;
 			__Changed();
+			return * this;
 		}
 		float GetAlpha() const {
 			return m_alpha;
 		}
 
-		void SetRotation(float angle) {
+		SLayer & SetRotation(float angle) {
 			m_rotation = angle;
 			__Changed();
+			return * this;
 		}
-		void SetRotationDegree(float angle) {
+		SLayer & SetRotationDegree(float angle) {
 			SetRotation(Frame::DegToRad(angle));
+			return * this;
 		}
 		float GetRotation() const {
 			return m_rotation;
@@ -117,17 +125,19 @@ public:
 			return Frame::RadToDeg(m_rotation);
 		}
 
-		void SetScale(const Frame::Vec2 & scale) {
+		SLayer & SetScale(const Frame::Vec2 & scale) {
 			m_scale = scale;
 			__Changed();
+			return * this;
 		}
 		const Frame::Vec2 & GetScale() const {
 			return m_scale;
 		}
 
-		void SetOffset(const Frame::Vec2 & offset) {
+		SLayer & SetOffset(const Frame::Vec2 & offset) {
 			m_offset = offset;
 			__Changed();
+			return * this;
 		}
 		const Frame::Vec2 & GetOffset() const {
 			return m_offset;
@@ -137,16 +147,18 @@ public:
 			return m_frameCount;
 		}
 
-		void SetExtraFunction(const std::function<void (float)> & func) {
+		SLayer & SetExtraFunction(const std::function<void (float)> & func) {
 			m_extraFunc = func;
+			return * this;
 		}
 		const std::function<void (float)> & GetExtraFunction() const {
 			return m_extraFunc;
 		}
 
-		void SetInsBufferGroup(unsigned int groupIndex) {
+		SLayer & SetInsBufferGroup(unsigned int groupIndex) {
 			m_groupIndex = groupIndex;
 			__Changed();
+			return * this;
 		}
 		unsigned int GetInsBufferGroup() const {
 			return m_groupIndex;
@@ -219,7 +231,7 @@ public:
 	}
 
 	void AddLayer(const SLayer & layer, unsigned int groupIndex) {
-		if(groupIndex <= m_insBufferGroups.size()) {
+		if(groupIndex >= m_insBufferGroups.size()) {
 			m_insBufferGroups.resize(groupIndex + 1);
 		}
 

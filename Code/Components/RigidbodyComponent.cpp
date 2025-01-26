@@ -19,7 +19,7 @@ void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event)
 			break;
 		}
 
-		const int color = b2Body_IsAwake(m_bodyId) ? 0xFF7E00 : 0xB4B4B4;
+		const int color = (m_renderColorAlwaysLight || b2Body_IsAwake(m_bodyId)) ? m_renderColor : 0xB4B4B4;
 
 		for(const auto & shapeId : m_shapes) {
 			b2ShapeType shapeType = b2Shape_GetType(shapeId);

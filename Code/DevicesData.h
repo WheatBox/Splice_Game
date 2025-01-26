@@ -5,12 +5,32 @@
 
 #include "Application.h"
 #include "Utility.h"
+#include "Components/RigidbodyComponent.h" // for SBox2dShape
+
+#include <box2d/types.h>
 
 class CDeviceComponent;
+class CSpriteComponent;
 
 constexpr float CONNECTOR_LENGTH = 16.f;
 constexpr float CONNECTOR_HALF_LENGTH = CONNECTOR_LENGTH / 2.f;
 constexpr float PIPE_CROSS_SIZE = 32.f;
+
+struct SColorSet {
+	SColorSet()
+		: color1 { 0xFFFFFF }
+		, color2 { 0xFFFFFF }
+		, connector { 0xFFFFFF }
+		, pipe { 0xFFFFFF }
+	{}
+	SColorSet(Frame::ColorRGB _color1, Frame::ColorRGB _color2, Frame::ColorRGB _connector, Frame::ColorRGB _pipe)
+		: color1 { _color1 }
+		, color2 { _color2 }
+		, connector { _connector }
+		, pipe { _pipe }
+	{}
+	Frame::ColorRGB color1, color2, connector, pipe;
+};
 
 struct IDeviceData {
 	IDeviceData() = default;
@@ -25,6 +45,9 @@ struct IDeviceData {
 		Joint,
 		END
 	} device = EType::Unset;
+
+	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) = 0;
+	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) = 0;
 };
 
 struct SDeviceDataMachinePartJoint : public IDeviceData {
@@ -65,16 +88,25 @@ protected:
 struct SCabinDeviceData : public IDeviceData {
 	SCabinDeviceData() { device = EType::Cabin; }
 	virtual ~SCabinDeviceData() = default;
+
+	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) override;
+	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 };
 
 struct SShellDeviceData : public IDeviceData {
 	SShellDeviceData() { device = EType::Shell; }
 	virtual ~SShellDeviceData() = default;
+
+	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) override;
+	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 };
 
 struct SEngineDeviceData : public IDeviceData {
 	SEngineDeviceData() { device = EType::Engine; }
 	virtual ~SEngineDeviceData() = default;
+
+	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) override;
+	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 
 	static constexpr float smokeMax = .03f;
 	float smoking = 0.f;
@@ -83,6 +115,9 @@ struct SEngineDeviceData : public IDeviceData {
 struct SPropellerDeviceData : public IDeviceData {
 	SPropellerDeviceData() { device = EType::Propeller; }
 	virtual ~SPropellerDeviceData() = default;
+
+	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) override;
+	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 };
 
 struct SJetPropellerDeviceData : public IDeviceData {
@@ -93,6 +128,9 @@ struct SJetPropellerDeviceData : public IDeviceData {
 		smokeRotation2 = Frame::DegToRad(static_cast<float>(rand() % 360));
 	}
 	virtual ~SJetPropellerDeviceData() = default;
+
+	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) override;
+	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 
 	static constexpr float accumulationMax = 2.5f;
 	static constexpr float accumulationShowingMax = 2.f;
@@ -108,6 +146,9 @@ struct SJetPropellerDeviceData : public IDeviceData {
 struct SJointDeviceData : public SDeviceDataMachinePartJoint {
 	SJointDeviceData() { device = EType::Joint; }
 	virtual ~SJointDeviceData() = default;
+
+	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) override;
+	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 };
 
 struct SDeviceTreeNode {
@@ -183,19 +224,3 @@ static inline bool IsDeviceHasPipeInterface(IDeviceData::EType type) {
 	}
 	return false;
 }
-
-struct SColorSet {
-	SColorSet()
-		: color1 { 0xFFFFFF }
-		, color2 { 0xFFFFFF }
-		, connector { 0xFFFFFF }
-		, pipe { 0xFFFFFF }
-	{}
-	SColorSet(Frame::ColorRGB _color1, Frame::ColorRGB _color2, Frame::ColorRGB _connector, Frame::ColorRGB _pipe)
-		: color1 { _color1 }
-		, color2 { _color2 }
-		, connector { _connector }
-		, pipe { _pipe }
-	{}
-	Frame::ColorRGB color1, color2, connector, pipe;
-};

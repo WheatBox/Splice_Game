@@ -39,6 +39,12 @@ public:
 	void SetEnableRendering(bool enable) {
 		bRender = enable;
 	}
+	void SetRenderingColor(int rgb) {
+		m_renderColor = rgb;
+	}
+	void SetRenderingColorAlwaysLight(bool enable) {
+		m_renderColorAlwaysLight = enable;
+	}
 
 	// 如果要连接的实体与该组件所在实体为同一实体，返回 false，否则返回 true
 	bool CreateJointWith(Frame::EntityId entityId, std::function<void (b2BodyId, b2BodyId)> funcCreateJoint);
@@ -111,5 +117,9 @@ private:
 	b2BodyId m_bodyId;
 	std::vector<b2ShapeId> m_shapes;
 	bool bRender = false;
+	int m_renderColor = 0xFF7E00;
+	bool m_renderColorAlwaysLight = false;
 
 };
+
+using SBox2dShape = CRigidbodyComponent::SBox2dShape;

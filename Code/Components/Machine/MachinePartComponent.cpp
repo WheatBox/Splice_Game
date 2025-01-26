@@ -91,9 +91,8 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 				//pComp->Initialize(m_pEntity, pEDComp->GetDeviceType(), pEDComp->GetKeyId(), pEDComp->GetDirIndex(), colorSet); // TODO
 				pComp->Initialize(m_pEntity, pEDComp->GetDeviceType(), Frame::EKeyId::eKI_0, pEDComp->GetDirIndex(), colorSet);
 				pComp->SetRelativePositionRotation(devicePos, deviceRot);
-				printf("%f %f,,, %f\n", devicePos.x, devicePos.y, deviceRot);
 
-				auto defs = CDeviceComponent::MakeShapeDefs(pEDComp->GetDeviceType(), devicePos, deviceRot);
+				auto defs = pComp->MakeShapeDefs();
 				shapeDefs.insert(shapeDefs.end(), defs.begin(), defs.end());
 
 				map_EDCompDeviceComp.insert({ pEDComp, pComp });
@@ -130,6 +129,8 @@ void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent
 
 		m_pRigidbodyComponent->Physicalize(bodyDef, shapeDefs);
 		m_pRigidbodyComponent->SetEnableRendering(true);
+		m_pRigidbodyComponent->SetRenderingColor(Frame::ColorHSV { static_cast<uint16>(rand()) % 360u, 100, 100 }.ToRGB());
+		m_pRigidbodyComponent->SetRenderingColorAlwaysLight(true);
 	}
 
 	/* --------------------- 创建管道 --------------------- */

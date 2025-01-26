@@ -171,6 +171,7 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 
 	std::unordered_set<CEditorDeviceComponent *> ignoreDevices; // 已经建立的装置
 	std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> map_EDCompDeviceComp;
+	std::vector<CEditorDeviceComponent *> jointEDComps;
 
 	// 递归创建各个机器部分
 	std::function<void (CEditorDeviceComponent *)> recursive = [&](CEditorDeviceComponent * pEDComp) {
@@ -183,22 +184,26 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 			return;
 		}
 
+		if(IsMachinePartJoint(pEDComp->GetDeviceType())) {
+			jointEDComps.push_back(pEDComp);
+		}
+
 		std::unordered_set<CEditorDeviceComponent *> currentPartDevices;
 		std::unordered_set<CEditorDeviceComponent *> jointDevices;
 
 		RecursiveMachinePartEditorDevices(& currentPartDevices, & jointDevices, pEDComp, ignoreDevices);
 
 		for(auto & pJointEDComp : jointDevices) {
-			if(auto pBack = pJointEDComp->m_neighbors[GetRevDirIndex(pJointEDComp->GetDirIndex())]) {
-				if(currentPartDevices.find(pBack) != currentPartDevices.end()) {
-					currentPartDevices.insert(pJointEDComp);
-				}
-			} else {
-				currentPartDevices.insert(pJointEDComp);
+			if(auto it = currentPartDevices.find(pJointEDComp); it != currentPartDevices.end()) {
+				currentPartDevices.erase(it);
 			}
+			ignoreDevices.insert(pJointEDComp);
 		}
 
 		if(currentPartDevices.empty()) {
+			if(!jointDevices.empty()) {
+				goto RecurJoints;
+			}
 			return;
 		}
 
@@ -218,6 +223,23 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 			return;
 		}
 
+	RecurJoints:
+
+		for(auto & pJointEDComp : jointDevices) {
+			if(auto pEnt = Frame::gEntitySystem->SpawnEntity()) {
+				std::unordered_set<CEditorDeviceComponent *> setTemp;
+				setTemp.insert(pJointEDComp);
+
+				if(auto pComp = pEnt->CreateComponent<CMachinePartComponent>()) {
+					m_machineParts.insert(pComp);
+
+					std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> mapTemp;
+					pComp->Initialize(& mapTemp, this, setTemp, colorSet);
+					map_EDCompDeviceComp.insert(mapTemp.begin(), mapTemp.end());
+				}
+			}
+		}
+
 		for(auto & pJointEDComp : jointDevices) {
 			recursive(pJointEDComp->m_neighbors[GetRevDirIndex(pJointEDComp->GetDirIndex())]);
 			recursive(pJointEDComp->m_neighbors[GetMachinePartJointDevicePointDirIndex(pJointEDComp)]);
@@ -227,10 +249,14 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 
 	std::unordered_map<CEditorDeviceComponent *, std::unordered_set<CEditorDeviceComponent *>> connectedEDComps;
 	
-	for(auto & pJointEDComp : ignoreDevices) {
-		if(!pJointEDComp || !IsMachinePartJoint(pJointEDComp->GetDeviceType())) {
-			continue;
-		}
+	//CEditorDeviceComponent * prevJointEDComp = nullptr;
+	for(auto & pJointEDComp : jointEDComps) {
+
+		/*
+		现在代码里这方面的处理已经变成有序，
+		将与上一次遍历时的关节（且要求是紧挨着的）方向面对面的关节给调换方向，
+		记得在装置组件中标记一下，使得渲染时再把方向调换回来
+		*/
 
 		/*
 		首先检查前方的装置是否已经与自己建立过连接
@@ -250,6 +276,7 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 			}
 
 			if(__ConnectMachinePartsByDevices(map_EDCompDeviceComp, pJointEDComp, pEDComp) || 1) {
+				printf("CONNECT ----------------------------------------------\n");
 				__Connect(connectedEDComps, map_EDCompDeviceComp, pJointEDComp, pEDComp);
 			}
 		} while(false);
@@ -264,11 +291,178 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 			}
 
 			if(__ConnectMachinePartsByDevices(map_EDCompDeviceComp, pEDComp, pJointEDComp) || 1) {
+				printf("CONNECT ----------------------------------------------\n");
 				__Connect(connectedEDComps, map_EDCompDeviceComp, pEDComp, pJointEDComp);
 			}
 		} while(false);
 	}
 }
+
+#if 0
+static bool __ConnectMachinePartsByDevices(
+	const std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> & map_EDCompDeviceComp,
+	CEditorDeviceComponent * pEDComp1,
+	CEditorDeviceComponent * pEDComp2,
+	CEditorDeviceComponent * pJointEDComp
+) {
+	CDeviceComponent * pDevice1 = nullptr, * pDevice2 = nullptr, * pJointDevice = nullptr;
+	if(auto it = map_EDCompDeviceComp.find(pEDComp1); it != map_EDCompDeviceComp.end()) {
+		pDevice1 = it->second;
+	}
+	if(auto it = map_EDCompDeviceComp.find(pEDComp2); it != map_EDCompDeviceComp.end()) {
+		pDevice2 = it->second;
+	}
+	if(auto it = map_EDCompDeviceComp.find(pJointEDComp); it != map_EDCompDeviceComp.end()) {
+		pJointDevice = it->second;
+	}
+	if(!pDevice1 || !pDevice2 || !pJointDevice) {
+		return false;
+	}
+
+	CMachinePartComponent * pBasicMachinePart = nullptr;
+	if(auto pEnt = pDevice1->GetMachinePartEntity()) {
+		pBasicMachinePart = pEnt->GetComponent<CMachinePartComponent>();
+	}
+	if(!pBasicMachinePart) {
+		return false;
+	}
+
+	CMachinePartComponent * pAnotherMachinePart = nullptr;
+	if(auto pEnt = pDevice2->GetMachinePartEntity()) {
+		pAnotherMachinePart = pEnt->GetComponent<CMachinePartComponent>();
+	}
+	if(!pAnotherMachinePart) {
+		return false;
+	}
+
+	return pBasicMachinePart->CreateJointWith(pAnotherMachinePart, pJointDevice);
+}
+
+void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const SColorSet & colorSet) {
+
+	std::lock_guard<std::mutex> machinesLock { s_workingMachinesMutex };
+	s_workingMachines.insert(this);
+
+	std::unordered_set<CEditorDeviceComponent *> ignoreDevices; // 已经建立的装置
+	std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> map_EDCompDeviceComp;
+
+	// 递归创建各个机器部分
+	std::function<void (CEditorDeviceComponent *)> recursive = [&](CEditorDeviceComponent * pEDComp) {
+
+		if(!pEDComp) {
+			return;
+		}
+
+		if(ignoreDevices.find(pEDComp) != ignoreDevices.end()) {
+			return;
+		}
+
+		std::unordered_set<CEditorDeviceComponent *> currentPartDevices;
+		std::unordered_set<CEditorDeviceComponent *> jointDevices;
+
+		RecursiveMachinePartEditorDevices(& currentPartDevices, & jointDevices, pEDComp, ignoreDevices);
+
+		for(auto & pJointEDComp : jointDevices) {
+			if(auto it = currentPartDevices.find(pJointEDComp); it != currentPartDevices.end()) {
+				currentPartDevices.erase(it);
+			}
+			ignoreDevices.insert(pJointEDComp);
+		}
+
+		if(currentPartDevices.empty()) {
+			if(!jointDevices.empty()) {
+				goto RecurJoints;
+			}
+			return;
+		}
+
+		if(auto pEnt = Frame::gEntitySystem->SpawnEntity()) {
+			if(auto pComp = pEnt->CreateComponent<CMachinePartComponent>()) {
+				m_machineParts.insert(pComp);
+
+				std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> mapTemp;
+				pComp->Initialize(& mapTemp, this, currentPartDevices, colorSet);
+				map_EDCompDeviceComp.insert(mapTemp.begin(), mapTemp.end());
+			}
+		}
+
+		ignoreDevices.insert(currentPartDevices.begin(), currentPartDevices.end());
+
+		if(jointDevices.empty()) {
+			return;
+		}
+
+	RecurJoints:
+
+		for(auto & pJointEDComp : jointDevices) {
+			if(auto pEnt = Frame::gEntitySystem->SpawnEntity()) {
+				std::unordered_set<CEditorDeviceComponent *> setTemp;
+				setTemp.insert(pJointEDComp);
+
+				if(auto pComp = pEnt->CreateComponent<CMachinePartComponent>()) {
+					m_machineParts.insert(pComp);
+
+					std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> mapTemp;
+					pComp->Initialize(& mapTemp, this, setTemp, colorSet);
+					map_EDCompDeviceComp.insert(mapTemp.begin(), mapTemp.end());
+				}
+			}
+		}
+
+		for(auto & pJointEDComp : jointDevices) {
+			recursive(pJointEDComp->m_neighbors[GetRevDirIndex(pJointEDComp->GetDirIndex())]);
+			recursive(pJointEDComp->m_neighbors[GetMachinePartJointDevicePointDirIndex(pJointEDComp)]);
+		}
+		};
+	recursive(pDeviceCabin);
+
+	std::unordered_map<CEditorDeviceComponent *, std::unordered_set<CEditorDeviceComponent *>> connectedEDComps;
+
+	for(auto & pJointEDComp : ignoreDevices) {
+		if(!pJointEDComp || !IsMachinePartJoint(pJointEDComp->GetDeviceType())) {
+			continue;
+		}
+
+		/*
+		首先检查前方的装置是否已经与自己建立过连接
+		若否，与之建立连接
+		检查后方的装置是否已经与自己建立过连接
+		若否，检查该装置与自己是否在同一个机器部分 // 好像没必要，因为在 __ConnectMachinePartsByDevices() 要调用的 CMachinePartComponent::CreateJointWith() 中有相关验证
+		若否，与之建立连接
+		*/
+
+		do {
+			CEditorDeviceComponent * pEDComp = pJointEDComp->m_neighbors[GetMachinePartJointDevicePointDirIndex(pJointEDComp)];
+			CEditorDeviceComponent * pEDCompBack = pJointEDComp->m_neighbors[GetRevDirIndex(pJointEDComp->GetDirIndex())];
+			if(!pEDComp || !pEDCompBack) {
+				break;
+			}
+			if(__HasConnected(connectedEDComps, pEDCompBack, pEDComp)) {
+				break;
+			}
+
+			if(__ConnectMachinePartsByDevices(map_EDCompDeviceComp, pEDCompBack, pEDComp, pJointEDComp) || 1) {
+				__Connect(connectedEDComps, map_EDCompDeviceComp, pJointEDComp, pEDComp);
+				__Connect(connectedEDComps, map_EDCompDeviceComp, pJointEDComp, pEDCompBack);
+			}
+		} while(false);
+
+		/*do {
+		CEditorDeviceComponent * pEDComp = pJointEDComp->m_neighbors[GetRevDirIndex(pJointEDComp->GetDirIndex())];
+		if(!pEDComp) {
+		break;
+		}
+		if(__HasConnected(connectedEDComps, pJointEDComp, pEDComp)) {
+		break;
+		}
+
+		if(__ConnectMachinePartsByDevices(map_EDCompDeviceComp, pEDComp, pJointEDComp) || 1) {
+		__Connect(connectedEDComps, map_EDCompDeviceComp, pEDComp, pJointEDComp);
+		}
+		} while(false);*/
+	}
+}
+#endif
 
 void CMachineComponent::OnShutDown() {
 	std::lock_guard<std::mutex> machinesLock { s_workingMachinesMutex };

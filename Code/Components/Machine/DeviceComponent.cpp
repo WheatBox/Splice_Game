@@ -53,12 +53,12 @@ void CDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	break;
 	case Frame::EntityEvent::EFlag::Render:
 
-		Frame::gRenderer->pTextRenderer->DrawText("------------------------------------" + std::to_string(m_relativePosition.x) + ", " + std::to_string(m_relativePosition.y) + ",,, " + std::to_string(m_relativeRotation), m_pEntity->GetPosition());
-		Frame::gRenderer->pTextRenderer->DrawText("\n------------------------------------" + std::to_string(m_pMachinePartEntity->GetPosition().x) + ", " + std::to_string(m_pMachinePartEntity->GetPosition().y) + ",,, " + std::to_string(m_pMachinePartEntity->GetRotation()), m_pEntity->GetPosition());
+		//Frame::gRenderer->pTextRenderer->DrawText("------------------------------------" + std::to_string(m_relativePosition.x) + ", " + std::to_string(m_relativePosition.y) + ",,, " + std::to_string(m_relativeRotation), m_pEntity->GetPosition());
+		//Frame::gRenderer->pTextRenderer->DrawText("\n------------------------------------" + std::to_string(m_pMachinePartEntity->GetPosition().x) + ", " + std::to_string(m_pMachinePartEntity->GetPosition().y) + ",,, " + std::to_string(m_pMachinePartEntity->GetRotation()), m_pEntity->GetPosition());
 		
 		//Frame::gRenderer->pTextRenderer->DrawTextBlended(std::to_string((size_t)m_pGroup), m_pEntity->GetPosition(), 0x000000, 1.f);
 
-#if 0
+#if 1
 		switch(GetDeviceType()) {
 		case IDeviceData::Joint:
 		{
@@ -90,106 +90,14 @@ void CDeviceComponent::Initialize(Frame::CEntity * pMachinePartEntity, IDeviceDa
 
 	m_keyId = keyId;
 
-#define __SPRITE_ALPHA 1.f // 为了方便调试，放了这么个宏在这里
-
-#define __ADD_SPRITE_LAYER(__EDeviceStaticSprite) \
-m_pSpriteComponent->AddLayer({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), 0xFFFFFF, __SPRITE_ALPHA });
-#define __ADD_SPRITE_LAYER_EXT(__EDeviceStaticSprite, __colorSetMemberVariable) \
-m_pSpriteComponent->AddLayer({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), colorSet.__colorSetMemberVariable, __SPRITE_ALPHA });
-
-#define __ADD_SPRITE_LAYER_GROUPED(__EDeviceStaticSprite, __group) \
-m_pSpriteComponent->AddLayer({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), 0xFFFFFF, __SPRITE_ALPHA }, __group);
-#define __ADD_SPRITE_LAYER_EXT_GROUPED(__EDeviceStaticSprite, __colorSetMemberVariable, __group) \
-m_pSpriteComponent->AddLayer({ Assets::GetStaticSprite(Assets::EDeviceStaticSprite::__EDeviceStaticSprite), colorSet.__colorSetMemberVariable, __SPRITE_ALPHA }, __group);
-
 	m_pSpriteComponent = m_pEntity->CreateComponent<CSpriteComponent>();
+	m_pNode->pDeviceData->InitSprite(m_pSpriteComponent, this, colorSet);
 
-	if(deviceType == IDeviceData::Cabin) {
-		__ADD_SPRITE_LAYER(cabin_logo_background);
-	} else if(deviceType == IDeviceData::JetPropeller) {
-		__ADD_SPRITE_LAYER_EXT(jet_propeller_bottom, color1);
-	} else if(deviceType == IDeviceData::Joint) {
-		__ADD_SPRITE_LAYER_EXT(joint_bottom, color2);
-	}
-
-	m_pSpriteComponent->AddLayer({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::color1), colorSet.color1, __SPRITE_ALPHA });
-	if(deviceType != IDeviceData::Joint) {
-		m_pSpriteComponent->AddLayer({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::color2), colorSet.color2, __SPRITE_ALPHA });
-	}
-	m_pSpriteComponent->AddLayer({ Assets::GetDeviceStaticSprite(deviceType, Assets::EDeviceStaticSpritePart::basic), 0xFFFFFF, __SPRITE_ALPHA });
-
-	if(deviceType == IDeviceData::Propeller) {
-		__ADD_SPRITE_LAYER_EXT_GROUPED(propeller_blade_color, color2, dynamicInsBufferGroupIndex);
-		{
-			auto & layerTemp = m_pSpriteComponent->GetLayers().back();
-			layerTemp.SetScale({ .3f, 1.f });
-			layerTemp.SetOffset({ -20.f, 0.f });
-			layerTemp.SetRotationDegree(30.f);
-		}
-		__ADD_SPRITE_LAYER_GROUPED(propeller_blade, dynamicInsBufferGroupIndex);
-		{
-			auto & layerTemp = m_pSpriteComponent->GetLayers().back();
-			layerTemp.SetScale({ .3f, 1.f });
-			layerTemp.SetOffset({ -20.f, 0.f });
-			layerTemp.SetRotationDegree(30.f);
-		}
-
-		__ADD_SPRITE_LAYER_EXT_GROUPED(propeller_top_color, color1, staticTopInsBufferGroupIndex);
-		__ADD_SPRITE_LAYER_GROUPED(propeller_top, staticTopInsBufferGroupIndex);
-	} else if(deviceType == IDeviceData::JetPropeller) {
-		__ADD_SPRITE_LAYER(jet_propeller_needle);
-		{
-			auto & layerTemp = m_pSpriteComponent->GetLayers().back();
-			layerTemp.SetOffset({ -32.f, 20.f });
-			layerTemp.SetRotationDegree(45.f);
-		}
-	} else if(deviceType == IDeviceData::Joint) {
-		m_pSpriteComponent->GetLayers()[1].SetRotationDegree(180.f);
-		m_pSpriteComponent->GetLayers()[2].SetRotationDegree(180.f);
-		__ADD_SPRITE_LAYER_EXT(joint_top_color, color2);
-		__ADD_SPRITE_LAYER(joint_top);
-	}
-
-#undef __SPRITE_ALPHA
-#undef __ADD_SPRITE_LAYER
-#undef __ADD_SPRITE_LAYER_EXT
-#undef __ADD_SPRITE_LAYER_GROUPED
-#undef __ADD_SPRITE_LAYER_EXT_GROUPED
-
-	switch(deviceType) {
-	case IDeviceData::JetPropeller:
-		m_pSpriteComponent->GetLayers()[0].SetExtraFunction([this](float frameTime) {
-			if(!m_pNode || !m_pNode->pDeviceData) {
-				return;
-			}
-
-			auto pData = reinterpret_cast<SJetPropellerDeviceData *>(m_pNode->pDeviceData);
-
-			const Frame::Vec2 entPos = m_pEntity->GetPosition();
-			const float entRot = m_pEntity->GetRotation();
-
-			const Frame::Vec2 pos = entPos - Frame::Vec2 { 32.f, 0.f }.GetRotated(entRot);
-			const float alpha = std::min(1.f, pData->accumulatingShowing / pData->accumulationShowingMax) * .35f;
-
-			pData->smokeRotation1 += frameTime * (40.f + 30000.f * (pData->accumulatingShowing - pData->accumulatingShowingPrev));
-			pData->smokeRotation2 += frameTime * (80.f + 60000.f * (pData->accumulatingShowing - pData->accumulatingShowingPrev));
-
-			Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::jet_propeller_bottom)->GetImage(),
-				entPos, 0xFFFFFF, alpha * 2.5f, 1.f, entRot
-			);
-			for(int i = 0; i < CSmokeEmitterComponent::SSmokeParticle::spritesCount; i++) {
-				Frame::gRenderer->DrawSpriteBlended(
-					Assets::GetStaticSprite(CSmokeEmitterComponent::SSmokeParticle::sprites[i])->GetImage(),
-					pos + Frame::Vec2 { 16.f, 0.f }.GetRotatedDegree(static_cast<float>(i * (360 / CSmokeEmitterComponent::SSmokeParticle::spritesCount)) + pData->smokeRotation1), 0xFFFFFF, alpha,
-					{ .75f }, Frame::DegToRad(pData->smokeRotation2)
-				);
-			}
-		});
-		break;
+	//switch(deviceType) {
 	//case IDeviceData::Joint:
 		// 写在 CMachineComponent::Initialize() 里了
 		//break;
-	}
+	//}
 
 	s_workingDevices.insert(this);
 }
@@ -205,6 +113,18 @@ void CDeviceComponent::OnShutDown() {
 	
 	delete m_pNode;
 	m_pNode = nullptr;
+}
+
+std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> CDeviceComponent::MakeShapeDefs() {
+	if(!m_pNode) {
+		Frame::Log::Log(Frame::Log::ELevel::Error, "Trying to call CDeviceComponent::MakeShapeDefs(), but m_pNode is nullptr!");
+		return {};
+	}
+	if(!m_pNode->pDeviceData) {
+		Frame::Log::Log(Frame::Log::ELevel::Error, "Trying to call CDeviceComponent::MakeShapeDefs(), but m_pNode->pDeviceData is nullptr!");
+		return {};
+	}
+	return m_pNode->pDeviceData->MakeShapeDefs(m_pEntity->GetPosition(), m_pEntity->GetRotation());
 }
 
 void CDeviceComponent::WeldWith(CDeviceComponent * pDeviceComp, int dirIndex) {
@@ -277,7 +197,7 @@ ForMachinePartJoints:
 		} else if(i == pData->GetPointDirIndex()) {
 			pAnotherDevice = pData->GetPointMachinePartDeviceComponent();
 			if(pAnotherDevice) {
-				rot += (pAnotherDevice->GetEntity()->GetPosition() - entityPos).Degree() - entityRot + pData->GetRotationAdd();
+				rot += (pAnotherDevice->GetEntity()->GetPosition() - entityPos).Radian() - entityRot + pData->GetRotationAdd();
 			}
 		}
 
@@ -294,85 +214,6 @@ ForMachinePartJoints:
 		__DrawConnector(entityPos, m_pNode, m_directionIndex, i, rot, m_colorSet);
 	}
 }
-
-#define F(x) PixelToMeter(x)
-
-std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> CDeviceComponent::MakeShapeDefs(IDeviceData::EType deviceType, const Frame::Vec2 & devicePos, float rotation) {
-	std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> defs;
-
-#define __NEW_DEF(_density, _friction, _restitution) {\
-	b2ShapeDef defTemp = b2DefaultShapeDef(); \
-	defTemp.density = _density; \
-	defTemp.friction = _friction; \
-	defTemp.restitution = _restitution; \
-	defs.push_back({ defTemp, {} }); \
-}
-
-	constexpr float shellDensity = 1.f; // 以 Shell 的密度为基准密度
-
-	switch(deviceType) {
-	case IDeviceData::EType::Cabin:
-	case IDeviceData::EType::Shell:
-	case IDeviceData::EType::Engine:
-	case IDeviceData::EType::Joint:
-		__NEW_DEF(shellDensity, .5f, 0.f);
-		break;
-	case IDeviceData::EType::Propeller:
-		__NEW_DEF(shellDensity, .5f, 0.f);
-		__NEW_DEF(shellDensity * .3f, .5f, .2f);
-		break;
-	case IDeviceData::EType::JetPropeller:
-		__NEW_DEF(shellDensity * .8f, .5f, 0.f);
-		break;
-	}
-
-#undef __NEW_DEF
-
-	const Frame::Vec2 devicePosMeter = PixelToMeterVec2(devicePos);
-
-#define __NEW_SHAPE(_shape, _b2ShapeType) \
-	defs[_ind++].second = { _shape, _b2ShapeType };
-
-	int _ind = 0;
-
-	switch(deviceType) {
-	case IDeviceData::EType::Cabin:
-	case IDeviceData::EType::Shell:
-	case IDeviceData::EType::Engine:
-	case IDeviceData::EType::JetPropeller:
-	{
-		Frame::Vec2 whHalf = GetDeviceMeterSize(deviceType) * .5f;
-		b2Polygon shape = b2MakeOffsetBox(whHalf.x, whHalf.y, { devicePosMeter.x, devicePosMeter.y }, b2MakeRot(rotation));
-		
-		__NEW_SHAPE(shape, b2ShapeType::b2_polygonShape);
-	}
-	break;
-	case IDeviceData::EType::Propeller:
-	{
-		const Frame::Vec2 center1 = Frame::Vec2 { -22.f, 0.f }.GetRotated(rotation) + devicePos;
-		const Frame::Vec2 center2 = Frame::Vec2 { 24.f, 0.f }.GetRotated(rotation) + devicePos;
-		b2Polygon shape1 = b2MakeOffsetBox(F(24.f), F(40.f), { F(center1.x), F(center1.y) }, b2MakeRot(rotation));
-		b2Polygon shape2 = b2MakeOffsetBox(F(36.f), F(114.f), { F(center2.x), F(center2.y) }, b2MakeRot(rotation));
-
-		__NEW_SHAPE(shape1, b2ShapeType::b2_polygonShape);
-		__NEW_SHAPE(shape2, b2ShapeType::b2_polygonShape);
-	}
-	break;
-	case IDeviceData::EType::Joint:
-	{
-		b2Circle shape { { devicePosMeter.x, devicePosMeter.y }, F(36.f) };
-
-		__NEW_SHAPE(shape, b2ShapeType::b2_circleShape);
-	}
-	break;
-	}
-
-#undef __NEW_SHAPE
-
-	return defs;
-}
-
-#undef F
 
 void CDeviceComponent::Step(float timeStep, float power, void * userdata) {
 	if(!m_pNode || !m_pNode->pDeviceData || !m_pMachinePartEntity) {
