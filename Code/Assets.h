@@ -109,40 +109,4 @@ namespace Assets {
 
 #undef DefineFunction_GetStaticSprite
 
-	enum class EDeviceStaticSpritePart {
-		basic,
-		color1,
-		color2
-	};
-
-	static inline Frame::CStaticSprite * GetDeviceStaticSprite(IDeviceData::EType type, EDeviceStaticSpritePart part) {
-		static constexpr EDeviceStaticSprite sprs[] = {
-			EDeviceStaticSprite::UNKNOWN, // Unset
-			EDeviceStaticSprite::UNKNOWN,
-			EDeviceStaticSprite::UNKNOWN,
-			EDeviceStaticSprite::cabin, // Cabin
-			EDeviceStaticSprite::cabin_color1,
-			EDeviceStaticSprite::cabin_color2,
-			EDeviceStaticSprite::shell, // Shell
-			EDeviceStaticSprite::shell_color1,
-			EDeviceStaticSprite::shell_color2,
-			EDeviceStaticSprite::engine, // Engine
-			EDeviceStaticSprite::engine_color1,
-			EDeviceStaticSprite::engine_color2,
-			EDeviceStaticSprite::propeller_motor, // Propeller
-			EDeviceStaticSprite::propeller_motor_color1,
-			EDeviceStaticSprite::propeller_motor_color2,
-			EDeviceStaticSprite::jet_propeller, // Jet Propeller
-			EDeviceStaticSprite::jet_propeller_color1,
-			EDeviceStaticSprite::jet_propeller_color2,
-			EDeviceStaticSprite::joint, // Joint
-			EDeviceStaticSprite::joint_color,
-			EDeviceStaticSprite::joint,
-			EDeviceStaticSprite::UNKNOWN, // END
-			EDeviceStaticSprite::UNKNOWN,
-			EDeviceStaticSprite::UNKNOWN,
-		};
-		return GetStaticSprite(sprs[type * 3 + static_cast<int>(part)]);
-	}
-
 }

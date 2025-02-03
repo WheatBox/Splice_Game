@@ -12,16 +12,16 @@
 class CSpriteComponent : public Frame::IEntityComponent {
 public:
 
+	static void Register(Frame::SComponentTypeConfig & config) {
+		config.SetGUID("{0A6967F0-19EF-421D-84BB-249BEF7B3095}");
+	}
+
 	virtual void Initialize() override {
 		CreateInsBufferGroup();
 	}
 
 	virtual Frame::EntityEvent::Flags GetEventFlags() const override;
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
-
-	static void Register(Frame::SComponentType<CSpriteComponent> type) {
-		type.SetGUID("{0A6967F0-19EF-421D-84BB-249BEF7B3095}");
-	}
 
 	struct SLayer {
 

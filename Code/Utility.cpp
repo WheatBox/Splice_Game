@@ -186,7 +186,10 @@ void DrawSpriteBlendedPro(const Frame::SSpriteImage * pSpriteImage, const Frame:
 
     Frame::gRenderer->DrawTexture(pSpriteImage->GetTextureId(), vertexBuffer);
 }
-
+void RecursiveMachinePartEditorDevices(std::unordered_set<CEditorDeviceComponent *> *, CEditorDeviceComponent *) {}
+void RecursiveMachinePartEditorDevices(std::unordered_set<CEditorDeviceComponent *> *, std::unordered_set<CEditorDeviceComponent *> *, CEditorDeviceComponent *, const std::unordered_set<CEditorDeviceComponent *> &) {}
+int GetMachinePartJointDevicePointDirIndex(CEditorDeviceComponent *) { return 0; }
+#if 0
 void RecursiveMachinePartEditorDevices(std::unordered_set<CEditorDeviceComponent *> * outSet, CEditorDeviceComponent * pComp) {
     if(!outSet || !pComp) {
         return;
@@ -259,3 +262,4 @@ int GetMachinePartJointDevicePointDirIndex(CEditorDeviceComponent * pEDComp) {
     }
     return pEDComp->GetDirIndex();
 }
+#endif

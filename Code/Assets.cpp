@@ -8,8 +8,8 @@ namespace Assets {
 
 	std::unordered_map<const Frame::SSpriteImage *, Frame::CRenderer::SInstanceBuffer> gSpriteImageInstanceBufferMap {};
 
-	static void SetSpriteOffsetToCenter(Frame::ISprite * pSpr) {
-		pSpr->SetOffset({ .5f * static_cast<float>(pSpr->GetWidth()), .5f * static_cast<float>(pSpr->GetHeight()) });
+	static void SetSpriteOriginToCenter(Frame::ISprite * pSpr) {
+		pSpr->SetOrigin({ .5f * static_cast<float>(pSpr->GetWidth()), .5f * static_cast<float>(pSpr->GetHeight()) });
 	}
 
 	void LoadPermanentAssets() {
@@ -161,22 +161,22 @@ namespace Assets {
 		};
 
 		for(auto & spr : gGUIStaticSpriteMap) {
-			SetSpriteOffsetToCenter(spr.second);
+			SetSpriteOriginToCenter(spr.second);
 			generateStaticSpritesInstanceBuffers(spr.second);
 		}
 		for(auto & spr : gDeviceStaticSpriteMap) {
-			SetSpriteOffsetToCenter(spr.second);
+			SetSpriteOriginToCenter(spr.second);
 			generateStaticSpritesInstanceBuffers(spr.second);
 		}
 		for(auto & spr : gOtherStaticSpriteMap) {
-			SetSpriteOffsetToCenter(spr.second);
+			SetSpriteOriginToCenter(spr.second);
 			generateStaticSpritesInstanceBuffers(spr.second);
 		}
 
-		gDeviceStaticSpriteMap[EDeviceStaticSprite::jet_propeller]->SetOffset({ 108.f, 64.f });
-		gDeviceStaticSpriteMap[EDeviceStaticSprite::jet_propeller_color1]->SetOffset({ 108.f, 64.f });
-		gDeviceStaticSpriteMap[EDeviceStaticSprite::jet_propeller_color2]->SetOffset({ 108.f, 64.f });
-		gDeviceStaticSpriteMap[EDeviceStaticSprite::jet_propeller_bottom]->SetOffset({ 108.f, 64.f });
+		gDeviceStaticSpriteMap[EDeviceStaticSprite::jet_propeller]->SetOrigin({ 108.f, 64.f });
+		gDeviceStaticSpriteMap[EDeviceStaticSprite::jet_propeller_color1]->SetOrigin({ 108.f, 64.f });
+		gDeviceStaticSpriteMap[EDeviceStaticSprite::jet_propeller_color2]->SetOrigin({ 108.f, 64.f });
+		gDeviceStaticSpriteMap[EDeviceStaticSprite::jet_propeller_bottom]->SetOrigin({ 108.f, 64.f });
 	}
 
 }

@@ -7,7 +7,6 @@
 #include <FrameCore/Camera.h>
 #include <FrameMath/Math.h>
 
-#include "EditorDeviceComponent.h"
 #include "../CameraComponent.h"
 #include "../Machine/DeviceConnectorRendererComponent.h"
 #include "../Machine/MachinePartComponent.h"
@@ -60,12 +59,14 @@ constexpr float __DEVICE_HIDE_ALPHA = .3f;
 
 CEditorComponent * CEditorComponent::s_pEditorComponent = nullptr;
 
+CEditorDeviceComponent * __Put(std::unordered_set<CEditorDeviceComponent *> & m_editorDeviceComponents, const SColorSet & colorSet, const Frame::Vec2 & pos, size_t pencilDeviceIndex, float rotation);
+
 void CEditorComponent::Initialize() {
 	m_pEntity->SetZDepth(Depths::Editor);
 
 	SetWorking(true);
 
-	Put({ 0.f }, IDeviceData::EType::Cabin, 0);
+	__Put(m_editorDeviceComponents, GetCurrentColorSet(), 0.f, 0, 0);
 
 	m_pFont = new Frame::CFont { Assets::GetFontFilename(), 16.f };
 
@@ -165,16 +166,10 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 			if(m_tool == ETool::Pencil) {
 				const bool bGoPrev = Frame::gInput->pKeyboard->GetPressed(Frame::eKI_Q);
 				const bool bGoNext = Frame::gInput->pKeyboard->GetPressed(Frame::eKI_E);
-				if((bGoPrev || bGoNext) && m_pencilDevice == IDeviceData::Unset) {
-					SwitchPencilDevice(IDeviceData::Shell);
-				} else if(bGoPrev) {
-					IDeviceData::EType deviceTemp = static_cast<IDeviceData::EType>(m_pencilDevice - 1);
-					if(deviceTemp < IDeviceData::Shell) deviceTemp = static_cast<IDeviceData::EType>(IDeviceData::END - 1);
-					SwitchPencilDevice(deviceTemp);
+				if(bGoPrev) {
+					PencilPrevDevice();
 				} else if(bGoNext) {
-					IDeviceData::EType deviceTemp = static_cast<IDeviceData::EType>(m_pencilDevice + 1);
-					if(deviceTemp >= IDeviceData::END) deviceTemp = IDeviceData::Shell;
-					SwitchPencilDevice(deviceTemp);
+					PencilNextDevice();
 				}
 			}
 
@@ -186,7 +181,7 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 
 		Frame::gRenderer->DrawTexturesInstanced(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId(), CSpriteComponent::GetTextureVertexBufferForInstances(), m_insBuffers);
 
-		if(m_tool == ETool::Pencil && m_pencilDevice != IDeviceData::EType::Unset) {
+		if(m_tool == ETool::Pencil) {
 			Pencil();
 		} else
 		if(m_tool == ETool::Eraser) {
@@ -341,29 +336,29 @@ void CEditorComponent::InitGUI_ToolPencilMenu() {
 	p = m_pGUI->CreateElement<GUI::CDraggablePage>(Frame::Vec2 { 72.f, 12.f }, Frame::Vec2 { pageWidth, pageHeight });
 
 	float y = buttonSize * .5f + 8.f;
-	for(IDeviceData::EType type = IDeviceData::Shell; type < IDeviceData::END; type = static_cast<IDeviceData::EType>(type + 1)) { // 只显示从 Shell 开始的装置
-		float spriteScale = 1.f;
-		switch(type) {
-		case IDeviceData::Shell:
-		case IDeviceData::Engine: spriteScale = .8f; break;
-		case IDeviceData::Propeller: spriteScale = .4f; break;
-		case IDeviceData::JetPropeller: spriteScale = .5f; break;
-		case IDeviceData::Joint: spriteScale = .8f; break;
+	for(size_t i = 0, size = GetEditorDeviceRegistry().size(); i < size; i++) {
+		if(!GetEditorDeviceRegistry()[i]->GetConfig().pencilEnable) {
+			continue;
 		}
-		spriteScale *= .7f;
+		
+		const float spriteScale = .7f;
 
 		auto pCurrButton = p->CreateElement<GUI::CCustomDrawingButton>(
 			Frame::Vec2 { pageWidth * .5f, y },
 			buttonSize,
-			[type]() { if(CEditorComponent::s_pEditorComponent) { CEditorComponent::s_pEditorComponent->SwitchPencilDevice(type); } },
-			[type, spriteScale](const Frame::Vec2 & center) {
-				if(CEditorComponent::s_pEditorComponent) { CEditorComponent::s_pEditorComponent->DrawDevicePreview(type, center, 1.f, 0, spriteScale); }
+			[i]() { if(CEditorComponent::s_pEditorComponent) { CEditorComponent::s_pEditorComponent->SwitchPencilDevice(i); } },
+			[i, spriteScale, buttonSize](const Frame::Vec2 & center) {
+				if(CEditorComponent::s_pEditorComponent) {
+					const Frame::Vec2 & drawSize = GetEditorDeviceRegistry()[i]->GetConfig().size;
+					const float scale = buttonSize / (drawSize.x > drawSize.y ? drawSize.x : drawSize.y);
+					CEditorComponent::s_pEditorComponent->DrawDevicePreview(i, center, 1.f, 0, spriteScale * scale);
+				}
 			}
 		);
 		pCurrButton->SetCustomHighlightingCondition(
-			[type]() {
+			[i]() {
 				if(CEditorComponent::s_pEditorComponent) {
-					return CEditorComponent::s_pEditorComponent->m_pencilDevice == type;
+					return CEditorComponent::s_pEditorComponent->m_pencilDeviceIndex == i;
 				}
 				return false;
 			}
@@ -799,10 +794,14 @@ void CEditorComponent::RenderAndProcessControllerMenu(const Frame::Vec2 & leftTo
 }
 
 void CEditorComponent::Pencil() {
+	if(m_pencilDeviceIndex >= GetEditorDeviceRegistry().size()) {
+		return;
+	}
+
 	bool bPutFinished = false;
 	const Frame::Vec2 mousePos = GetMousePosInScene();
 	const SInterfaceSet * pInterfaceSetMouseOn = nullptr;
-	const SInterface * pInterfaceMouseOn = nullptr;
+	const CEditorDeviceComponent::SInterface * pInterfaceMouseOn = nullptr;
 	for(auto & interfaceSet : m_interfaces) {
 		const Frame::Vec2 lt = interfaceSet.pos - __INTERFACESET_BUTTON_SIZE_HALF;
 		const Frame::Vec2 rb = interfaceSet.pos + __INTERFACESET_BUTTON_SIZE_HALF;
@@ -811,9 +810,9 @@ void CEditorComponent::Pencil() {
 
 			float minRad = 999999.f;
 			for(auto & interface : interfaceSet.interfaces) {
-				if(float rad = std::abs(GetDirPosAdd(interface.directionIndex).IncludedAngle(interfaceSet.pos - GetMousePosInScene())); rad < minRad) {
+				if(float rad = std::abs(Frame::Vec2 { 1.f, 0.f }.Rotate(-interface->direction).IncludedAngle(interfaceSet.pos - GetMousePosInScene())); rad < minRad) {
 					minRad = rad;
-					pInterfaceMouseOn = & interface;
+					pInterfaceMouseOn = interface;
 				}
 			}
 
@@ -823,8 +822,8 @@ void CEditorComponent::Pencil() {
 					RefreshInterfaceCanPut(* pInterfaceMouseOn);
 				}
 
-				//DrawDevicePreview(m_pencilDevice, GetWillPutPos(* pInterfaceMouseOn), __PENCIL_BUTTON_ALPHA, interface.directionIndex, 1.f, 0xFF0000, !m_bInterfaceCanPut);
-				DrawDevicePreview(m_pencilDevice, GetWillPutPos(* pInterfaceMouseOn), __PENCIL_BUTTON_ALPHA, pInterfaceMouseOn->directionIndex, 1.f, m_bInterfaceCanPut ? 0xFFFFFF : 0xFF0000);
+				//DrawDevicePreview(m_pencilDeviceIndex, GetWillPutPos(* pInterfaceMouseOn), __PENCIL_BUTTON_ALPHA, -pInterfaceMouseOn->direction, 1.f, 0xFF0000, !m_bInterfaceCanPut);
+				DrawDevicePreview(m_pencilDeviceIndex, GetWillPutPos(* pInterfaceMouseOn), __PENCIL_BUTTON_ALPHA, -pInterfaceMouseOn->direction, 1.f, m_bInterfaceCanPut ? 0xFFFFFF : 0xFF0000);
 			}
 		}
 		if(pInterfaceSetMouseOn != & interfaceSet) {
@@ -835,7 +834,7 @@ void CEditorComponent::Pencil() {
 
 	for(auto & interfaceSet : m_interfaces) {
 		for(auto & interface : interfaceSet.interfaces) {
-			if(interface.pEditorDeviceComponent == nullptr) {
+			if(interface->from == nullptr) {
 				continue;
 			}
 			//Frame::Vec2 entityPos = interface.pEditorDeviceComponent->GetEntity()->GetPosition();
@@ -843,31 +842,34 @@ void CEditorComponent::Pencil() {
 			Frame::Vec2 p1 { __INTERFACE_SIGN_WIDTH_HALF, __INTERFACE_SIGN_HEIGHT_HALF };
 			Frame::Vec2 p2 { __INTERFACE_SIGN_WIDTH_HALF, -__INTERFACE_SIGN_HEIGHT_HALF };
 			Frame::Vec2 p3 { -__INTERFACE_SIGN_WIDTH_HALF, 0.f };
-			Frame::Rotate2DVectorsDegree(-GetDegreeByDirIndex(interface.directionIndex), { & p1, & p2, & p3 });
-			p1 += interface.pos;
-			p2 += interface.pos;
-			p3 += interface.pos;
+			Frame::Rotate2DVectors(-interface->direction, { & p1, & p2, & p3 });
+			p1 += interface->pos;
+			p2 += interface->pos;
+			p3 += interface->pos;
 			Frame::gRenderer->pShapeRenderer->DrawTriangleBlended(p1, p2, p3, __PENCIL_BUTTON_COLOR, __PENCIL_BUTTON_ALPHA);
 			Frame::gRenderer->pShapeRenderer->DrawTriangleBlended(p1, p2, p3, __PENCIL_BUTTON_EDGE_COLOR, __PENCIL_BUTTON_ALPHA, 1.f);
+			//Frame::gRenderer->pTextRenderer->DrawText(std::to_string(Frame::RadToDeg(interface->direction)), p1);
 			if(bPutFinished) {
 				continue;
 			}
 
-			const bool bMouseOn = pInterfaceMouseOn == & interface;
+			const bool bMouseOn = pInterfaceMouseOn == interface;
 
 			if(m_bMBLeftHolding && bMouseOn && m_bInterfaceCanPut) {
-				if(CEditorDeviceComponent * pEDComp = Put(interface)) {
+				if(CEditorDeviceComponent * pEDComp = Put(* interface)) {
 
 					//////////// 检查新放置的装置的接口与此前已有接口的距离，若距离过近则进行连接
-					std::vector<SInterface> v;
+					
+					using SInterface = CEditorDeviceComponent::SInterface;
+
+					std::vector<SInterface *> v;
 					pEDComp->GetAvailableInterfaces(& v);
-					for(SInterface & newerInterface : v) {
+					for(SInterface * & newerInterface : v) {
 						for(const SInterfaceSet & olderInterfaceSet : m_interfaces) {
-							for(const SInterface & olderInterface : olderInterfaceSet.interfaces) {
-								if(& olderInterface == & interface
-									|| PointDistance(newerInterface.pos, olderInterface.pos) > 32.f)
+							for(SInterface * const & olderInterface : olderInterfaceSet.interfaces) {
+								if(PointDistance(newerInterface->pos, olderInterface->pos) > CONNECTOR_LENGTH + 4.f)
 									continue;
-								if(newerInterface.pEditorDeviceComponent->ConnectWith(olderInterface.pEditorDeviceComponent, newerInterface.directionIndex)) {
+								if(ConnectDevices(newerInterface, olderInterface)) {
 									break;
 								}
 							}
@@ -904,7 +906,7 @@ void CEditorComponent::Eraser() {
 	}
 	auto itWillBeErase = m_editorDeviceComponents.end();
 	for(auto it = m_editorDeviceComponents.begin(); it != m_editorDeviceComponents.end(); it++) {
-		if((* it)->GetDeviceType() == IDeviceData::EType::Cabin) {
+		if((* it)->IsCabin()) {
 			continue;
 		}
 
@@ -954,37 +956,31 @@ void CEditorComponent::UpdateDevicesColor() {
 }
 
 void CEditorComponent::ControllerBegin() {
-	for(auto & pEDComp : m_editorDeviceComponents) {
-		if(pEDComp->GetDeviceType() == IDeviceData::Engine) {
-			m_toolControllerStuff.engineEDComps.insert(pEDComp);
-		}
-	}
+	
 }
 
 void CEditorComponent::ControllerEnd() {
-	m_toolControllerStuff = SToolControllerStuff {};
-
-	for(auto & pEDComp : m_editorDeviceComponents) {
-		pEDComp->SetAlpha(1.f);
-	}
+	
 }
 
 void CEditorComponent::FindAvailableInterfaces() {
 	for(auto & pEDComp : m_editorDeviceComponents) {
-		std::vector<SInterface> interfaces;
+		using SInterface = CEditorDeviceComponent::SInterface;
+
+		std::vector<SInterface *> interfaces;
 		pEDComp->GetAvailableInterfaces(& interfaces);
 
-		for(SInterface & interface : interfaces) {
+		for(SInterface * & interface : interfaces) {
 			bool bNeedsToCreateANewInterfaceSet = true;
 			for(SInterfaceSet & existingInterfaceSet : m_interfaces) {
-				if(Frame::PointInRectangle(interface.pos + GetDirPosAdd(interface.directionIndex) * CONNECTOR_LENGTH, existingInterfaceSet.pos - __INTERFACESET_BUTTON_SIZE_HALF, existingInterfaceSet.pos + __INTERFACESET_BUTTON_SIZE_HALF)) {
+				if(Frame::PointInRectangle(interface->pos, existingInterfaceSet.pos - __INTERFACESET_BUTTON_SIZE_HALF - 4.f, existingInterfaceSet.pos + __INTERFACESET_BUTTON_SIZE_HALF + 4.f)) {
 					existingInterfaceSet.interfaces.push_back(interface);
 					bNeedsToCreateANewInterfaceSet = false;
 					break;
 				}
 			}
 			if(bNeedsToCreateANewInterfaceSet) {
-				m_interfaces.push_back({ { interface }, interface.pos + GetDirPosAdd(interface.directionIndex) * (__INTERFACESET_BUTTON_SIZE_HALF + CONNECTOR_HALF_LENGTH) });
+				m_interfaces.push_back({ { interface }, interface->pos + Frame::Vec2 { __INTERFACESET_BUTTON_SIZE_HALF, 0.f }.GetRotated(-interface->direction) });
 			}
 		}
 	}
@@ -995,10 +991,10 @@ void CEditorComponent::ClearAvailableInterfaces() {
 	m_interfaces.clear();
 }
 
-void CEditorComponent::RefreshInterfaceCanPut(const SInterface & interfaceMouseOn) {
+void CEditorComponent::RefreshInterfaceCanPut(const CEditorDeviceComponent::SInterface & interfaceMouseOn) {
 	if(Frame::CEntity * pEnt = Frame::gEntitySystem->SpawnEntity()) {
 		if(CColliderComponent * pComp = pEnt->CreateComponent<CColliderComponent>()) {
-			CEditorDeviceComponent::GetEditorDeviceColliders(pComp, m_pencilDevice, interfaceMouseOn.directionIndex);
+			GetEditorDeviceRegistry()[m_pencilDeviceIndex]->InitCollider(pComp, interfaceMouseOn.direction);
 			pComp->GetEntity()->SetPosition(GetWillPutPos(interfaceMouseOn));
 			m_bInterfaceCanPut = pComp->Collide().empty();
 		}
@@ -1006,26 +1002,11 @@ void CEditorComponent::RefreshInterfaceCanPut(const SInterface & interfaceMouseO
 	}
 }
 
-Frame::Vec2 CEditorComponent::GetWillPutPos(const SInterface & interface) const {
-	IDeviceData::EType interfaceDevice = interface.pEditorDeviceComponent->GetDeviceType();
-	int interfaceDeviceDirIndex = interface.pEditorDeviceComponent->GetDirIndex();
-
-	return interface.pEditorDeviceComponent->GetEntity()->GetPosition()
-
-		+ GetRectangleEdgePosByDirIndex(
-			GetDevicePixelSize(interfaceDevice) + CONNECTOR_LENGTH * 2.f,
-			interfaceDeviceDirIndex,
-			interface.directionIndex
-		)
-		+ GetDeviceInterfaceBias(interfaceDevice, interfaceDeviceDirIndex, interface.directionIndex, 0.f)
-
-		+ GetRectangleEdgePosByDirIndex(
-			GetDevicePixelSize(m_pencilDevice),
-			interface.directionIndex,
-			interface.directionIndex
-		);
+Frame::Vec2 CEditorComponent::GetWillPutPos(const CEditorDeviceComponent::SInterface & interface, size_t willPutEditorDeviceIndexInRegistry) const {
+	return interface.pos + (Frame::Vec2 { GetEditorDeviceRegistry()[willPutEditorDeviceIndexInRegistry]->GetConfig().size.x * .5f, 0.f }).GetRotated(-interface.direction);
 }
 
+#if 0
 struct SPipeInterface {
 	CEditorDeviceComponent * pEditorDeviceComponent = nullptr;
 	Frame::Vec2 pos {};
@@ -1087,8 +1068,8 @@ static inline void RegenerateMachinePartIndices_For_EDCompsHavePipeInterface(con
 
 		ignoreDevices.insert(pEDComp);
 
-		if(IsMachinePartJoint(pEDComp->GetDeviceType())) {
-			for(auto & neighbor : pEDComp->m_neighbors) {
+		if(pEDComp->IsMachinePartJoint()) {
+			for(auto & neighbor : pEDComp->m_connectingEditorDevices) {
 				nextJoints.push(neighbor);
 			}
 			return;
@@ -1096,7 +1077,7 @@ static inline void RegenerateMachinePartIndices_For_EDCompsHavePipeInterface(con
 		
 		__map_PipeConnectableEDComp_MachinePartIndex.insert({ pEDComp, currentMachinePartIndex });
 
-		for(const auto & pNeighborEDComp : pEDComp->m_neighbors) {
+		for(const auto & pNeighborEDComp : pEDComp->m_connectingEditorDevices) {
 			nexts.push(pNeighborEDComp);
 		}
 
@@ -1276,23 +1257,15 @@ static inline void PipeConnect(const std::pair<SPipeInterface, SPipeInterface> &
 
 	outToPushBack.push_back(pipe);
 }
+#endif
 
-CEditorDeviceComponent * CEditorComponent::Put(const CEditorComponent::SInterface & interface) {
-	Frame::Vec2 putPos = GetWillPutPos(interface);
-	if(CEditorDeviceComponent * pEDComp = Put(putPos, interface.directionIndex)) {
-		interface.pEditorDeviceComponent->ConnectWith(pEDComp, interface.directionIndex);
-		return pEDComp;
-	}
-	return nullptr;
-}
-
-CEditorDeviceComponent * CEditorComponent::Put(const Frame::Vec2 & pos, IDeviceData::EType type, int dirIndex) {
+CEditorDeviceComponent * __Put(std::unordered_set<CEditorDeviceComponent *> & m_editorDeviceComponents, const SColorSet & colorSet, const Frame::Vec2 & pos, size_t pencilDeviceIndex, float rotation) {
 	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
 		pEntity->SetPosition(pos);
 		CEditorDeviceComponent * pEDComp = pEntity->CreateComponent<CEditorDeviceComponent>();
-		if(pEDComp->Initialize(type, dirIndex)) {
+		if(pEDComp->Initialize(pencilDeviceIndex, rotation)) {
 			m_editorDeviceComponents.insert(pEDComp);
-			pEDComp->UpdateColor(GetCurrentColorSet());
+			pEDComp->UpdateColor(colorSet);
 			return pEDComp;
 		} else {
 			Frame::gEntitySystem->RemoveEntity(pEntity->GetId());
@@ -1301,6 +1274,11 @@ CEditorDeviceComponent * CEditorComponent::Put(const Frame::Vec2 & pos, IDeviceD
 	return nullptr;
 }
 
+CEditorDeviceComponent * CEditorComponent::Put(const CEditorDeviceComponent::SInterface & interface) {
+	return __Put(m_editorDeviceComponents, GetCurrentColorSet(), GetWillPutPos(interface), m_pencilDeviceIndex, -interface.direction);
+}
+
+#if 0
 void CEditorComponent::RegenerateAllPipes() {
 	RegenerateMachinePartIndices_For_EDCompsHavePipeInterface(m_editorDeviceComponents);
 
@@ -1350,50 +1328,17 @@ void CEditorComponent::RegenerateNearPipes(CEditorDeviceComponent * pEDComp) {
 
 	PipeConnect(GetNearestPipeInterfacesToEngineDevice(pEDComp, m_editorDeviceComponents), m_pipes);
 }
+#endif
 
-void CEditorComponent::DrawDevicePreview(IDeviceData::EType type, const Frame::Vec2 & pos, float alpha, int dirIndex, float scale, Frame::ColorRGB customColor, bool useCustomColor) const {
-
-	const float rot = -GetRadianByDirIndex(dirIndex);
+void CEditorComponent::DrawDevicePreview(size_t editorDeviceIndex, const Frame::Vec2 & pos, float alpha, float rot, float scale, Frame::ColorRGB customColor, bool useCustomColor) const {
 
 	SColorSet colorSet = GetCurrentColorSet();
-	Frame::ColorRGB baseColor = 0xFFFFFF;
 	if(useCustomColor) {
 		colorSet.color1 = customColor;
 		colorSet.color2 = customColor;
-		baseColor = customColor;
 	}
 
-#define __DrawDeviceSprite(_Assets_EDeviceStaticSprite, _color) Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::_Assets_EDeviceStaticSprite)->GetImage(), pos, _color, alpha, scale, rot);
-#define __DrawDeviceSprite_ByPart(_Assets_EDeviceStaticSpritePart, _color) Frame::gRenderer->DrawSpriteBlended(Assets::GetDeviceStaticSprite(type, Assets::EDeviceStaticSpritePart::_Assets_EDeviceStaticSpritePart)->GetImage(), pos, _color, alpha, scale, rot);
-
-	if(type == IDeviceData::JetPropeller) {
-		__DrawDeviceSprite(jet_propeller_bottom, colorSet.color1);
-	} else if(type == IDeviceData::Joint) {
-		__DrawDeviceSprite(joint_bottom, colorSet.color2);
-		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::joint_color)->GetImage(), pos, colorSet.color1, alpha, scale, rot + Frame::DegToRad(180.f));
-		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::joint)->GetImage(), pos, baseColor, alpha, scale, rot + Frame::DegToRad(180.f));
-	}
-
-	if(type != IDeviceData::Joint) {
-		__DrawDeviceSprite_ByPart(color1, colorSet.color1);
-		__DrawDeviceSprite_ByPart(color2, colorSet.color2);
-		__DrawDeviceSprite_ByPart(basic, baseColor);
-	}
-
-	if(type == IDeviceData::Propeller) {
-		DrawSpriteBlendedPro(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::propeller_blade_color)->GetImage(), pos + Frame::Vec2 { 20.f, 0.f }.GetRotated(rot) * scale, colorSet.color2, alpha, rot + 30.f, dirIndex % 2 ? Frame::Vec2 { scale, .3f * scale } : Frame::Vec2 { .3f * scale, scale }, 0.f);
-		DrawSpriteBlendedPro(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::propeller_blade)->GetImage(), pos + Frame::Vec2 { 20.f, 0.f }.GetRotated(rot) * scale, baseColor, alpha, rot + 30.f, dirIndex % 2 ? Frame::Vec2 { scale, .3f * scale } : Frame::Vec2 { .3f * scale, scale }, 0.f);
-		__DrawDeviceSprite(propeller_top_color, colorSet.color1);
-		__DrawDeviceSprite(propeller_top, baseColor);
-	} else if(type == IDeviceData::JetPropeller) {
-		Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::jet_propeller_needle)->GetImage(), pos + Frame::Vec2 { 32.f, -20.f }.GetRotated(rot) * scale, baseColor, alpha, scale, rot + Frame::DegToRad(45.f));
-	} else if(type == IDeviceData::Joint) {
-		__DrawDeviceSprite(joint_top_color, colorSet.color2);
-		__DrawDeviceSprite(joint_top, baseColor);
-	}
-
-#undef __DrawDeviceSprite
-#undef __DrawDeviceSprite_ByPart
+	GetEditorDeviceRegistry()[editorDeviceIndex]->DrawPreview(pos, colorSet, alpha, scale, rot);
 
 }
 
@@ -1415,7 +1360,7 @@ void CEditorComponent::ButtonEnd(const Frame::Vec2 & rightBottom) {
 void CEditorComponent::SummonMachine() {
 	auto it = std::find_if(m_editorDeviceComponents.begin(), m_editorDeviceComponents.end(),
 		[](CEditorDeviceComponent * pEDComp) {
-			return pEDComp && pEDComp->GetDeviceType() == IDeviceData::EType::Cabin;
+			return pEDComp && pEDComp->IsCabin();
 		}
 	);
 	if(it == m_editorDeviceComponents.end()) {

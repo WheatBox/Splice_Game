@@ -93,6 +93,10 @@ public:
 	static Frame::STextureVertexBuffer s_defaultTexVertBuf;
 
 public:
+	static void Register(Frame::SComponentTypeConfig & config) {
+		config.SetGUID("{A52B0B3F-CD66-4349-A565-749971515235}");
+	}	
+
 	virtual void Initialize() override;
 	virtual void OnShutDown() override {
 		if(s_pSmokeEmitterComponent == this) {
@@ -103,10 +107,6 @@ public:
 
 	virtual Frame::EntityEvent::Flags GetEventFlags() const override;
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
-
-	static void Register(Frame::SComponentType<CSmokeEmitterComponent> type) {
-		type.SetGUID("{A52B0B3F-CD66-4349-A565-749971515235}");
-	}	
 
 private:
 	float m_frametime = 0.f;

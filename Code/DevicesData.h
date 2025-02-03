@@ -1,111 +1,98 @@
 ﻿#pragma once
 
+#include "DevicesMisc.h"
+
 #include <FrameMath/Vector2.h>
-#include <FrameMath/ColorMath.h>
 
 #include "Application.h"
 #include "Utility.h"
 #include "Components/RigidbodyComponent.h" // for SBox2dShape
 
+#include <memory>
 #include <box2d/types.h>
 
-class CDeviceComponent;
 class CSpriteComponent;
 
-constexpr float CONNECTOR_LENGTH = 16.f;
-constexpr float CONNECTOR_HALF_LENGTH = CONNECTOR_LENGTH / 2.f;
-constexpr float PIPE_CROSS_SIZE = 32.f;
-
-struct SColorSet {
-	SColorSet()
-		: color1 { 0xFFFFFF }
-		, color2 { 0xFFFFFF }
-		, connector { 0xFFFFFF }
-		, pipe { 0xFFFFFF }
-	{}
-	SColorSet(Frame::ColorRGB _color1, Frame::ColorRGB _color2, Frame::ColorRGB _connector, Frame::ColorRGB _pipe)
-		: color1 { _color1 }
-		, color2 { _color2 }
-		, connector { _connector }
-		, pipe { _pipe }
-	{}
-	Frame::ColorRGB color1, color2, connector, pipe;
+struct SDeviceTypeConfig {
+	size_t indexInRegistry = 0; // 会在使用 REGISTER_DEVICE 时处理，不要手动设置它！
+	Frame::Vec2 size = 96.f; // 该值仅用于需要粗略知道装置大致尺寸的应用场景，例如编辑器中获取位于装置边缘处的接口位置
+	bool isMachinePartJoint = false;
 };
+
+template<typename T>
+struct SDeviceType {
+	static SDeviceTypeConfig config;
+};
+
+template<typename T>
+static inline const SDeviceTypeConfig & GetDeviceConfig() {
+	return SDeviceType<T>::config;
+}
 
 struct IDeviceData {
 	IDeviceData() = default;
 	virtual ~IDeviceData() = default;
-	enum EType {
-		Unset = 0,
-		Cabin,
-		Shell, // 从 Shell 开始，都是玩家在编辑器中可以主动放置的装置（不包含仅用作标识的 END）
-		Engine,
-		Propeller,
-		JetPropeller,
-		Joint,
-		END
-	} device = EType::Unset;
 
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) = 0;
+protected:
+	virtual IDeviceData * New() const = 0;
+public:
+	std::shared_ptr<IDeviceData> NewShared() const { return std::shared_ptr<IDeviceData> { New() }; }
+	std::unique_ptr<IDeviceData> NewUnique() const { return std::unique_ptr<IDeviceData> { New() }; }
+
+	virtual const SDeviceTypeConfig & GetConfig() const = 0;
+	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & layerColors) = 0;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) = 0;
 };
 
-struct SDeviceDataMachinePartJoint : public IDeviceData {
+extern std::vector<std::unique_ptr<IDeviceData>> & GetDeviceRegistry();
 
-	SDeviceDataMachinePartJoint() = default;
-	virtual ~SDeviceDataMachinePartJoint() = default;
-
-	void Initialize(CDeviceComponent * pPointComp, CDeviceComponent * pBehindComp, float rotationAdd, int dirIndexPointTo_pComp) {
-		m_pPointMachinePartDeviceComponent = pPointComp;
-		m_pBehindMachinePartDeviceComponent = pBehindComp;
-		m_rotationAdd = rotationAdd;
-		m_dirIndexPointTo_pAnotherMachinePartDeviceComponent = dirIndexPointTo_pComp;
+template<typename T>
+struct __DeviceRegister {
+	__DeviceRegister() {
+		T::Register(SDeviceType<T>::config);
+		SDeviceType<T>::config.indexInRegistry = GetDeviceRegistry().size();
+		GetDeviceRegistry().push_back(std::make_unique<T>());
 	}
-
-	// 会检查存储的 CDeviceComponent * 在 CDeviceComponent::s_workingDevices 是否还存在
-	// 若存在，则正常返回，若不存在，则返回 nullptr
-	CDeviceComponent * GetPointMachinePartDeviceComponent() const;
-
-	// 会检查存储的 CDeviceComponent * 在 CDeviceComponent::s_workingDevices 是否还存在
-	// 若存在，则正常返回，若不存在，则返回 nullptr
-	CDeviceComponent * GetBehindMachinePartDeviceComponent() const;
-
-	float GetRotationAdd() const {
-		return m_rotationAdd;
-	}
-
-	int GetPointDirIndex() const {
-		return m_dirIndexPointTo_pAnotherMachinePartDeviceComponent;
-	}
-
-protected:
-	CDeviceComponent * m_pPointMachinePartDeviceComponent = nullptr;
-	CDeviceComponent * m_pBehindMachinePartDeviceComponent = nullptr;
-	float m_rotationAdd = 0.f;
-	int m_dirIndexPointTo_pAnotherMachinePartDeviceComponent = 0;
+	virtual ~__DeviceRegister() = default;
 };
 
-struct SCabinDeviceData : public IDeviceData {
-	SCabinDeviceData() { device = EType::Cabin; }
-	virtual ~SCabinDeviceData() = default;
+#define REGISTER_DEVICE(DeviceType) \
+	template<> SDeviceTypeConfig SDeviceType<DeviceType>::config {}; \
+	__DeviceRegister<DeviceType> ___Register##DeviceType##__COUNTER__ {};
 
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) override;
+struct SCabinDeviceData : public IDeviceData {
+	static void Register(SDeviceTypeConfig & config) {
+		config;
+	}
+
+	virtual IDeviceData * New() const override { return new SCabinDeviceData {}; }
+	virtual const SDeviceTypeConfig & GetConfig() const override { return SDeviceType<SCabinDeviceData>::config; }
+
+	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & layerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 };
 
 struct SShellDeviceData : public IDeviceData {
-	SShellDeviceData() { device = EType::Shell; }
-	virtual ~SShellDeviceData() = default;
+	static void Register(SDeviceTypeConfig & config) {
+		config;
+	}
 
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) override;
+	virtual IDeviceData * New() const override { return new SShellDeviceData {}; }
+	virtual const SDeviceTypeConfig & GetConfig() const override { return SDeviceType<SShellDeviceData>::config; }
+
+	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & layerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 };
 
 struct SEngineDeviceData : public IDeviceData {
-	SEngineDeviceData() { device = EType::Engine; }
-	virtual ~SEngineDeviceData() = default;
+	static void Register(SDeviceTypeConfig & config) {
+		config;
+	}
 
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) override;
+	virtual IDeviceData * New() const override { return new SEngineDeviceData {}; }
+	virtual const SDeviceTypeConfig & GetConfig() const override { return SDeviceType<SEngineDeviceData>::config; }
+
+	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & layerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 
 	static constexpr float smokeMax = .03f;
@@ -113,23 +100,31 @@ struct SEngineDeviceData : public IDeviceData {
 };
 
 struct SPropellerDeviceData : public IDeviceData {
-	SPropellerDeviceData() { device = EType::Propeller; }
-	virtual ~SPropellerDeviceData() = default;
+	static void Register(SDeviceTypeConfig & config) {
+		config;
+	}
 
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) override;
+	virtual IDeviceData * New() const override { return new SPropellerDeviceData {}; }
+	virtual const SDeviceTypeConfig & GetConfig() const override { return SDeviceType<SPropellerDeviceData>::config; }
+
+	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & layerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 };
 
 struct SJetPropellerDeviceData : public IDeviceData {
 	SJetPropellerDeviceData() {
-		device = EType::JetPropeller;
-
 		smokeRotation1 = Frame::DegToRad(static_cast<float>(rand() % 360));
 		smokeRotation2 = Frame::DegToRad(static_cast<float>(rand() % 360));
 	}
-	virtual ~SJetPropellerDeviceData() = default;
 
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) override;
+	static void Register(SDeviceTypeConfig & config) {
+		config;
+	}
+
+	virtual IDeviceData * New() const override { return new SJetPropellerDeviceData {}; }
+	virtual const SDeviceTypeConfig & GetConfig() const override { return SDeviceType<SJetPropellerDeviceData>::config; }
+
+	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & layerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 
 	static constexpr float accumulationMax = 2.5f;
@@ -143,84 +138,10 @@ struct SJetPropellerDeviceData : public IDeviceData {
 	float smokeRotation2 = 0.f;
 };
 
-struct SJointDeviceData : public SDeviceDataMachinePartJoint {
-	SJointDeviceData() { device = EType::Joint; }
-	virtual ~SJointDeviceData() = default;
-
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent * pDeviceComponent, const SColorSet & colorSet) override;
-	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
-};
-
-struct SDeviceTreeNode {
-	SDeviceTreeNode(IDeviceData::EType type) {
-		switch(type) {
-		case IDeviceData::EType::Cabin: pDeviceData = new SCabinDeviceData {}; break;
-		case IDeviceData::EType::Shell: pDeviceData = new SShellDeviceData {}; break;
-		case IDeviceData::EType::Engine: pDeviceData = new SEngineDeviceData {}; break;
-		case IDeviceData::EType::Propeller: pDeviceData = new SPropellerDeviceData {}; break;
-		case IDeviceData::EType::JetPropeller: pDeviceData = new SJetPropellerDeviceData {}; break;
-		case IDeviceData::EType::Joint: pDeviceData = new SJointDeviceData {}; break;
-		}
-	}
-	virtual ~SDeviceTreeNode() {
-		delete pDeviceData;
-	}
-	//std::vector<SDeviceTreeNode *> nodes;
-	SDeviceTreeNode * nodes[4] {};
-	IDeviceData * pDeviceData = nullptr;
-};
-
-constexpr bool IsMachinePartJoint(IDeviceData::EType type) {
-	switch(type) {
-	case IDeviceData::Joint:
-		return true;
-	}
-	return false;
-}
-
-// 该函数仅用于需要粗略知道装置大致尺寸的应用场景，例如编辑器中获取位于装置边缘处的接口位置
-static inline const Frame::Vec2 & GetDevicePixelSize(IDeviceData::EType device) {
-	static const Frame::Vec2 results[] = {
-		{ 0.f },
-		{ 96.f }, // Cabin
-		{ 96.f }, // Shell
-		{ 96.f }, // Engine
-		{ 96.f, 240.f }, // Propeller
-		{ 184.f, 96.f }, // Jet Propeller
-		{ 96.f }, // Joint
-	};
-	return device > IDeviceData::EType::Unset && device < IDeviceData::EType::END ? results[device] : results[0];
-}
-
-// 该函数仅用于需要粗略知道装置大致尺寸的应用场景，例如编辑器中获取位于装置边缘处的接口位置
-static inline Frame::Vec2 GetDeviceMeterSize(IDeviceData::EType device) {
-	return PixelToMeterVec2(GetDevicePixelSize(device));
-}
-
-static inline Frame::Vec2 GetDeviceInterfaceBias(IDeviceData::EType device, int dirIndexOfDevice, int dirIndexOfInterface, float rotationAdd) {
-	Frame::Vec2 res { 0.f };
-	int dirIndex = dirIndexOfInterface - dirIndexOfDevice;
-	if(dirIndex < 0) {
-		dirIndex += 4;
-	}
-
-	switch(device) {
-	case IDeviceData::EType::JetPropeller:
-		if(dirIndex == 1 || dirIndex == 3) {
-			res.x = -44.f;
-		}
-		break;
-	}
-
-	return res.GetRotated(-GetRadianByDirIndex(dirIndexOfDevice) + rotationAdd);
-}
-
-static inline bool IsDeviceHasPipeInterface(IDeviceData::EType type) {
-	switch(type) {
-	case IDeviceData::Engine:
-	case IDeviceData::Propeller:
-	case IDeviceData::JetPropeller:
-		return true;
-	}
-	return false;
-}
+//struct SJointDeviceData : public IDeviceDataMachinePartJoint {
+//	SJointDeviceData() { device = EType::Joint; }
+//	virtual ~SJointDeviceData() = default;
+//
+//	virtual void InitSprite(CSpriteComponent *, std::vector<Frame::ColorRGB SColorSet::*> &) override {}
+//	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 &, float) override { return {}; }
+//};

@@ -10,6 +10,10 @@ class CDeviceComponent;
 class CCameraComponent final : public Frame::IEntityComponent {
 public:
 
+	static void Register(Frame::SComponentTypeConfig & config) {
+		config.SetGUID("{D9488C87-2807-41EE-8E78-85F59CDE2A05}");
+	}
+
 	virtual void Initialize() override;
 
 	void Initialize(const std::function<bool()> & func_IsTryingToMoveCamera, const std::function<bool()> & func_IsTryingToRotateCamera) {
@@ -19,10 +23,6 @@ public:
 
 	virtual Frame::EntityEvent::Flags GetEventFlags() const override;
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
-
-	static void Register(Frame::SComponentType<CCameraComponent> type) {
-		type.SetGUID("{D9488C87-2807-41EE-8E78-85F59CDE2A05}");
-	}
 
 	void CameraControl(bool bCanZoom);
 

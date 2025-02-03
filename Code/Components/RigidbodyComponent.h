@@ -17,14 +17,14 @@ class CDeviceComponent;
 class CRigidbodyComponent : public Frame::IEntityComponent {
 public:
 
+	static void Register(Frame::SComponentTypeConfig & config) {
+		config.SetGUID("{CDA353C9-A3BE-456F-BF3F-71F1CC2D4BF2}");
+	}
+
 	virtual Frame::EntityEvent::Flags GetEventFlags() const override {
 		return Frame::EntityEvent::EFlag::Render;
 	}
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent &) override;
-
-	static void Register(Frame::SComponentType<CRigidbodyComponent> type) {
-		type.SetGUID("{CDA353C9-A3BE-456F-BF3F-71F1CC2D4BF2}");
-	}
 
 	virtual void OnShutDown() override;
 

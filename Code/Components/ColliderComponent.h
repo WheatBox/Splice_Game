@@ -20,6 +20,10 @@ public:
 	
 	static std::unordered_set<CColliderComponent *> s_colliders;
 
+	static void Register(Frame::SComponentTypeConfig & config) {
+		config.SetGUID("{58E783BF-B81B-4D2D-AAFA-208077AD8523}");
+	}
+
 	virtual void Initialize() override {
 		s_colliders.insert(this);
 	}
@@ -33,10 +37,6 @@ public:
 		return Frame::EntityEvent::EFlag::Nothing;
 	}
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent &) override {}
-
-	static void Register(Frame::SComponentType<CColliderComponent> type) {
-		type.SetGUID("{58E783BF-B81B-4D2D-AAFA-208077AD8523}");
-	}
 
 	struct SCollider {
 		SCollider() = default;

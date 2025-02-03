@@ -6,7 +6,7 @@
 
 #include "MachinePartComponent.h"
 #include "DeviceComponent.h"
-#include "../Editor/EditorDeviceComponent.h"
+#include "../Editor/EditorComponent.h"
 #include "../../Application.h"
 
 REGISTER_ENTITY_COMPONENT(CMachineComponent);
@@ -56,6 +56,10 @@ void CMachineComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	}
 }
 
+void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const SColorSet & colorSet) {
+	pDeviceCabin, colorSet;
+}
+#if 0
 static bool __HasConnected(const std::unordered_map<CEditorDeviceComponent *, std::unordered_set<CEditorDeviceComponent *>> & connectedEDComps, CEditorDeviceComponent * pEDComp1, CEditorDeviceComponent * pEDComp2) {
 	if(!pEDComp1 || !pEDComp2) {
 		return false;
@@ -246,7 +250,8 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 		}
 	};
 	recursive(pDeviceCabin);
-
+#endif
+#if 0
 	std::unordered_map<CEditorDeviceComponent *, std::unordered_set<CEditorDeviceComponent *>> connectedEDComps;
 	
 	//CEditorDeviceComponent * prevJointEDComp = nullptr;
@@ -297,6 +302,7 @@ void CMachineComponent::Initialize(CEditorDeviceComponent * pDeviceCabin, const 
 		} while(false);
 	}
 }
+#endif
 
 #if 0
 static bool __ConnectMachinePartsByDevices(

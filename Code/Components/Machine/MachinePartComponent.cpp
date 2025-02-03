@@ -63,6 +63,15 @@ void CMachinePartComponent::ProcessEvent(const Frame::EntityEvent::SEvent & even
 	}
 }
 
+void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> *, CMachineComponent *, const std::unordered_set<CEditorDeviceComponent *> &, const SColorSet &) {}
+void CMachinePartComponent::OnShutDown() {}
+void CMachinePartComponent::OnDeviceShutDown(CDeviceComponent *, const std::unordered_set<SPipeNode *> &, SGroup *) {}
+bool CMachinePartComponent::CreateJointWith(CMachinePartComponent *, CDeviceComponent *) { return false; }
+void CMachinePartComponent::__RegenerateStaticInsBuffers() {}
+void CMachinePartComponent::__RegenerateDynamicInsBuffers() {}
+void CMachinePartComponent::Step(float) {}
+
+#if 0
 void CMachinePartComponent::Initialize(std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> * out_map_EDCompDeviceComp_or_nullptr, CMachineComponent * pMachine, const std::unordered_set<CEditorDeviceComponent *> & editorDeviceComps, const SColorSet & colorSet) {
 
 	m_pMachineBelonging = pMachine;
@@ -417,3 +426,4 @@ void CMachinePartComponent::Step(float timeStep) {
 
 	timeStep;
 }
+#endif

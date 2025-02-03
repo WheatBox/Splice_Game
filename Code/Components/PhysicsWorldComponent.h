@@ -20,6 +20,10 @@ public:
 
 	static std::queue<std::function<void ()>> s_physicalizeQueue;
 
+	static void Register(Frame::SComponentTypeConfig & config) {
+		config.SetGUID("{0372C9CF-412C-49A1-8EDE-E6E2BF53A39B}");
+	}
+
 	virtual void Initialize() override;
 	virtual void OnShutDown() override;
 
@@ -28,10 +32,6 @@ public:
 			| Frame::EntityEvent::EFlag::Render;
 	}
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
-
-	static void Register(Frame::SComponentType<CPhysicsWorldComponent> type) {
-		type.SetGUID("{0372C9CF-412C-49A1-8EDE-E6E2BF53A39B}");
-	}
 
 	void SetEditorWorking(bool b) {
 		m_bEditorWorking = b;

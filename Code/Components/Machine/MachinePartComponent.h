@@ -20,12 +20,12 @@ struct SPipeNode;
 class CMachinePartComponent final : public Frame::IEntityComponent {
 public:
 
+	static void Register(Frame::SComponentTypeConfig & config) {
+		config.SetGUID("{5BC5522E-DABD-4EA4-9CD5-5136C89DF74B}");
+	}
+
 	virtual Frame::EntityEvent::Flags GetEventFlags() const override;
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
-
-	static void Register(Frame::SComponentType<CMachinePartComponent> type) {
-		type.SetGUID("{5BC5522E-DABD-4EA4-9CD5-5136C89DF74B}");
-	}
 
 	void Initialize(std::unordered_map<CEditorDeviceComponent *, CDeviceComponent *> * out_map_EDCompDeviceComp_or_nullptr, CMachineComponent * pMachine, const std::unordered_set<CEditorDeviceComponent *> & editorDeviceComps, const SColorSet & colorSet);
 	virtual void OnShutDown() override;

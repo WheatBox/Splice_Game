@@ -17,24 +17,17 @@ public:
 
 	static std::unordered_set<CDeviceComponent *> s_workingDevices;
 
+	static void Register(Frame::SComponentTypeConfig & config) {
+		config.SetGUID("{EC3F8403-9ADC-4AA2-BCA9-527240A20CDC}");
+	}
+
 	virtual Frame::EntityEvent::Flags GetEventFlags() const override;
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
 
-	static void Register(Frame::SComponentType<CDeviceComponent> type) {
-		type.SetGUID("{EC3F8403-9ADC-4AA2-BCA9-527240A20CDC}");
-	}
-
-	void Initialize(Frame::CEntity * pMachinePartEntity, IDeviceData::EType deviceType, Frame::EKeyId keyId, int dirIndex, const SColorSet & colorSet);
+	//void Initialize(Frame::CEntity * pMachinePartEntity, IDeviceData::EType deviceType, Frame::EKeyId keyId, int dirIndex, const SColorSet & colorSet);
 	virtual void OnShutDown() override;
 
 	std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> MakeShapeDefs();
-
-	IDeviceData::EType GetDeviceType() const {
-		if(m_pNode && m_pNode->pDeviceData) {
-			return m_pNode->pDeviceData->device;
-		}
-		return IDeviceData::EType::Unset;
-	}
 
 	std::unordered_set<SPipeNode *> & GetPipeNodes() {
 		return m_pipeNodes;
@@ -70,7 +63,6 @@ private:
 	std::unordered_set<SPipeNode *> m_pipeNodes;
 
 	int m_directionIndex = 0;
-	SDeviceTreeNode * m_pNode = nullptr;
 	SColorSet m_colorSet;
 
 	Frame::EKeyId m_keyId = Frame::EKeyId::eKI_Unknown;
@@ -93,10 +85,6 @@ public:
 
 	int GetDirIndex() const {
 		return m_directionIndex;
-	}
-
-	SDeviceTreeNode * GetNode() {
-		return m_pNode;
 	}
 
 	const SColorSet & GetColorSet() const {

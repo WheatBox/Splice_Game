@@ -3,7 +3,7 @@
 #include <FrameEntity/IEntityComponent.h>
 #include <FrameMath/ColorMath.h>
 
-#include "../../DevicesData.h"
+#include "../../EditorDevicesData.h"
 #include "../../Assets.h"
 #include "../../Utility.h"
 #include "../../Texts.h"
@@ -11,6 +11,7 @@
 #include "../../GUI/GUI.h"
 
 #include "EditorControllerGUI.h"
+#include "EditorDeviceComponent.h"
 
 #include <vector>
 #include <unordered_set>
@@ -26,15 +27,15 @@ public:
 
 	static CEditorComponent * s_pEditorComponent;
 
+	static void Register(Frame::SComponentTypeConfig & config) {
+		config.SetGUID("{6B9BDDAF-A846-4013-AC33-5CEF1960B24A}");
+	}
+
 	virtual void Initialize() override;
 	virtual void OnShutDown() override;
 
 	virtual Frame::EntityEvent::Flags GetEventFlags() const override;
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
-
-	static void Register(Frame::SComponentType<CEditorComponent> type) {
-		type.SetGUID("{6B9BDDAF-A846-4013-AC33-5CEF1960B24A}");
-	}
 
 	void SetWorking(bool b);
 	bool GetWorking() const {
@@ -116,12 +117,45 @@ private:
 	void Pencil();
 	void Eraser();
 
-	IDeviceData::EType m_pencilDevice = IDeviceData::Unset; // 使用铅笔工具时，选中的要绘制的装置
-
 	void SwitchTool(ETool tool);
-	void SwitchPencilDevice(IDeviceData::EType device) {
-		m_pencilDevice = device;
+
+	size_t m_pencilDeviceIndex = 0; // 使用铅笔工具时，选中的要绘制的装置
+
+	void SwitchPencilDevice(size_t index) {
+		size_t size = GetEditorDeviceRegistry().size();
+		m_pencilDeviceIndex = size == 0 ? 0 : (index >= size ? size - 1 : index);
 		m_pInterfaceMouseOn = nullptr;
+	}
+
+	void PencilPrevDevice() {
+		size_t deviceInd = m_pencilDeviceIndex, i = 0, size = GetEditorDeviceRegistry().size();
+		for(; i < size; i++) {
+			deviceInd = deviceInd <= 0 ? size - 1 : deviceInd - 1;
+			if(GetEditorDeviceRegistry()[deviceInd]->GetConfig().pencilEnable) {
+				break;
+			}
+		}
+		if(i == size) {
+			return;
+		}
+		SwitchPencilDevice(deviceInd);
+	}
+	void PencilNextDevice() {
+		size_t deviceInd = m_pencilDeviceIndex, i = 0, size = GetEditorDeviceRegistry().size();
+		for(; i < size; i++) {
+			deviceInd = deviceInd >= size - 1 ? 0 : deviceInd + 1;
+			if(GetEditorDeviceRegistry()[deviceInd]->GetConfig().pencilEnable) {
+				break;
+			}
+		}
+		if(i == size) {
+			return;
+		}
+		SwitchPencilDevice(deviceInd);
+	}
+
+	auto GetPencilDeviceData() -> decltype(GetEditorDeviceRegistry()[0]) {
+		return GetEditorDeviceRegistry()[m_pencilDeviceIndex];
 	}
 
 	/* -------------------- 调色盘工具杂项 -------------------- */
@@ -213,7 +247,7 @@ private:
 	/* -------------------- 装置接口（插槽） -------------------- */
 
 public:
-	struct SInterface {
+	/*struct SInterface {
 		SInterface(CEditorDeviceComponent * _pEditorDeviceComponent, const Frame::Vec2 & _pos, int _directionIndex)
 			: pEditorDeviceComponent { _pEditorDeviceComponent }
 			, pos { _pos }
@@ -222,35 +256,47 @@ public:
 		CEditorDeviceComponent * pEditorDeviceComponent;
 		Frame::Vec2 pos;
 		int directionIndex;
-	};
+	};*/
 
 private:
 
+	// 铅笔工具，一个橙色按钮上可能会有多个方向的不同接口
+	// 一个 SInterfaceSet 就表示一个橙色按钮，里面 interfaces[i] 就是一个接口
 	struct SInterfaceSet {
-		std::vector<SInterface> interfaces;
+		std::vector<CEditorDeviceComponent::SInterface *> interfaces;
 		Frame::Vec2 pos;
 	};
 
 	std::vector<SInterfaceSet> m_interfaces;
 
-	const SInterface * m_pInterfaceMouseOn = nullptr;
+	const CEditorDeviceComponent::SInterface * m_pInterfaceMouseOn = nullptr;
 	bool m_bInterfaceCanPut = false;
 
 	void FindAvailableInterfaces();
 	void ClearAvailableInterfaces();
 
-	void RefreshInterfaceCanPut(const SInterface & interfaceMouseOn);
+	void RefreshInterfaceCanPut(const CEditorDeviceComponent::SInterface & interfaceMouseOn);
+
+	bool ConnectDevices(CEditorDeviceComponent::SInterface * interface1, CEditorDeviceComponent::SInterface * interface2) const {
+		if(!interface1 || !interface2 || !interface1->from || !interface2->from) {
+			return false;
+		}
+		if(interface1->to || interface2->to) {
+			return false;
+		}
+		interface1->to = interface2->from;
+		interface2->to = interface1->from;
+		return true;
+	}
 
 	/* -------------------- 装置放置 -------------------- */
 
-	Frame::Vec2 GetWillPutPos(const SInterface & interface) const;
-
-	CEditorDeviceComponent * Put(const SInterface & interface);
-	// TODO - 隐去下面两个函数
-	CEditorDeviceComponent * Put(const Frame::Vec2 & pos, int dirIndex) {
-		return Put(pos, m_pencilDevice == IDeviceData::Unset ? IDeviceData::Shell : m_pencilDevice, dirIndex);
+	Frame::Vec2 GetWillPutPos(const CEditorDeviceComponent::SInterface & interface) const {
+		return GetWillPutPos(interface, m_pencilDeviceIndex);
 	}
-	CEditorDeviceComponent * Put(const Frame::Vec2 & pos, IDeviceData::EType type, int dirIndex);
+	Frame::Vec2 GetWillPutPos(const CEditorDeviceComponent::SInterface & interface, size_t willPutEditorDeviceIndexInRegistry) const;
+
+	CEditorDeviceComponent * Put(const CEditorDeviceComponent::SInterface & interface);
 
 	/* -------------------- 管道接口（插槽） -------------------- */
 
@@ -265,10 +311,10 @@ private:
 
 	/* -------------------- 其它绘制函数 -------------------- */
 
-	void DrawDevicePreview(IDeviceData::EType type, const Frame::Vec2 & pos, float alpha, int dirIndex, float scale) const {
-		DrawDevicePreview(type, pos, alpha, dirIndex, scale, 0, false);
+	void DrawDevicePreview(size_t editorDeviceIndex, const Frame::Vec2 & pos, float alpha, float rot, float scale) const {
+		DrawDevicePreview(editorDeviceIndex, pos, alpha, rot, scale, 0, false);
 	}
-	void DrawDevicePreview(IDeviceData::EType type, const Frame::Vec2 & pos, float alpha, int dirIndex, float scale, Frame::ColorRGB customColor, bool useCustomColor = true) const;
+	void DrawDevicePreview(size_t editorDeviceIndex, const Frame::Vec2 & pos, float alpha, float rot, float scale, Frame::ColorRGB customColor, bool useCustomColor = true) const;
 
 	/* -------------------- 未归类 -------------------- */
 

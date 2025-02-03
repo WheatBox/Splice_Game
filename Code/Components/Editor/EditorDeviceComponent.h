@@ -3,33 +3,37 @@
 #include <FrameCore/Globals.h>
 #include <FrameInput/Input.h>
 
-#include "EditorComponent.h"
 #include "../SpriteComponent.h"
 #include "../ColliderComponent.h"
 #include "FrameRender/Renderer.h"
+#include "../../EditorDevicesData.h"
 
 class CEditorDeviceComponent final : public Frame::IEntityComponent {
 public:
 
+	static void Register(Frame::SComponentTypeConfig & config) {
+		config.SetGUID("{D798F1EC-5A5E-4EB0-9E8F-85A94E24BF93}");
+	}
+
 	virtual Frame::EntityEvent::Flags GetEventFlags() const override;
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
 
-	static void Register(Frame::SComponentType<CEditorDeviceComponent> type) {
-		type.SetGUID("{D798F1EC-5A5E-4EB0-9E8F-85A94E24BF93}");
-	}
-
 	// 若可放置于此处（无碰撞）（也就意味着初始化成功）则返回 true
-	bool Initialize(IDeviceData::EType type, int dirIndex);
+	bool Initialize(size_t editorDeviceIndex, float rotation);
 
 	virtual void OnShutDown() override;
 
-	void GetAvailableInterfaces(std::vector<CEditorComponent::SInterface> * outToPushBack);
-
-	IDeviceData::EType GetDeviceType() const {
-		return m_deviceType;
+	bool IsCabin() const {
+		return m_pData && dynamic_cast<SCabinEditorDeviceData *>(m_pData.get());
 	}
 
-	bool ConnectWith(CEditorDeviceComponent * pEDComp, int dirIndex);
+	const std::shared_ptr<IEditorDeviceData> & GetData() const {
+		return m_pData;
+	}
+
+	bool IsMachinePartJoint() const {
+		return m_pData && m_pData->GetConfig().isMachinePartJoint;
+	}
 
 	void UpdateColor(const SColorSet & colorSet) {
 		m_colorSet = colorSet;
@@ -58,10 +62,6 @@ public:
 		return m_alpha;
 	}
 
-	int GetDirIndex() const {
-		return m_directionIndex;
-	}
-
 	const SColorSet & GetColorSet() const {
 		return m_colorSet;
 	}
@@ -72,8 +72,23 @@ public:
 			m_pSpriteComponent->bRendering = m_pSpriteComponent->bUpdating = b;
 		}
 	}
-	
-	CEditorDeviceComponent * m_neighbors[4] {};
+
+	// 各参数的具体解释见 CEditorDeviceComponent::Initialize()
+	struct SInterface {
+		CEditorDeviceComponent * from = nullptr; // 该接口属于哪个装置
+		CEditorDeviceComponent * to = nullptr; // 该接口连接到的装置
+		Frame::Vec2 pos {};
+		float direction = 0.f;
+	};
+	std::vector<SInterface> m_interfaces;
+
+	void GetAvailableInterfaces(std::vector<SInterface *> * outToPushBack) {
+		for(SInterface & interface : m_interfaces) {
+			if(!interface.to) {
+				outToPushBack->push_back(& interface);
+			}
+		}
+	}
 
 private:
 	bool m_bWorking = true;
@@ -81,18 +96,12 @@ private:
 	CSpriteComponent * m_pSpriteComponent = nullptr;
 	CColliderComponent * m_pColliderComponent = nullptr;
 
-	IDeviceData::EType m_deviceType = IDeviceData::EType::Unset;
+	std::shared_ptr<IEditorDeviceData> m_pData = nullptr;
 
 	SColorSet m_colorSet;
 
 	std::vector<Frame::ColorRGB SColorSet::*> m_colorUpdatesInSpriteLayers; // 具体作用，见 UpdateColor()
 
-	int m_directionIndex = 0;
-
 	float m_alpha = 1.f;
-
-public:
-
-	static void GetEditorDeviceColliders(CColliderComponent * outColliderComp, IDeviceData::EType type, int dirIndex);
 
 };

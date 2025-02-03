@@ -42,7 +42,7 @@ void CSpriteComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 				continue;
 			}
 
-			const Frame::Vec2 pos = m_pEntity->GetPosition() - layer.GetOffset().GetRotated(entityRot);
+			const Frame::Vec2 pos = m_pEntity->GetPosition() + layer.GetOffset().GetRotated(entityRot);
 			DrawSpriteBlendedPro(pImage, pos, layer.GetColor(), layer.GetAlpha(), layer.GetRotation(), layer.GetScale(), entityRot);
 
 			if(auto & extraFunc = layer.GetExtraFunction()) {
@@ -68,10 +68,10 @@ void CSpriteComponent::CheckOrUpdateInsBuffers() {
 
 		const Frame::Matrix33 trans =
 			m_insBuffersAfterTransform *
-			Frame::Matrix33::CreateTranslation(-layer.GetOffset()) *
+			Frame::Matrix33::CreateTranslation(layer.GetOffset()) *
 			Frame::Matrix33::CreateScale(layer.GetScale()) *
 			Frame::Matrix33::CreateRotationZ(layer.GetRotation()) *
-			Frame::Matrix33::CreateTranslation(-img->GetOffset()) *
+			Frame::Matrix33::CreateTranslation(-img->GetOrigin()) *
 			buf.transform;
 		const Frame::ColorRGB col = layer.GetColor();
 

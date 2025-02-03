@@ -24,6 +24,14 @@ Frame::EntityEvent::Flags CDeviceComponent::GetEventFlags() const {
 		;
 }
 
+void CDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent &) {}
+void CDeviceComponent::OnShutDown() {}
+std::vector<std::pair<b2ShapeDef, CRigidbodyComponent::SBox2dShape>> CDeviceComponent::MakeShapeDefs() { return {}; }
+void CDeviceComponent::WeldWith(CDeviceComponent *, int) {}
+void CDeviceComponent::DrawConnectors() const {}
+void CDeviceComponent::Step(float, float, void *) {}
+
+#if 0
 void CDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	switch(event.flag) {
 	case Frame::EntityEvent::BeforeUpdate:
@@ -91,7 +99,7 @@ void CDeviceComponent::Initialize(Frame::CEntity * pMachinePartEntity, IDeviceDa
 	m_keyId = keyId;
 
 	m_pSpriteComponent = m_pEntity->CreateComponent<CSpriteComponent>();
-	m_pNode->pDeviceData->InitSprite(m_pSpriteComponent, this, colorSet);
+	m_pNode->pDeviceData->InitSprite(m_pSpriteComponent, colorSet);
 
 	//switch(deviceType) {
 	//case IDeviceData::Joint:
@@ -237,6 +245,7 @@ void CDeviceComponent::Step(float timeStep, float power, void * userdata) {
 
 	timeStep, userdata;
 }
+#endif
 
 #if 0
 void CDeviceComponent::Step(float timeStep) {
