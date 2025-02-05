@@ -4,51 +4,36 @@ project(Game)
 
 set(EXE_NAME Game)
 
+include(utils.cmake)
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
 
-if(WIN32)
-	set(CMAKE_STATIC_LIBRARY_PREFIX "")
-	set(CMAKE_STATIC_LIBRARY_SUFFIX ".lib")
-endif()
+set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/Third/)
+set(THIRD_PARTY_PLATFORM_DIR "")
+
+set(OUTPUT_DIR_DEBUG ${CMAKE_SOURCE_DIR}/Bin/Debug/)
+set(OUTPUT_DIR_RELEASE ${CMAKE_SOURCE_DIR}/Bin/Release/)
 
 find_package(glfw3 CONFIG REQUIRED)
-find_package(Freetype CONFIG REQUIRED)
-find_package(OpenAL CONFIG REQUIRED) # OpenAL-soft
-find_package(SndFile CONFIG REQUIRED)
 
 set(THIRD_LIBS
 	glfw
-	Freetype::Freetype
-	OpenAL::OpenAL
-	SndFile::sndfile
 )
 
-set(OUTPUT_DIR ${CMAKE_SOURCE_DIR}/Bin/)
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${OUTPUT_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${OUTPUT_DIR})
-
-macro(CopyFilesToOutput _folderName)
-
-	file(COPY ${CMAKE_SOURCE_DIR}/${_folderName}/ DESTINATION ${OUTPUT_DIR}/${_folderName}/)
-
-endmacro(CopyFilesToOutput)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIR_DEBUG})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIR_RELEASE})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIR_DEBUG})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIR_RELEASE})
 
 CopyFilesToOutput(Assets)
 CopyFilesToOutput(Shaders)
-
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	message("GNU")
 	add_compile_options(
 		-Wall
 		-Werror
 		-Wno-switch
-		-static
 		-Wno-overloaded-virtual
 	)
 endif()
@@ -60,25 +45,8 @@ if(MSVC)
 		/W4
 		/WX
 		/permissive
-		$<$<CONFIG:Debug>:/MTd>
-		$<$<CONFIG:Release>:/MT>
 	)
 endif()
-
-macro(AddFiles _dest)
-
-	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-	foreach(loop ${ARGV})
-		string(REGEX REPLACE "/" "_" _filesvar ${loop})
-		
-		file(GLOB ${_filesvar} ./${loop}/*.*)
-		source_group("${loop}" FILES ${${_filesvar}})
-
-		string(APPEND ${_dest} "${${_filesvar}};")
-	endforeach()
-
-endmacro(AddFiles)
 
 AddFiles(CODE_FILES
 	Code
@@ -88,20 +56,13 @@ AddFiles(CODE_FILES
 	Code/Components/Machine
 )
 
-AddFiles(ASSET_FILES
-	Assets
-	Assets/testfolder
-)
-
 AddFiles(SHADER_FILES
 	Shaders
 )
 
 add_executable(${EXE_NAME}
 	${CODE_FILES}
-	${ASSET_FILES}
 	${SHADER_FILES}
-	
 	${CMAKE_SOURCE_DIR}/Framework/
 	${CMAKE_SOURCE_DIR}/ThirdInclude/
 )
@@ -111,19 +72,20 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 	${CMAKE_SOURCE_DIR}/ThirdInclude/
 )
 
+set(LIBDIR ${CMAKE_SOURCE_DIR}/Lib/)
 if(WIN32)
 	if(MSVC)
 	target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
-		$<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/Framework_x64_debug.lib>
-		$<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/Framework_x64_release.lib>
-		$<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/box2dd.lib>
-		$<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/box2d.lib>
+		$<$<CONFIG:Debug>:${LIBDIR}/Framework_d.lib>
+		$<$<CONFIG:Release>:${LIBDIR}/Framework.lib>
+		$<$<CONFIG:Debug>:${LIBDIR}/box2dd.lib>
+		$<$<CONFIG:Release>:${LIBDIR}/box2d.lib>
 		${THIRD_LIBS}
 	)
 	else()
 	target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
-		${CMAKE_SOURCE_DIR}/Framework_mingw.lib
-		${CMAKE_SOURCE_DIR}/box2d_mingw.lib
+		${LIBDIR}/Framework_mingw.lib
+		${LIBDIR}/box2d_mingw.lib
 		${THIRD_LIBS}
 	)
 	endif()
@@ -137,7 +99,7 @@ endif()
 
 if(MSVC)
 	set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
-		VS_DEBUGGER_WORKING_DIRECTORY ${OUTPUT_DIR}
+		VS_DEBUGGER_WORKING_DIRECTORY "$<IF:$<CONFIG:Debug>,${OUTPUT_DIR_DEBUG},${OUTPUT_DIR_RELEASE}>"
 	)
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY
 		VS_STARTUP_PROJECT ${CMAKE_PROJECT_NAME}

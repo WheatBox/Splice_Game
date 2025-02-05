@@ -62,6 +62,8 @@ CEditorComponent * CEditorComponent::s_pEditorComponent = nullptr;
 CEditorDeviceComponent * __Put(std::unordered_set<CEditorDeviceComponent *> & m_editorDeviceComponents, const SColorSet & colorSet, const Frame::Vec2 & pos, size_t pencilDeviceIndex, float rotation);
 
 void CEditorComponent::Initialize() {
+	m_pencilDeviceIndex = GetEditorDeviceConfig<SShellEditorDeviceData>().indexInRegistry;
+
 	m_pEntity->SetZDepth(Depths::Editor);
 
 	SetWorking(true);

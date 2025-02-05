@@ -119,7 +119,7 @@ private:
 
 	void SwitchTool(ETool tool);
 
-	size_t m_pencilDeviceIndex = 0; // 使用铅笔工具时，选中的要绘制的装置
+	size_t m_pencilDeviceIndex; // 使用铅笔工具时，选中的要绘制的装置
 
 	void SwitchPencilDevice(size_t index) {
 		size_t size = GetEditorDeviceRegistry().size();
