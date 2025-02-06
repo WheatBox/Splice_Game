@@ -3,6 +3,7 @@
 #include "DevicesMisc.h"
 
 #include <FrameMath/Vector2.h>
+#include <FrameUtility/GUID.h>
 
 #include "Application.h"
 #include "Utility.h"
@@ -14,7 +15,7 @@
 class CSpriteComponent;
 
 struct SDeviceTypeConfig {
-	size_t indexInRegistry = 0; // 会在使用 REGISTER_DEVICE 时处理，不要手动设置它！
+	Frame::GUID guid;
 	Frame::Vec2 size = 96.f; // 该值仅用于需要粗略知道装置大致尺寸的应用场景，例如编辑器中获取位于装置边缘处的接口位置
 	bool isMachinePartJoint = false;
 };
@@ -23,11 +24,6 @@ template<typename T>
 struct SDeviceType {
 	static SDeviceTypeConfig config;
 };
-
-template<typename T>
-static inline const SDeviceTypeConfig & GetDeviceConfig() {
-	return SDeviceType<T>::config;
-}
 
 struct IDeviceData {
 	IDeviceData() = default;
@@ -44,14 +40,25 @@ public:
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) = 0;
 };
 
-extern std::vector<std::unique_ptr<IDeviceData>> & GetDeviceRegistry();
+extern std::unordered_map<Frame::GUID, std::unique_ptr<IDeviceData>> & GetDeviceRegistry();
+
+const SDeviceTypeConfig & GetDeviceConfig(const Frame::GUID & guid);
+template<typename T>
+static inline const SDeviceTypeConfig & GetDeviceConfig() {
+	return SDeviceType<T>::config;
+}
+
+const std::unique_ptr<IDeviceData> & GetDeviceData(const Frame::GUID & guid);
+template<typename T>
+static inline const std::unique_ptr<IDeviceData> & GetDeviceData() {
+	return GetDeviceData(GetDeviceConfig<T>().guid);
+}
 
 template<typename T>
 struct __DeviceRegister {
 	__DeviceRegister() {
 		T::Register(SDeviceType<T>::config);
-		SDeviceType<T>::config.indexInRegistry = GetDeviceRegistry().size();
-		GetDeviceRegistry().push_back(std::make_unique<T>());
+		GetDeviceRegistry().insert({ SDeviceType<T>::config.guid, std::make_unique<T>() });
 	}
 	virtual ~__DeviceRegister() = default;
 };
@@ -62,7 +69,7 @@ struct __DeviceRegister {
 
 struct SCabinDeviceData : public IDeviceData {
 	static void Register(SDeviceTypeConfig & config) {
-		config;
+		config.guid = "{84D13CEA-E81E-48FE-8DC1-A9C318DF5580}";
 	}
 
 	virtual IDeviceData * New() const override { return new SCabinDeviceData {}; }
@@ -74,7 +81,7 @@ struct SCabinDeviceData : public IDeviceData {
 
 struct SShellDeviceData : public IDeviceData {
 	static void Register(SDeviceTypeConfig & config) {
-		config;
+		config.guid = "{3D691E5C-F162-4111-8F39-2E1596C22660}";
 	}
 
 	virtual IDeviceData * New() const override { return new SShellDeviceData {}; }
@@ -86,7 +93,7 @@ struct SShellDeviceData : public IDeviceData {
 
 struct SEngineDeviceData : public IDeviceData {
 	static void Register(SDeviceTypeConfig & config) {
-		config;
+		config.guid = "{9281278C-076B-4E0A-BFCC-E31BCD987513}";
 	}
 
 	virtual IDeviceData * New() const override { return new SEngineDeviceData {}; }
@@ -101,7 +108,7 @@ struct SEngineDeviceData : public IDeviceData {
 
 struct SPropellerDeviceData : public IDeviceData {
 	static void Register(SDeviceTypeConfig & config) {
-		config;
+		config.guid = "{A6E42B77-5B16-42B6-8FF2-429723B1A1AF}";
 	}
 
 	virtual IDeviceData * New() const override { return new SPropellerDeviceData {}; }
@@ -118,7 +125,7 @@ struct SJetPropellerDeviceData : public IDeviceData {
 	}
 
 	static void Register(SDeviceTypeConfig & config) {
-		config;
+		config.guid = "{C29FBB21-3339-4DE5-818F-BA3F9609CB95}";
 	}
 
 	virtual IDeviceData * New() const override { return new SJetPropellerDeviceData {}; }

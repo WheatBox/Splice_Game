@@ -56,12 +56,12 @@ void CEditorDeviceComponent::ProcessEvent(const Frame::EntityEvent::SEvent & eve
 	}
 }
 
-bool CEditorDeviceComponent::Initialize(size_t editorDeviceIndex, float rotation) {
+bool CEditorDeviceComponent::Initialize(const Frame::GUID & editorDeviceGUID, float rotation) {
 	m_pEntity->SetZDepth(Depths::EditorDevice);
 
 	m_pEntity->SetRotation(rotation);
 
-	m_pData = GetEditorDeviceRegistry()[editorDeviceIndex]->NewShared();
+	m_pData = GetEditorDeviceData(editorDeviceGUID)->NewShared();
 
 	m_pColliderComponent = m_pEntity->CreateComponent<CColliderComponent>();
 	m_pData->InitCollider(m_pColliderComponent, rotation);

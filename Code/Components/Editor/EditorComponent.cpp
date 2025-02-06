@@ -62,7 +62,7 @@ CEditorComponent * CEditorComponent::s_pEditorComponent = nullptr;
 CEditorDeviceComponent * __Put(std::unordered_set<CEditorDeviceComponent *> & m_editorDeviceComponents, const SColorSet & colorSet, const Frame::Vec2 & pos, size_t pencilDeviceIndex, float rotation);
 
 void CEditorComponent::Initialize() {
-	m_pencilDeviceIndex = GetEditorDeviceConfig<SShellEditorDeviceData>().indexInRegistry;
+	m_pencilDeviceIndex = GetEditorDeviceConfig<SShellEditorDeviceData>().orderIndex;
 
 	m_pEntity->SetZDepth(Depths::Editor);
 
@@ -339,7 +339,7 @@ void CEditorComponent::InitGUI_ToolPencilMenu() {
 
 	float y = buttonSize * .5f + 8.f;
 	for(size_t i = 0, size = GetEditorDeviceRegistry().size(); i < size; i++) {
-		if(!GetEditorDeviceRegistry()[i]->GetConfig().pencilEnable) {
+		if(!GetEditorDeviceConfig(GetEditorDeviceOrder()[i]).pencilEnable) {
 			continue;
 		}
 		
@@ -351,7 +351,7 @@ void CEditorComponent::InitGUI_ToolPencilMenu() {
 			[i]() { if(CEditorComponent::s_pEditorComponent) { CEditorComponent::s_pEditorComponent->SwitchPencilDevice(i); } },
 			[i, spriteScale, buttonSize](const Frame::Vec2 & center) {
 				if(CEditorComponent::s_pEditorComponent) {
-					const Frame::Vec2 & drawSize = GetEditorDeviceRegistry()[i]->GetConfig().size;
+					const Frame::Vec2 & drawSize = GetEditorDeviceRegistry()[GetEditorDeviceOrder()[i]]->GetConfig().size;
 					const float scale = buttonSize / (drawSize.x > drawSize.y ? drawSize.x : drawSize.y);
 					CEditorComponent::s_pEditorComponent->DrawDevicePreview(i, center, 1.f, 0, spriteScale * scale);
 				}
@@ -996,7 +996,7 @@ void CEditorComponent::ClearAvailableInterfaces() {
 void CEditorComponent::RefreshInterfaceCanPut(const CEditorDeviceComponent::SInterface & interfaceMouseOn) {
 	if(Frame::CEntity * pEnt = Frame::gEntitySystem->SpawnEntity()) {
 		if(CColliderComponent * pComp = pEnt->CreateComponent<CColliderComponent>()) {
-			GetEditorDeviceRegistry()[m_pencilDeviceIndex]->InitCollider(pComp, interfaceMouseOn.direction);
+			GetEditorDeviceRegistry()[GetEditorDeviceOrder()[m_pencilDeviceIndex]]->InitCollider(pComp, interfaceMouseOn.direction);
 			pComp->GetEntity()->SetPosition(GetWillPutPos(interfaceMouseOn));
 			m_bInterfaceCanPut = pComp->Collide().empty();
 		}
@@ -1004,8 +1004,8 @@ void CEditorComponent::RefreshInterfaceCanPut(const CEditorDeviceComponent::SInt
 	}
 }
 
-Frame::Vec2 CEditorComponent::GetWillPutPos(const CEditorDeviceComponent::SInterface & interface, size_t willPutEditorDeviceIndexInRegistry) const {
-	return interface.pos + (Frame::Vec2 { GetEditorDeviceRegistry()[willPutEditorDeviceIndexInRegistry]->GetConfig().size.x * .5f, 0.f }).GetRotated(-interface.direction);
+Frame::Vec2 CEditorComponent::GetWillPutPos(const CEditorDeviceComponent::SInterface & interface, const Frame::GUID & willPutEditorDeviceGUID) const {
+	return interface.pos + (Frame::Vec2 { GetEditorDeviceConfig(willPutEditorDeviceGUID).size.x * .5f, 0.f }).GetRotated(-interface.direction);
 }
 
 #if 0
@@ -1265,7 +1265,7 @@ CEditorDeviceComponent * __Put(std::unordered_set<CEditorDeviceComponent *> & m_
 	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
 		pEntity->SetPosition(pos);
 		CEditorDeviceComponent * pEDComp = pEntity->CreateComponent<CEditorDeviceComponent>();
-		if(pEDComp->Initialize(pencilDeviceIndex, rotation)) {
+		if(pEDComp->Initialize(GetEditorDeviceOrder()[pencilDeviceIndex], rotation)) {
 			m_editorDeviceComponents.insert(pEDComp);
 			pEDComp->UpdateColor(colorSet);
 			return pEDComp;
@@ -1340,7 +1340,7 @@ void CEditorComponent::DrawDevicePreview(size_t editorDeviceIndex, const Frame::
 		colorSet.color2 = customColor;
 	}
 
-	GetEditorDeviceRegistry()[editorDeviceIndex]->DrawPreview(pos, colorSet, alpha, scale, rot);
+	GetEditorDeviceRegistry()[GetEditorDeviceOrder()[editorDeviceIndex]]->DrawPreview(pos, colorSet, alpha, scale, rot);
 
 }
 

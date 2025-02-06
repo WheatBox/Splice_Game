@@ -19,7 +19,7 @@ public:
 	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
 
 	// 若可放置于此处（无碰撞）（也就意味着初始化成功）则返回 true
-	bool Initialize(size_t editorDeviceIndex, float rotation);
+	bool Initialize(const Frame::GUID & editorDeviceGUID, float rotation);
 
 	virtual void OnShutDown() override;
 

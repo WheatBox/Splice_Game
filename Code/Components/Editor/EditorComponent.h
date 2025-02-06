@@ -122,16 +122,16 @@ private:
 	size_t m_pencilDeviceIndex; // 使用铅笔工具时，选中的要绘制的装置
 
 	void SwitchPencilDevice(size_t index) {
-		size_t size = GetEditorDeviceRegistry().size();
+		size_t size = GetEditorDeviceOrder().size();
 		m_pencilDeviceIndex = size == 0 ? 0 : (index >= size ? size - 1 : index);
 		m_pInterfaceMouseOn = nullptr;
 	}
 
 	void PencilPrevDevice() {
-		size_t deviceInd = m_pencilDeviceIndex, i = 0, size = GetEditorDeviceRegistry().size();
+		size_t deviceInd = m_pencilDeviceIndex, i = 0, size = GetEditorDeviceOrder().size();
 		for(; i < size; i++) {
 			deviceInd = deviceInd <= 0 ? size - 1 : deviceInd - 1;
-			if(GetEditorDeviceRegistry()[deviceInd]->GetConfig().pencilEnable) {
+			if(GetEditorDeviceConfig(GetEditorDeviceOrder()[deviceInd]).pencilEnable) {
 				break;
 			}
 		}
@@ -144,7 +144,7 @@ private:
 		size_t deviceInd = m_pencilDeviceIndex, i = 0, size = GetEditorDeviceRegistry().size();
 		for(; i < size; i++) {
 			deviceInd = deviceInd >= size - 1 ? 0 : deviceInd + 1;
-			if(GetEditorDeviceRegistry()[deviceInd]->GetConfig().pencilEnable) {
+			if(GetEditorDeviceConfig(GetEditorDeviceOrder()[deviceInd]).pencilEnable) {
 				break;
 			}
 		}
@@ -154,8 +154,8 @@ private:
 		SwitchPencilDevice(deviceInd);
 	}
 
-	auto GetPencilDeviceData() -> decltype(GetEditorDeviceRegistry()[0]) {
-		return GetEditorDeviceRegistry()[m_pencilDeviceIndex];
+	auto GetPencilDeviceData() const -> decltype(GetEditorDeviceData("")) {
+		return GetEditorDeviceData(GetEditorDeviceOrder()[m_pencilDeviceIndex]);
 	}
 
 	/* -------------------- 调色盘工具杂项 -------------------- */
@@ -292,9 +292,13 @@ private:
 	/* -------------------- 装置放置 -------------------- */
 
 	Frame::Vec2 GetWillPutPos(const CEditorDeviceComponent::SInterface & interface) const {
-		return GetWillPutPos(interface, m_pencilDeviceIndex);
+		const auto & order = GetEditorDeviceOrder();
+		if(order.size() <= m_pencilDeviceIndex) {
+			return {};
+		}
+		return GetWillPutPos(interface, order[m_pencilDeviceIndex]);
 	}
-	Frame::Vec2 GetWillPutPos(const CEditorDeviceComponent::SInterface & interface, size_t willPutEditorDeviceIndexInRegistry) const;
+	Frame::Vec2 GetWillPutPos(const CEditorDeviceComponent::SInterface & interface, const Frame::GUID & willPutEditorDeviceGUID) const;
 
 	CEditorDeviceComponent * Put(const CEditorDeviceComponent::SInterface & interface);
 
