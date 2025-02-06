@@ -10,7 +10,6 @@
 #include "../../Controller.h"
 #include "../../GUI/GUI.h"
 
-#include "EditorControllerGUI.h"
 #include "EditorDeviceComponent.h"
 
 #include <vector>
@@ -71,7 +70,6 @@ private:
 	std::shared_ptr<GUI::CDraggablePage> m_pToolSwatchesMenu {};
 	std::shared_ptr<GUI::CDraggablePage> m_pToolSwatchesColorEditor {};
 	std::shared_ptr<GUI::CDraggablePage> m_pToolControllerMenu {};
-	std::shared_ptr<CEditorControllerPage> m_pToolControllerController {};
 
 	/* -------------------- 鼠标 -------------------- */
 
