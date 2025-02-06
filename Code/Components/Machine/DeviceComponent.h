@@ -6,7 +6,7 @@
 #include "MachinePartComponent.h"
 #include "../RigidbodyComponent.h"
 
-#include "../../DevicesData.h"
+#include "../../Devices/Devices.h"
 
 #include <unordered_set>
 

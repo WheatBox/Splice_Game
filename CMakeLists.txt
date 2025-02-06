@@ -51,6 +51,7 @@ endif()
 AddFiles(CODE_FILES
 	Code
 	Code/GUI
+	Code/Devices
 	Code/Components
 	Code/Components/Editor
 	Code/Components/Machine

@@ -2,7 +2,7 @@
 
 #include <FrameEntity/IEntityComponent.h>
 
-#include "../../DevicesData.h"
+#include "../../Devices/Devices.h"
 #include "../../Utility.h"
 #include "FrameRender/Renderer.h"
 

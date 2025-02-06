@@ -6,8 +6,6 @@
 
 #include <unordered_map>
 
-#include "DevicesData.h"
-
 namespace Assets {
 
 	static inline const char * GetFontFilename() {

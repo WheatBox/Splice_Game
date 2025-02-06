@@ -3,7 +3,7 @@
 #include <FrameEntity/IEntityComponent.h>
 #include <FrameMath/ColorMath.h>
 
-#include "../../EditorDevicesData.h"
+#include "../../Devices/EditorDevices.h"
 #include "../../Assets.h"
 #include "../../Utility.h"
 #include "../../Texts.h"

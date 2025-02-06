@@ -2,7 +2,7 @@
 
 #include <FrameEntity/IEntityComponent.h>
 
-#include "../../DevicesData.h"
+#include "../../Devices/Devices.h"
 
 #include <unordered_set>
 #include <mutex>

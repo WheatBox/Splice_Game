@@ -3,6 +3,7 @@
 #include <FrameCore/Globals.h>
 #include <FrameCore/Camera.h>
 #include <FrameRender/Renderer.h>
+#include <FrameInput/Input.h>
 
 #include "../Assets.h"
 

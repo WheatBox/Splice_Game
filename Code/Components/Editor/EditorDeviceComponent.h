@@ -6,7 +6,7 @@
 #include "../SpriteComponent.h"
 #include "../ColliderComponent.h"
 #include "FrameRender/Renderer.h"
-#include "../../EditorDevicesData.h"
+#include "../../Devices/EditorDevices.h"
 
 class CEditorDeviceComponent final : public Frame::IEntityComponent {
 public:
