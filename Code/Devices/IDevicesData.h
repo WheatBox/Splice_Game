@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "DevicesMisc.h"
+#include "Misc.h"
 
 #include <FrameMath/Vector2.h>
 #include <FrameUtility/GUID.h>
