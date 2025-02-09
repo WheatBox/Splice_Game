@@ -1505,8 +1505,9 @@ void CEditorComponent::DeserializeEditorMachine(std::string_view str) {
 	
 	// 清除所有的编辑器装置
 	while(m_editorDeviceComponents.size()) {
-		Remove(m_editorDeviceComponents.begin());
+		Remove(m_editorDeviceComponents.begin(), false);
 	}
+	RegenerateInsBuffers();
 
 	// 解析 JSON
 	try {
