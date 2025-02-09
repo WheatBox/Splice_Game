@@ -75,8 +75,9 @@ public:
 
 	// 各参数的具体解释见 CEditorDeviceComponent::Initialize()
 	struct SInterface {
+		int ID = -1;
 		CEditorDeviceComponent * from = nullptr; // 该接口属于哪个装置
-		CEditorDeviceComponent * to = nullptr; // 该接口连接到的装置
+		SInterface * to = nullptr; // 该接口连接到的接口
 		Frame::Vec2 pos {};
 		float direction = 0.f;
 	};
@@ -88,6 +89,41 @@ public:
 				outToPushBack->push_back(& interface);
 			}
 		}
+	}
+
+	static bool ConnectInterfaces(CEditorDeviceComponent * pEDComp1, int interface1ID, CEditorDeviceComponent * pEDComp2, int interface2ID) {
+		SInterface * interface1 = nullptr, * interface2 = nullptr;
+		for(auto & interface : pEDComp1->m_interfaces) {
+			if(interface.ID == interface1ID) {
+				interface1 = & interface;
+				break;
+			}
+		}
+		for(auto & interface : pEDComp2->m_interfaces) {
+			if(interface.ID == interface2ID) {
+				interface2 = & interface;
+				break;
+			}
+		}
+		return ConnectInterfaces(interface1, interface2);
+	}
+	static bool ConnectInterfaces(SInterface * interface1, SInterface * interface2) {
+		if(!interface1 || !interface2) {
+			return false;
+		}
+		if(interface1->to || interface2->to) {
+			return false;
+		}
+		interface1->to = interface2;
+		interface2->to = interface1;
+		return true;
+	}
+	static void DisconnectInterfaces(SInterface * interface) {
+		if(!interface || !interface->to || interface->to->to != interface) {
+			return;
+		}
+		interface->to->to = nullptr;
+		interface->to = nullptr;
 	}
 
 private:

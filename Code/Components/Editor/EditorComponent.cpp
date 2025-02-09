@@ -18,6 +18,8 @@
 
 #include <algorithm>
 
+#include <nlohmann/json.hpp>
+
 REGISTER_ENTITY_COMPONENT(CEditorComponent);
 
 constexpr float __INTERFACESET_BUTTON_SIZE_HALF = 48.f;
@@ -51,6 +53,8 @@ constexpr float __TOOLBAR_BUTTON_ICON_SCALE = .5f;
 constexpr float __PIPE_HIDE_ALPHA = .3f; // 管道工具插入模式，要插入的目标管道之外的其它管道的透明度
 constexpr float __DEVICE_HIDE_ALPHA = .3f;
 
+constexpr float __INTERFACE_CONNECT_DISTANCE = CONNECTOR_LENGTH + 4.f;
+
 #define __DRAW_TEXT_BUTTON(center, sizehalf, highlight, text) { \
 	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(center - sizehalf, center + sizehalf, highlight ? __GUI_BUTTON_HIGHLIGHT_COLOR : __GUI_BUTTON_COLOR, 1.f); \
 	Frame::gRenderer->pShapeRenderer->DrawRectangleBlended(center - sizehalf, center + sizehalf, __GUI_BUTTON_EDGE_COLOR, 1.f, 1.f); \
@@ -59,8 +63,6 @@ constexpr float __DEVICE_HIDE_ALPHA = .3f;
 
 CEditorComponent * CEditorComponent::s_pEditorComponent = nullptr;
 
-CEditorDeviceComponent * __Put(std::unordered_set<CEditorDeviceComponent *> & m_editorDeviceComponents, const SColorSet & colorSet, const Frame::Vec2 & pos, size_t pencilDeviceIndex, float rotation);
-
 void CEditorComponent::Initialize() {
 	m_pencilDeviceIndex = GetEditorDeviceConfig<SShellEditorDeviceData>().orderIndex;
 
@@ -68,7 +70,9 @@ void CEditorComponent::Initialize() {
 
 	SetWorking(true);
 
-	__Put(m_editorDeviceComponents, GetCurrentColorSet(), 0.f, 0, 0);
+	//__Put(m_editorDeviceComponents, GetCurrentColorSet(), 0.f, 0, 0, true);
+	//DeserializeEditorMachine("[{\"connections\":[],\"guidhigh\":11124632734042574262,\"guidlow\":11640985875138584614,\"rot\":0.0,\"x\":0.0,\"y\":0.0}]");
+	DeserializeEditorMachine("[{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-4.71238899230957,\"x\":-111.99999237060547,\"y\":112.0},{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-7.853981971740723,\"x\":-112.00003051757813,\"y\":-112.0},{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":-7.693204679526389e-06,\"y\":-224.0},{\"connections\":[{\"ID\":1,\"to\":0,\"toID\":2},{\"ID\":3,\"to\":1,\"toID\":2}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-3.1415927410125732,\"x\":-112.0,\"y\":5.595057700702455e-06},{\"connections\":[{\"ID\":2,\"to\":3,\"toID\":2}],\"guidhigh\":11124632734042574262,\"guidlow\":11640985875138584614,\"rot\":0.0,\"x\":0.0,\"y\":0.0},{\"connections\":[{\"ID\":2,\"to\":4,\"toID\":0}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-0.0,\"x\":112.0,\"y\":0.0},{\"connections\":[],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-4.71238899230957,\"x\":2.098779077641666e-06,\"y\":224.0},{\"connections\":[{\"ID\":1,\"to\":1,\"toID\":3},{\"ID\":0,\"to\":2,\"toID\":2},{\"ID\":2,\"to\":4,\"toID\":1}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-1.5707963705062866,\"x\":-2.7975288503512274e-06,\"y\":-112.0},{\"connections\":[{\"ID\":2,\"to\":2,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":-1.2588880053954199e-05,\"y\":-336.0},{\"connections\":[{\"ID\":2,\"to\":5,\"toID\":3}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-4.71238899230957,\"x\":112.0,\"y\":112.0},{\"connections\":[{\"ID\":3,\"to\":0,\"toID\":1},{\"ID\":2,\"to\":4,\"toID\":3},{\"ID\":0,\"to\":6,\"toID\":0},{\"ID\":1,\"to\":9,\"toID\":3}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-4.71238899230957,\"x\":7.631923608641955e-07,\"y\":112.0},{\"connections\":[{\"ID\":2,\"to\":5,\"toID\":1},{\"ID\":1,\"to\":7,\"toID\":3}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":112.0,\"y\":-112.0},{\"connections\":[{\"ID\":1,\"to\":0,\"toID\":3}],\"guidhigh\":16370282976155157689,\"guidlow\":10090654385005652104,\"rot\":-4.71238899230957,\"x\":-224.0,\"y\":156.00001525878906},{\"connections\":[{\"ID\":2,\"to\":9,\"toID\":1}],\"guidhigh\":16370282976155157689,\"guidlow\":10090654385005652104,\"rot\":-4.71238899230957,\"x\":224.0,\"y\":156.0},{\"connections\":[{\"ID\":0,\"to\":1,\"toID\":1}],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-9.42477798461914,\"x\":-224.00003051757813,\"y\":-111.99998474121094},{\"connections\":[{\"ID\":0,\"to\":11,\"toID\":3}],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-6.2831854820251465,\"x\":224.0,\"y\":-112.00000762939453},{\"connections\":[{\"ID\":2,\"to\":1,\"toID\":0},{\"ID\":3,\"to\":2,\"toID\":1}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-7.853981971740723,\"x\":-112.00006866455078,\"y\":-224.0},{\"connections\":[{\"ID\":2,\"to\":2,\"toID\":3},{\"ID\":3,\"to\":11,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-6.2831854820251465,\"x\":111.99999237060547,\"y\":-224.00001525878906}]");
 
 	m_pFont = new Frame::CFont { Assets::GetFontFilename(), 16.f };
 
@@ -176,6 +180,10 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 			}
 
 		} while(false);
+
+		if(Frame::gInput->pKeyboard->GetPressed(Frame::eKI_T)) {
+			printf(SerializeEditorMachine().c_str());
+		}
 
 		/* ----------------------- Canvas ----------------------- */
 		
@@ -869,9 +877,9 @@ void CEditorComponent::Pencil() {
 					for(SInterface * & newerInterface : v) {
 						for(const SInterfaceSet & olderInterfaceSet : m_interfaces) {
 							for(SInterface * const & olderInterface : olderInterfaceSet.interfaces) {
-								if(PointDistance(newerInterface->pos, olderInterface->pos) > CONNECTOR_LENGTH + 4.f)
+								if(PointDistance(newerInterface->pos, olderInterface->pos) > __INTERFACE_CONNECT_DISTANCE)
 									continue;
-								if(ConnectDevices(newerInterface, olderInterface)) {
+								if(CEditorDeviceComponent::ConnectInterfaces(newerInterface, olderInterface)) {
 									break;
 								}
 							}
@@ -924,12 +932,7 @@ void CEditorComponent::Eraser() {
 			itWillBeErase = it;
 		}
 	}
-	if(itWillBeErase != m_editorDeviceComponents.end()) {
-		Frame::gEntitySystem->RemoveEntity((* itWillBeErase)->GetEntity()->GetId());
-		m_editorDeviceComponents.erase(itWillBeErase);
-		
-		RegenerateInsBuffers();
-	}
+	Remove(itWillBeErase);
 }
 
 void CEditorComponent::SwitchTool(ETool tool) {
@@ -1261,11 +1264,15 @@ static inline void PipeConnect(const std::pair<SPipeInterface, SPipeInterface> &
 }
 #endif
 
-CEditorDeviceComponent * __Put(std::unordered_set<CEditorDeviceComponent *> & m_editorDeviceComponents, const SColorSet & colorSet, const Frame::Vec2 & pos, size_t pencilDeviceIndex, float rotation) {
+CEditorDeviceComponent * __Put(std::unordered_set<CEditorDeviceComponent *> & m_editorDeviceComponents, const SColorSet & colorSet, const Frame::Vec2 & pos, const Frame::GUID & guid, float rotation, bool ignoreCollision) {
+	
+	// TODO - ignoreCollision
+	ignoreCollision;
+
 	if(Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity()) {
 		pEntity->SetPosition(pos);
 		CEditorDeviceComponent * pEDComp = pEntity->CreateComponent<CEditorDeviceComponent>();
-		if(pEDComp->Initialize(GetEditorDeviceOrder()[pencilDeviceIndex], rotation)) {
+		if(pEDComp->Initialize(guid, rotation)) {
 			m_editorDeviceComponents.insert(pEDComp);
 			pEDComp->UpdateColor(colorSet);
 			return pEDComp;
@@ -1277,7 +1284,16 @@ CEditorDeviceComponent * __Put(std::unordered_set<CEditorDeviceComponent *> & m_
 }
 
 CEditorDeviceComponent * CEditorComponent::Put(const CEditorDeviceComponent::SInterface & interface) {
-	return __Put(m_editorDeviceComponents, GetCurrentColorSet(), GetWillPutPos(interface), m_pencilDeviceIndex, -interface.direction);
+	return __Put(m_editorDeviceComponents, GetCurrentColorSet(), GetWillPutPos(interface), GetEditorDeviceOrder()[m_pencilDeviceIndex], -interface.direction, false);
+}
+
+void CEditorComponent::Remove(decltype(m_editorDeviceComponents.begin()) it, bool regenerateInsBuffers) {
+	if(it != m_editorDeviceComponents.end()) {
+		Frame::gEntitySystem->RemoveEntity((* it)->GetEntity()->GetId());
+		m_editorDeviceComponents.erase(it);
+
+		if(regenerateInsBuffers) RegenerateInsBuffers();
+	}
 }
 
 #if 0
@@ -1395,6 +1411,132 @@ void CEditorComponent::__RegenerateInsBuffers() {
 
 	for(auto & pEDComp : m_editorDeviceComponents) {
 		pEDComp->GetRenderingInstanceData(m_insBuffers);
+	}
+}
+
+struct SSerializedEditorDevice {
+	Frame::GUID guid;
+	Frame::Vec2 position; // 相对于 驾驶舱 Cabin 来说的
+	float rotation;       // 同上
+	
+	struct SConnection {
+		size_t iEDComp; // 连接的装置的下标
+		int myInterfaceID; // 哪个接口连接着 iEDComp 记录的装置
+		int toInterfaceID; // 接口连接到的 iEDComp 记录的装置的接口，也就是 iEDComp 记录的装置的什么接口连接着自己
+	};
+	std::vector<SConnection> connections;
+};
+
+std::string CEditorComponent::SerializeEditorMachine() const {
+	std::vector<std::pair<const CEditorDeviceComponent *, SSerializedEditorDevice>> v;
+	const CEditorDeviceComponent * pCabin = nullptr;
+
+	// 找出 Cabin
+	for(const auto & pEDComp : m_editorDeviceComponents) {
+		if(pEDComp->IsCabin()) {
+			pCabin = pEDComp;
+			break;
+		}
+	}
+
+	if(!pCabin) {
+		Frame::Log::Log(Frame::Log::ELevel::Error, "Try to serialize editor machine, but cannot find Cabin.");
+		return "";
+	}
+
+	const Frame::Vec2 cabinPos = pCabin->GetEntity()->GetPosition();
+	const float cabinRot = pCabin->GetEntity()->GetRotation();
+
+	// 将每个编辑器装置转换成 SSerializedEditorDevice
+	for(const auto & pEDComp : m_editorDeviceComponents) {
+		std::shared_ptr<IEditorDeviceData> pData = pEDComp->GetData();
+		if(!pData) {
+			continue;
+		}
+		SSerializedEditorDevice current;
+		current.guid = pData->GetConfig().guid;
+		current.position = pEDComp->GetEntity()->GetPosition() - cabinPos;
+		current.rotation = pEDComp->GetEntity()->GetRotation() - cabinRot;
+
+		// 只记录自己与自己之前的装置之间的连接关系，确保每个连接关系只被记录一次
+		for(size_t i = 0, len = v.size(); i < len; i++) {
+			auto pEDCompBeforeThis = v[i].first;
+			for(const auto & interface : pEDComp->m_interfaces) {
+				if(!interface.to || interface.to->from != pEDCompBeforeThis) {
+					continue;
+				}
+				SSerializedEditorDevice::SConnection connection;
+				connection.iEDComp = i;
+				connection.myInterfaceID = interface.ID;
+				connection.toInterfaceID = interface.to->ID;
+				current.connections.push_back(connection);
+			}
+		}
+
+		v.push_back({ pEDComp, current });
+	}
+
+	// 最终转换成 JSON
+	nlohmann::json json = nlohmann::json::array();
+	for(const auto & [_, current] : v) {
+		nlohmann::json currConnectionsJson = nlohmann::json::array();
+		for(const auto & connection : current.connections) {
+			currConnectionsJson.push_back({
+				{ "to", connection.iEDComp },
+				{ "ID", connection.myInterfaceID },
+				{ "toID", connection.toInterfaceID }
+				});
+		}
+		nlohmann::json currJson = {
+			{ "guidhigh", current.guid.high },
+			{ "guidlow", current.guid.low },
+			{ "x", current.position.x },
+			{ "y", current.position.y },
+			{ "rot", current.rotation },
+			{ "connections", currConnectionsJson }
+		};
+		json.push_back(currJson);
+	}
+	return json.dump();
+}
+
+void CEditorComponent::DeserializeEditorMachine(std::string_view str) {
+	std::vector<std::pair<CEditorDeviceComponent *, SSerializedEditorDevice>> v;
+	
+	// 清除所有的编辑器装置
+	while(m_editorDeviceComponents.size()) {
+		Remove(m_editorDeviceComponents.begin());
+	}
+
+	// 解析 JSON
+	try {
+		nlohmann::json json = nlohmann::json::parse(str);
+		for(const auto & currJson : json) {
+			SSerializedEditorDevice current;
+			current.guid.high = currJson["guidhigh"];
+			current.guid.low = currJson["guidlow"];
+			current.position.x = currJson["x"];
+			current.position.y = currJson["y"];
+			current.rotation = currJson["rot"];
+			for(const auto & currConnectionsJson : currJson["connections"]) {
+				SSerializedEditorDevice::SConnection connection;
+				connection.iEDComp = currConnectionsJson["to"];
+				connection.myInterfaceID = currConnectionsJson["ID"];
+				connection.toInterfaceID = currConnectionsJson["toID"];
+				current.connections.push_back(connection);
+			}
+			v.push_back({ nullptr, current });
+		}
+	} catch(const nlohmann::json::exception & e) {
+		Frame::Log::Log(Frame::Log::ELevel::Error, "DeserializeEditorMachine(): Illegal JSON: %s", e.what());
+	}
+
+	// 生成解析出的编辑器装置
+	for(auto & [pEDComp, serialized] : v) {
+		pEDComp = __Put(m_editorDeviceComponents, GetCurrentColorSet(), serialized.position, serialized.guid, serialized.rotation, true);
+		for(const auto & connection : serialized.connections) {
+			CEditorDeviceComponent::ConnectInterfaces(pEDComp, connection.myInterfaceID, v[connection.iEDComp].first, connection.toInterfaceID);
+		}
 	}
 }
 

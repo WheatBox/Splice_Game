@@ -275,18 +275,6 @@ private:
 
 	void RefreshInterfaceCanPut(const CEditorDeviceComponent::SInterface & interfaceMouseOn);
 
-	bool ConnectDevices(CEditorDeviceComponent::SInterface * interface1, CEditorDeviceComponent::SInterface * interface2) const {
-		if(!interface1 || !interface2 || !interface1->from || !interface2->from) {
-			return false;
-		}
-		if(interface1->to || interface2->to) {
-			return false;
-		}
-		interface1->to = interface2->from;
-		interface2->to = interface1->from;
-		return true;
-	}
-
 	/* -------------------- 装置放置 -------------------- */
 
 	Frame::Vec2 GetWillPutPos(const CEditorDeviceComponent::SInterface & interface) const {
@@ -299,6 +287,11 @@ private:
 	Frame::Vec2 GetWillPutPos(const CEditorDeviceComponent::SInterface & interface, const Frame::GUID & willPutEditorDeviceGUID) const;
 
 	CEditorDeviceComponent * Put(const CEditorDeviceComponent::SInterface & interface);
+
+	void Remove(decltype(m_editorDeviceComponents.begin()) it, bool regenerateInsBuffers = true);
+	void Remove(CEditorDeviceComponent * pEDComp, bool regenerateInsBuffers = true) {
+		Remove(m_editorDeviceComponents.find(pEDComp), regenerateInsBuffers);
+	}
 
 	/* -------------------- 管道接口（插槽） -------------------- */
 
@@ -330,5 +323,8 @@ private:
 		__regenerateInsBuffersDelay = 1;
 	}
 	void __RegenerateInsBuffers();
+
+	std::string SerializeEditorMachine() const;
+	void DeserializeEditorMachine(std::string_view str);
 
 };

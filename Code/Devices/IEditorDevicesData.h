@@ -13,6 +13,7 @@ class CSpriteComponent;
 // 连接其它编辑器装置的 接口 的定义
 // 如果都是一些比较常规的接口（直接的上下左右），可以使用 EasyMakeEditorDeviceInterfaceDefs() 进行创建
 struct SEditorDeviceInterfaceDef {
+	int ID = -1; // 唯一标识符，需手动设定，任何 >= 0 的数字都行，一个编辑器装置内不能有两个一样的 ID 的接口
 	Frame::Vec2 offset;
 	float direction = 0.f;
 };
@@ -89,8 +90,9 @@ struct __EditorDeviceRegister {
 	virtual ~__EditorDeviceRegister() = default;
 };
 
-static inline std::vector<SEditorDeviceInterfaceDef> EasyMakeEditorDeviceInterfaceDefs(const SEditorDeviceTypeConfig & config, std::initializer_list<int> dirDegs_only1of_0_90_180_270) {
+static inline std::vector<SEditorDeviceInterfaceDef> EasyMakeEditorDeviceInterfaceDefs(const SEditorDeviceTypeConfig & config, std::initializer_list<int> IDs, std::initializer_list<int> dirDegs_only1of_0_90_180_270) {
 	std::vector<SEditorDeviceInterfaceDef> defs;
+	auto itID = IDs.begin();
 	for(const auto & dirDeg : dirDegs_only1of_0_90_180_270) {
 		float xMulti = 0.f, yMulti = 0.f;
 		switch(dirDeg) {
@@ -99,7 +101,7 @@ static inline std::vector<SEditorDeviceInterfaceDef> EasyMakeEditorDeviceInterfa
 		case 180: xMulti = -.5f; break;
 		case 270: yMulti = .5f; break;
 		}
-		defs.push_back({ { config.size.x * xMulti, config.size.y * yMulti }, Frame::DegToRad(static_cast<float>(dirDeg)) });
+		defs.push_back({ * itID++, { config.size.x * xMulti, config.size.y * yMulti }, Frame::DegToRad(static_cast<float>(dirDeg)) });
 	}
 	return defs;
 }

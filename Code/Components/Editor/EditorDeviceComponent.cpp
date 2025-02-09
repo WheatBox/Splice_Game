@@ -76,6 +76,7 @@ bool CEditorDeviceComponent::Initialize(const Frame::GUID & editorDeviceGUID, fl
 
 	for(auto & def : m_pData->GetConfig().interfaceDefs) {
 		SInterface interface;
+		interface.ID = def.ID;
 		interface.from = this;
 		interface.direction = def.direction - m_pEntity->GetRotation();
 		interface.pos = m_pEntity->GetPosition()
@@ -90,15 +91,7 @@ bool CEditorDeviceComponent::Initialize(const Frame::GUID & editorDeviceGUID, fl
 
 void CEditorDeviceComponent::OnShutDown() {
 	for(auto & interface : m_interfaces) {
-		if(!interface.to) {
-			continue;
-		}
-		for(auto it = interface.to->m_interfaces.begin(); it != interface.to->m_interfaces.end(); it++) {
-			if(it->to == this) {
-				it->to = nullptr;
-				break;
-			}
-		}
+		DisconnectInterfaces(& interface);
 	}
 }
 
@@ -122,7 +115,7 @@ void CEditorDeviceComponent::GetConnectorsRenderingInstanceData(std::vector<Fram
 			Frame::Matrix33::CreateTranslation(pos)
 			* Frame::Matrix33::CreateRotationZ(-interface.direction)
 			* baseTrans;
-		buffersToPushBack.push_back({ trans, { ONERGB(color), Frame::Min(m_alpha, interface.to->GetAlpha()) }, buf.uvMulti, buf.uvAdd });	
+		buffersToPushBack.push_back({ trans, { ONERGB(color), Frame::Min(m_alpha, interface.to->from->GetAlpha()) }, buf.uvMulti, buf.uvAdd });	
 	}
 
 }
