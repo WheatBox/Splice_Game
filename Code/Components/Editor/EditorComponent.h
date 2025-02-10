@@ -16,6 +16,8 @@
 #include <unordered_set>
 #include <memory>
 
+#include <nlohmann/json.hpp>
+
 class CEditorDeviceComponent;
 class CCameraComponent;
 
@@ -324,7 +326,18 @@ private:
 	}
 	void __RegenerateInsBuffers();
 
-	std::string SerializeEditorMachine() const;
-	void DeserializeEditorMachine(std::string_view str);
+	std::string SerializeEditorMachineStr() const {
+		return SerializeEditorMachine().dump();
+	}
+	void DeserializeEditorMachineStr(std::string_view str) {
+		try {
+			DeserializeEditorMachine(nlohmann::json::parse(str));
+		} catch(const nlohmann::json::exception & e) {
+			Frame::Log::Log(Frame::Log::ELevel::Error, "CMachineComponent::DeserializeStr(): Illegal JSON: %s", e.what());
+		}
+	}
+
+	nlohmann::json SerializeEditorMachine() const;
+	void DeserializeEditorMachine(const nlohmann::json & json);
 
 };

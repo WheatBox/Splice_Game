@@ -57,13 +57,15 @@ AddFiles(CODE_FILES
 	Code/Components/Machine
 )
 
-AddFiles(SHADER_FILES
+# 为了能在 Visual Studio 里看到它们
+AddFiles(OTHER_FILES
+	Docs
 	Shaders
 )
 
 add_executable(${EXE_NAME}
 	${CODE_FILES}
-	${SHADER_FILES}
+	${OTHER_FILES}
 	${CMAKE_SOURCE_DIR}/Framework/
 	${CMAKE_SOURCE_DIR}/ThirdInclude/
 )

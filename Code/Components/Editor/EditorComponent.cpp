@@ -18,8 +18,6 @@
 
 #include <algorithm>
 
-#include <nlohmann/json.hpp>
-
 REGISTER_ENTITY_COMPONENT(CEditorComponent);
 
 constexpr float __INTERFACESET_BUTTON_SIZE_HALF = 48.f;
@@ -71,8 +69,8 @@ void CEditorComponent::Initialize() {
 	SetWorking(true);
 
 	//__Put(m_editorDeviceComponents, GetCurrentColorSet(), 0.f, 0, 0, true);
-	//DeserializeEditorMachine("[{\"connections\":[],\"guidhigh\":11124632734042574262,\"guidlow\":11640985875138584614,\"rot\":0.0,\"x\":0.0,\"y\":0.0}]");
-	DeserializeEditorMachine("[{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-4.71238899230957,\"x\":-111.99999237060547,\"y\":112.0},{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-7.853981971740723,\"x\":-112.00003051757813,\"y\":-112.0},{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":-7.693204679526389e-06,\"y\":-224.0},{\"connections\":[{\"ID\":1,\"to\":0,\"toID\":2},{\"ID\":3,\"to\":1,\"toID\":2}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-3.1415927410125732,\"x\":-112.0,\"y\":5.595057700702455e-06},{\"connections\":[{\"ID\":2,\"to\":3,\"toID\":2}],\"guidhigh\":11124632734042574262,\"guidlow\":11640985875138584614,\"rot\":0.0,\"x\":0.0,\"y\":0.0},{\"connections\":[{\"ID\":2,\"to\":4,\"toID\":0}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-0.0,\"x\":112.0,\"y\":0.0},{\"connections\":[],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-4.71238899230957,\"x\":2.098779077641666e-06,\"y\":224.0},{\"connections\":[{\"ID\":1,\"to\":1,\"toID\":3},{\"ID\":0,\"to\":2,\"toID\":2},{\"ID\":2,\"to\":4,\"toID\":1}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-1.5707963705062866,\"x\":-2.7975288503512274e-06,\"y\":-112.0},{\"connections\":[{\"ID\":2,\"to\":2,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":-1.2588880053954199e-05,\"y\":-336.0},{\"connections\":[{\"ID\":2,\"to\":5,\"toID\":3}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-4.71238899230957,\"x\":112.0,\"y\":112.0},{\"connections\":[{\"ID\":3,\"to\":0,\"toID\":1},{\"ID\":2,\"to\":4,\"toID\":3},{\"ID\":0,\"to\":6,\"toID\":0},{\"ID\":1,\"to\":9,\"toID\":3}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-4.71238899230957,\"x\":7.631923608641955e-07,\"y\":112.0},{\"connections\":[{\"ID\":2,\"to\":5,\"toID\":1},{\"ID\":1,\"to\":7,\"toID\":3}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":112.0,\"y\":-112.0},{\"connections\":[{\"ID\":1,\"to\":0,\"toID\":3}],\"guidhigh\":16370282976155157689,\"guidlow\":10090654385005652104,\"rot\":-4.71238899230957,\"x\":-224.0,\"y\":156.00001525878906},{\"connections\":[{\"ID\":2,\"to\":9,\"toID\":1}],\"guidhigh\":16370282976155157689,\"guidlow\":10090654385005652104,\"rot\":-4.71238899230957,\"x\":224.0,\"y\":156.0},{\"connections\":[{\"ID\":0,\"to\":1,\"toID\":1}],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-9.42477798461914,\"x\":-224.00003051757813,\"y\":-111.99998474121094},{\"connections\":[{\"ID\":0,\"to\":11,\"toID\":3}],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-6.2831854820251465,\"x\":224.0,\"y\":-112.00000762939453},{\"connections\":[{\"ID\":2,\"to\":1,\"toID\":0},{\"ID\":3,\"to\":2,\"toID\":1}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-7.853981971740723,\"x\":-112.00006866455078,\"y\":-224.0},{\"connections\":[{\"ID\":2,\"to\":2,\"toID\":3},{\"ID\":3,\"to\":11,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-6.2831854820251465,\"x\":111.99999237060547,\"y\":-224.00001525878906}]");
+	//DeserializeEditorMachineStr("[{\"connections\":[],\"guidhigh\":11124632734042574262,\"guidlow\":11640985875138584614,\"rot\":0.0,\"x\":0.0,\"y\":0.0}]");
+	DeserializeEditorMachineStr("[{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-4.71238899230957,\"x\":-111.99999237060547,\"y\":112.0},{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-7.853981971740723,\"x\":-112.00003051757813,\"y\":-112.0},{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":-7.693204679526389e-06,\"y\":-224.0},{\"connections\":[{\"ID\":1,\"to\":0,\"toID\":2},{\"ID\":3,\"to\":1,\"toID\":2}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-3.1415927410125732,\"x\":-112.0,\"y\":5.595057700702455e-06},{\"connections\":[{\"ID\":2,\"to\":3,\"toID\":2}],\"guidhigh\":11124632734042574262,\"guidlow\":11640985875138584614,\"rot\":0.0,\"x\":0.0,\"y\":0.0},{\"connections\":[{\"ID\":2,\"to\":4,\"toID\":0}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-0.0,\"x\":112.0,\"y\":0.0},{\"connections\":[],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-4.71238899230957,\"x\":2.098779077641666e-06,\"y\":224.0},{\"connections\":[{\"ID\":1,\"to\":1,\"toID\":3},{\"ID\":0,\"to\":2,\"toID\":2},{\"ID\":2,\"to\":4,\"toID\":1}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-1.5707963705062866,\"x\":-2.7975288503512274e-06,\"y\":-112.0},{\"connections\":[{\"ID\":2,\"to\":2,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":-1.2588880053954199e-05,\"y\":-336.0},{\"connections\":[{\"ID\":2,\"to\":5,\"toID\":3}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-4.71238899230957,\"x\":112.0,\"y\":112.0},{\"connections\":[{\"ID\":3,\"to\":0,\"toID\":1},{\"ID\":2,\"to\":4,\"toID\":3},{\"ID\":0,\"to\":6,\"toID\":0},{\"ID\":1,\"to\":9,\"toID\":3}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-4.71238899230957,\"x\":7.631923608641955e-07,\"y\":112.0},{\"connections\":[{\"ID\":2,\"to\":5,\"toID\":1},{\"ID\":1,\"to\":7,\"toID\":3}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":112.0,\"y\":-112.0},{\"connections\":[{\"ID\":1,\"to\":0,\"toID\":3}],\"guidhigh\":16370282976155157689,\"guidlow\":10090654385005652104,\"rot\":-4.71238899230957,\"x\":-224.0,\"y\":156.00001525878906},{\"connections\":[{\"ID\":2,\"to\":9,\"toID\":1}],\"guidhigh\":16370282976155157689,\"guidlow\":10090654385005652104,\"rot\":-4.71238899230957,\"x\":224.0,\"y\":156.0},{\"connections\":[{\"ID\":0,\"to\":1,\"toID\":1}],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-9.42477798461914,\"x\":-224.00003051757813,\"y\":-111.99998474121094},{\"connections\":[{\"ID\":0,\"to\":11,\"toID\":3}],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-6.2831854820251465,\"x\":224.0,\"y\":-112.00000762939453},{\"connections\":[{\"ID\":2,\"to\":1,\"toID\":0},{\"ID\":3,\"to\":2,\"toID\":1}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-7.853981971740723,\"x\":-112.00006866455078,\"y\":-224.0},{\"connections\":[{\"ID\":2,\"to\":2,\"toID\":3},{\"ID\":3,\"to\":11,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-6.2831854820251465,\"x\":111.99999237060547,\"y\":-224.00001525878906}]");
 
 	m_pFont = new Frame::CFont { Assets::GetFontFilename(), 16.f };
 
@@ -182,7 +180,7 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		} while(false);
 
 		if(Frame::gInput->pKeyboard->GetPressed(Frame::eKI_T)) {
-			printf(SerializeEditorMachine().c_str());
+			printf(SerializeEditorMachineStr().c_str());
 		}
 
 		/* ----------------------- Canvas ----------------------- */
@@ -1420,14 +1418,55 @@ struct SSerializedEditorDevice {
 	float rotation;       // 同上
 	
 	struct SConnection {
-		size_t iEDComp; // 连接的装置的下标
-		int myInterfaceID; // 哪个接口连接着 iEDComp 记录的装置
-		int toInterfaceID; // 接口连接到的 iEDComp 记录的装置的接口，也就是 iEDComp 记录的装置的什么接口连接着自己
+		size_t to; // 连接的装置的下标
+		int myInterfaceID; // 该接口的 ID，也就是哪个接口连接着 to
+		int toInterfaceID; // 接口连接到的 to 的接口，也就是 to 的什么接口连接着自己
 	};
 	std::vector<SConnection> connections;
+
+	nlohmann::json ToJson() const {
+		nlohmann::json currConnectionsJson = nlohmann::json::array();
+		for(const auto & connection : connections) {
+			currConnectionsJson.push_back({
+				{ "to", connection.to },
+				{ "ID", connection.myInterfaceID },
+				{ "toID", connection.toInterfaceID }
+				});
+		}
+		nlohmann::json currJson = {
+			{ "guidhigh", guid.high },
+			{ "guidlow", guid.low },
+			{ "x", position.x },
+			{ "y", position.y },
+			{ "rot", rotation },
+			{ "connections", currConnectionsJson }
+		};
+		return currJson;
+	}
+
+	void FromJson(const nlohmann::json & json) {
+		guid.high = json["guidhigh"];
+		guid.low = json["guidlow"];
+		position.x = json["x"];
+		position.y = json["y"];
+		rotation = json["rot"];
+		for(const auto & currConnectionsJson : json["connections"]) {
+			SConnection connection;
+			connection.to = currConnectionsJson["to"];
+			connection.myInterfaceID = currConnectionsJson["ID"];
+			connection.toInterfaceID = currConnectionsJson["toID"];
+			connections.push_back(connection);
+		}
+	}
+
+	static SSerializedEditorDevice MakeFromJson(const nlohmann::json & json) {
+		SSerializedEditorDevice res;
+		res.FromJson(json);
+		return res;
+	}
 };
 
-std::string CEditorComponent::SerializeEditorMachine() const {
+nlohmann::json CEditorComponent::SerializeEditorMachine() const {
 	std::vector<std::pair<const CEditorDeviceComponent *, SSerializedEditorDevice>> v;
 	const CEditorDeviceComponent * pCabin = nullptr;
 
@@ -1466,7 +1505,7 @@ std::string CEditorComponent::SerializeEditorMachine() const {
 					continue;
 				}
 				SSerializedEditorDevice::SConnection connection;
-				connection.iEDComp = i;
+				connection.to = i;
 				connection.myInterfaceID = interface.ID;
 				connection.toInterfaceID = interface.to->ID;
 				current.connections.push_back(connection);
@@ -1479,28 +1518,12 @@ std::string CEditorComponent::SerializeEditorMachine() const {
 	// 最终转换成 JSON
 	nlohmann::json json = nlohmann::json::array();
 	for(const auto & [_, current] : v) {
-		nlohmann::json currConnectionsJson = nlohmann::json::array();
-		for(const auto & connection : current.connections) {
-			currConnectionsJson.push_back({
-				{ "to", connection.iEDComp },
-				{ "ID", connection.myInterfaceID },
-				{ "toID", connection.toInterfaceID }
-				});
-		}
-		nlohmann::json currJson = {
-			{ "guidhigh", current.guid.high },
-			{ "guidlow", current.guid.low },
-			{ "x", current.position.x },
-			{ "y", current.position.y },
-			{ "rot", current.rotation },
-			{ "connections", currConnectionsJson }
-		};
-		json.push_back(currJson);
+		json.push_back(current.ToJson());
 	}
-	return json.dump();
+	return json;
 }
 
-void CEditorComponent::DeserializeEditorMachine(std::string_view str) {
+void CEditorComponent::DeserializeEditorMachine(const nlohmann::json & json) {
 	std::vector<std::pair<CEditorDeviceComponent *, SSerializedEditorDevice>> v;
 	
 	// 清除所有的编辑器装置
@@ -1511,32 +1534,19 @@ void CEditorComponent::DeserializeEditorMachine(std::string_view str) {
 
 	// 解析 JSON
 	try {
-		nlohmann::json json = nlohmann::json::parse(str);
 		for(const auto & currJson : json) {
-			SSerializedEditorDevice current;
-			current.guid.high = currJson["guidhigh"];
-			current.guid.low = currJson["guidlow"];
-			current.position.x = currJson["x"];
-			current.position.y = currJson["y"];
-			current.rotation = currJson["rot"];
-			for(const auto & currConnectionsJson : currJson["connections"]) {
-				SSerializedEditorDevice::SConnection connection;
-				connection.iEDComp = currConnectionsJson["to"];
-				connection.myInterfaceID = currConnectionsJson["ID"];
-				connection.toInterfaceID = currConnectionsJson["toID"];
-				current.connections.push_back(connection);
-			}
-			v.push_back({ nullptr, current });
+			v.push_back({ nullptr, SSerializedEditorDevice::MakeFromJson(currJson) });
 		}
 	} catch(const nlohmann::json::exception & e) {
-		Frame::Log::Log(Frame::Log::ELevel::Error, "DeserializeEditorMachine(): Illegal JSON: %s", e.what());
+		Frame::Log::Log(Frame::Log::ELevel::Error, "CEditorComponent::DeserializeEditorMachine(): Illegal JSON: %s", e.what());
+		return;
 	}
 
 	// 生成解析出的编辑器装置
 	for(auto & [pEDComp, serialized] : v) {
 		pEDComp = __Put(m_editorDeviceComponents, GetCurrentColorSet(), serialized.position, serialized.guid, serialized.rotation, true);
 		for(const auto & connection : serialized.connections) {
-			CEditorDeviceComponent::ConnectInterfaces(pEDComp, connection.myInterfaceID, v[connection.iEDComp].first, connection.toInterfaceID);
+			CEditorDeviceComponent::ConnectInterfaces(pEDComp, connection.myInterfaceID, v[connection.to].first, connection.toInterfaceID);
 		}
 	}
 }

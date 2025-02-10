@@ -26,7 +26,7 @@ struct SEditorDeviceDeviceDef {
 	Frame::GUID deviceGUID;
 	Frame::Vec2 offset;
 	float rotation = 0.f;
-	std::vector<size_t> interfaceDefIndices; // 存储对应在 SEditorDeviceTypeConfig::interfaceDefs 中的下标
+	std::vector<int> interfaceIDs; // 存储对应在 SEditorDeviceTypeConfig::interfaceDefs 中的 ID
 };
 
 struct SEditorDeviceTypeConfig {
@@ -107,22 +107,22 @@ static inline std::vector<SEditorDeviceInterfaceDef> EasyMakeEditorDeviceInterfa
 }
 
 template<typename DeviceDataType>
-static inline SEditorDeviceDeviceDef MakeEditorDeviceDeviceDef(const Frame::Vec2 & offset, float rotation, const std::vector<size_t> & interfaceDefIndices) {
+static inline SEditorDeviceDeviceDef MakeEditorDeviceDeviceDef(const Frame::Vec2 & offset, float rotation, const std::vector<int> & interfaceIDs) {
 	SEditorDeviceDeviceDef def;
 	def.deviceGUID = GetDeviceConfig<DeviceDataType>().guid;
 	def.offset = offset;
 	def.rotation = rotation;
-	def.interfaceDefIndices = interfaceDefIndices;
+	def.interfaceIDs = interfaceIDs;
 	return def;
 }
 
 template<typename DeviceDataType>
-static inline SEditorDeviceDeviceDef MakeEditorDeviceDeviceDef(size_t _interfaceDefs_size) {
-	std::vector<size_t> interfaceDefIndices;
-	for(size_t i = 0; i < _interfaceDefs_size; i++) {
-		interfaceDefIndices.push_back(i);
+static inline SEditorDeviceDeviceDef MakeEditorDeviceDeviceDef(const std::vector<SEditorDeviceInterfaceDef> & interfaceDefs) {
+	std::vector<int> interfaceIDs;
+	for(const auto & interfaceDef : interfaceDefs) {
+		interfaceIDs.push_back(interfaceDef.ID);
 	}
-	return MakeEditorDeviceDeviceDef<DeviceDataType>(0.f, 0.f, interfaceDefIndices);
+	return MakeEditorDeviceDeviceDef<DeviceDataType>(0.f, 0.f, interfaceIDs);
 }
 
 #define REGISTER_EDITOR_DEVICE(EditorDeviceType) \
