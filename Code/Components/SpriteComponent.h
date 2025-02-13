@@ -9,19 +9,8 @@
 
 #define InsBufferGroupT std::vector<Frame::CRenderer::SInstanceBuffer>
 
-class CSpriteComponent : public Frame::IEntityComponent {
+class CSprite {
 public:
-
-	static void Register(Frame::SComponentTypeConfig & config) {
-		config.SetGUID("{0A6967F0-19EF-421D-84BB-249BEF7B3095}");
-	}
-
-	virtual void Initialize() override {
-		CreateInsBufferGroup();
-	}
-
-	virtual Frame::EntityEvent::Flags GetEventFlags() const override;
-	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
 
 	struct SLayer {
 
@@ -213,9 +202,6 @@ public:
 		unsigned int __indexInGroup = 0;
 	};
 
-	bool bUpdating = true;
-	bool bRendering = false;
-
 	// 请确保 layers 中的所有精灵都处在同一纹理页
 	void GetAllRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
 		for(const auto & group : m_insBufferGroups) {
@@ -239,7 +225,7 @@ public:
 		for(const auto & _layer : layers) {
 			indInGroup += _layer.GetInsBufferGroup() == groupIndex;
 		}
-		
+
 		layers.push_back(layer);
 		auto & newlayer = layers.back();
 		newlayer.SetInsBufferGroup(groupIndex);
@@ -258,12 +244,19 @@ public:
 		return layers;
 	}
 
+	void AnimateAllLayers(const float frameTime) {
+		for(auto & layer : layers) {
+			layer.Animate(frameTime);
+		}
+	}
+
+	void DrawAllLayers(const Frame::Vec2 & pos, const float rot, const float frameTime) const;
+
 private:
 	std::vector<SLayer> layers {};
-	float frameTime = 0.f;
-
-	std::vector<InsBufferGroupT> m_insBufferGroups;
 	
+	std::vector<InsBufferGroupT> m_insBufferGroups;
+
 public:
 	InsBufferGroupT * CreateInsBufferGroup() {
 		m_insBufferGroups.push_back({});
@@ -282,8 +275,6 @@ public:
 		return m_insBufferGroups;
 	}
 
-	// 当 bUpdating 为 true 时，事件轮询中会去自动执行
-	// 或者也可以在别处去手动调用
 	void CheckOrUpdateInsBuffers();
 
 	static inline const Frame::STextureVertexBuffer & GetTextureVertexBufferForInstances() {
@@ -297,7 +288,35 @@ public:
 	void SetInsBuffersAfterTransform(const Frame::Matrix33 & trans) {
 		m_insBuffersAfterTransform = trans;
 	}
+};
 
+class CSpriteComponent : public Frame::IEntityComponent {
+public:
+
+	static void Register(Frame::SComponentTypeConfig & config) {
+		config.SetGUID("{0A6967F0-19EF-421D-84BB-249BEF7B3095}");
+	}
+
+	virtual void Initialize() override {
+		sprite.CreateInsBufferGroup();
+	}
+
+	virtual Frame::EntityEvent::Flags GetEventFlags() const override;
+	virtual void ProcessEvent(const Frame::EntityEvent::SEvent & event) override;
+
+	bool bUpdating = true;
+	bool bRendering = false;
+
+	// 当 bUpdating 为 true 时，事件轮询中会去自动执行
+	// 或者也可以在别处去手动调用
+	void CheckOrUpdateInsBuffers() {
+		sprite.CheckOrUpdateInsBuffers();
+	}
+
+	CSprite sprite {};
+
+private:
+	float frameTime = 0.f;
 };
 
 #undef InsBufferGroupT

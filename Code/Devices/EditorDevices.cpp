@@ -29,8 +29,8 @@ void SCabinEditorDeviceData::InitCollider(CColliderComponent * outColliderComp, 
 	__AddCollider(outColliderComp, GetEditorDeviceConfig<SCabinEditorDeviceData>().size, { 0.f, 0.f }, rot);
 }
 
-void SCabinEditorDeviceData::InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
-	GetDeviceData<SCabinDeviceData>()->InitSprite(pSpriteComponent, outLayerColors);
+void SCabinEditorDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
+	GetDeviceData<SCabinDeviceData>()->InitSprite(sprite, outLayerColors);
 }
 
 REGISTER_EDITOR_DEVICE(SShellEditorDeviceData);
@@ -45,8 +45,8 @@ void SShellEditorDeviceData::InitCollider(CColliderComponent * outColliderComp, 
 	__AddCollider(outColliderComp, GetEditorDeviceConfig<SShellEditorDeviceData>().size, { 0.f, 0.f }, rot);
 }
 
-void SShellEditorDeviceData::InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
-	GetDeviceData<SShellDeviceData>()->InitSprite(pSpriteComponent, outLayerColors);
+void SShellEditorDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
+	GetDeviceData<SShellDeviceData>()->InitSprite(sprite, outLayerColors);
 }
 
 REGISTER_EDITOR_DEVICE(SEngineEditorDeviceData);
@@ -61,8 +61,8 @@ void SEngineEditorDeviceData::InitCollider(CColliderComponent * outColliderComp,
 	__AddCollider(outColliderComp, GetEditorDeviceConfig<SEngineEditorDeviceData>().size, { 0.f, 0.f }, rot);
 }
 
-void SEngineEditorDeviceData::InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
-	GetDeviceData<SEngineDeviceData>()->InitSprite(pSpriteComponent, outLayerColors);
+void SEngineEditorDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
+	GetDeviceData<SEngineDeviceData>()->InitSprite(sprite, outLayerColors);
 }
 
 REGISTER_EDITOR_DEVICE(SPropellerEditorDeviceData);
@@ -82,8 +82,8 @@ void SPropellerEditorDeviceData::InitCollider(CColliderComponent * outColliderCo
 	__AddCollider(outColliderComp, { 72.f, 228.f }, { 24.f, 0.f }, rot);
 }
 
-void SPropellerEditorDeviceData::InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
-	GetDeviceData<SPropellerDeviceData>()->InitSprite(pSpriteComponent, outLayerColors);
+void SPropellerEditorDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
+	GetDeviceData<SPropellerDeviceData>()->InitSprite(sprite, outLayerColors);
 }
 
 REGISTER_EDITOR_DEVICE(SJetPropellerEditorDeviceData);
@@ -100,8 +100,8 @@ void SJetPropellerEditorDeviceData::InitCollider(CColliderComponent * outCollide
 	__AddCollider(outColliderComp, GetEditorDeviceConfig<SJetPropellerEditorDeviceData>().size, { 0.f, 0.f }, rot);
 }
 
-void SJetPropellerEditorDeviceData::InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
-	GetDeviceData<SJetPropellerDeviceData>()->InitSprite(pSpriteComponent, outLayerColors);
+void SJetPropellerEditorDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
+	GetDeviceData<SJetPropellerDeviceData>()->InitSprite(sprite, outLayerColors);
 }
 
 REGISTER_EDITOR_DEVICE(SJointEditorDeviceData);
@@ -118,6 +118,6 @@ void SJointEditorDeviceData::InitCollider(CColliderComponent * outColliderComp, 
 	__AddCollider(outColliderComp, GetEditorDeviceConfig<SJointEditorDeviceData>().size, { 0.f, 0.f }, rot);
 }
 
-void SJointEditorDeviceData::InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
-	pSpriteComponent, outLayerColors;
+void SJointEditorDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
+	sprite, outLayerColors;
 }

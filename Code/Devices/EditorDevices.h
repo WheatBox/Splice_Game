@@ -16,7 +16,7 @@ struct SCabinEditorDeviceData : public IEditorDeviceData {
 
 	virtual void DrawPreview(const Frame::Vec2 & pos, const SColorSet & colorSet, float alpha, float scale, float rot) const override;
 	virtual void InitCollider(CColliderComponent * outColliderComp, float rot) override;
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
+	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 };
 
 struct SShellEditorDeviceData : public IEditorDeviceData {
@@ -31,7 +31,7 @@ struct SShellEditorDeviceData : public IEditorDeviceData {
 
 	virtual void DrawPreview(const Frame::Vec2 & pos, const SColorSet & colorSet, float alpha, float scale, float rot) const override;
 	virtual void InitCollider(CColliderComponent * outColliderComp, float rot) override;
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
+	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 };
 
 struct SEngineEditorDeviceData : public IEditorDeviceData {
@@ -46,7 +46,7 @@ struct SEngineEditorDeviceData : public IEditorDeviceData {
 
 	virtual void DrawPreview(const Frame::Vec2 & pos, const SColorSet & colorSet, float alpha, float scale, float rot) const override;
 	virtual void InitCollider(CColliderComponent * outColliderComp, float rot) override;
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
+	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 };
 
 struct SPropellerEditorDeviceData : public IEditorDeviceData {
@@ -62,7 +62,7 @@ struct SPropellerEditorDeviceData : public IEditorDeviceData {
 
 	virtual void DrawPreview(const Frame::Vec2 & pos, const SColorSet & colorSet, float alpha, float scale, float rot) const override;
 	virtual void InitCollider(CColliderComponent * outColliderComp, float rot) override;
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
+	virtual void InitSprite(CSprite & spritee, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 };
 
 struct SJetPropellerEditorDeviceData : public IEditorDeviceData {
@@ -80,7 +80,7 @@ struct SJetPropellerEditorDeviceData : public IEditorDeviceData {
 
 	virtual void DrawPreview(const Frame::Vec2 & pos, const SColorSet & colorSet, float alpha, float scale, float rot) const override;
 	virtual void InitCollider(CColliderComponent * outColliderComp, float rot) override;
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
+	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 };
 
 struct SJointEditorDeviceData : public IEditorDeviceData {
@@ -96,5 +96,5 @@ struct SJointEditorDeviceData : public IEditorDeviceData {
 
 	virtual void DrawPreview(const Frame::Vec2 & pos, const SColorSet & colorSet, float alpha, float scale, float rot) const override;
 	virtual void InitCollider(CColliderComponent * outColliderComp, float rot) override;
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
+	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 };

@@ -5,7 +5,6 @@
 #include <FrameAsset/Sprite.h>
 
 #include "Components/Editor/EditorDeviceComponent.h"
-#include "Components/Machine/DeviceComponent.h"
 
 const UnicodeString & GetKeyName(Frame::EKeyId keyId) {
 #define __FORMULA(_keyId, _name) { Frame::EKeyId::_keyId, Frame::UTF8Utils::ToUnicode(_name) }

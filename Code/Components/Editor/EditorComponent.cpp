@@ -8,13 +8,11 @@
 #include <FrameMath/Math.h>
 
 #include "../CameraComponent.h"
-#include "../Machine/DeviceConnectorRendererComponent.h"
-#include "../Machine/MachinePartComponent.h"
 #include "../Machine/MachineComponent.h"
 #include "../PhysicsWorldComponent.h"
 
 #include "../../Depths.h"
-#include "../../Pipe.h"
+//#include "../../Pipe.h"
 
 #include <algorithm>
 
@@ -83,13 +81,6 @@ void CEditorComponent::Initialize() {
 			[]() { return false; }
 		);
 		m_pCameraComponent->SetWorking(false);
-	}
-
-	m_pDeviceConnectorRendererEntity = Frame::gEntitySystem->SpawnEntity();
-	if(m_pDeviceConnectorRendererEntity) {
-		if(CDeviceConnectorRendererComponent * pDeviceConnectorRendererComponent = m_pDeviceConnectorRendererEntity->CreateComponent<CDeviceConnectorRendererComponent>()) {
-			pDeviceConnectorRendererComponent->Initialize(& m_editorDeviceComponents);
-		}
 	}
 
 	InitGUI();
@@ -187,7 +178,7 @@ void CEditorComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		
 		__RegenerateInsBuffers(); // TODO - 优化
 
-		Frame::gRenderer->DrawTexturesInstanced(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId(), CSpriteComponent::GetTextureVertexBufferForInstances(), m_insBuffers);
+		Frame::gRenderer->DrawTexturesInstanced(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId(), CSprite::GetTextureVertexBufferForInstances(), m_insBuffers);
 
 		if(m_tool == ETool::Pencil) {
 			Pencil();
@@ -263,11 +254,6 @@ void CEditorComponent::SetWorking(bool b) {
 	m_bWorking = b;
 	if(CPhysicsWorldComponent::s_pPhysicsWorldComponent) {
 		CPhysicsWorldComponent::s_pPhysicsWorldComponent->SetEditorWorking(b);
-	}
-	if(m_pDeviceConnectorRendererEntity) {
-		if(auto pComp = m_pDeviceConnectorRendererEntity->GetComponent<CDeviceConnectorRendererComponent>()) {
-			pComp->SetWorking(b);
-		}
 	}
 	for(auto & pEDComp : m_editorDeviceComponents) {
 		pEDComp->SetWorking(b);
@@ -1384,8 +1370,24 @@ void CEditorComponent::SummonMachine() {
 	}
 	if(auto pEnt = Frame::gEntitySystem->SpawnEntity()) {
 		if(auto pComp = pEnt->CreateComponent<CMachineComponent>()) {
-			pComp->Initialize(* it, GetCurrentColorSet());
-			// TODO
+			pComp->Initialize(GetCurrentColorSet());
+
+			// TODO - 多个机器部分的处理
+			nlohmann::json json = nlohmann::json::array();
+
+			nlohmann::json jsonMachinePart = nlohmann::json::array();
+			for(const auto & pEDComp : m_editorDeviceComponents) {
+				for(const auto & def: pEDComp->GetData()->GetConfig().deviceDefs) {
+					SSerializedDevice serializedDevice;
+					serializedDevice.guid = def.deviceGUID;
+					serializedDevice.position = pEDComp->GetEntity()->GetPosition() + def.offset;
+					serializedDevice.rotation = pEDComp->GetEntity()->GetRotation() + def.rotation;
+					jsonMachinePart.push_back(serializedDevice.ToJson());
+				}
+			}
+			json.push_back(jsonMachinePart);
+
+			pComp->Deserialize(json);
 		}
 	}
 }

@@ -71,8 +71,8 @@ bool CEditorDeviceComponent::Initialize(const Frame::GUID & editorDeviceGUID, fl
 	}
 
 	m_pSpriteComponent = m_pEntity->CreateComponent<CSpriteComponent>();
-	m_pSpriteComponent->SetInsBuffersAfterTransform(Frame::Matrix33::CreateTranslation(m_pEntity->GetPosition()) * Frame::Matrix33::CreateRotationZ(m_pEntity->GetRotation()));
-	m_pData->InitSprite(m_pSpriteComponent, m_colorUpdatesInSpriteLayers);
+	m_pSpriteComponent->sprite.SetInsBuffersAfterTransform(Frame::Matrix33::CreateTranslation(m_pEntity->GetPosition()) * Frame::Matrix33::CreateRotationZ(m_pEntity->GetRotation()));
+	m_pData->InitSprite(m_pSpriteComponent->sprite, m_colorUpdatesInSpriteLayers);
 
 	for(auto & def : m_pData->GetConfig().interfaceDefs) {
 		SInterface interface;

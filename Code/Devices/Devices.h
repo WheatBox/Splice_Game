@@ -10,7 +10,7 @@ struct SCabinDeviceData : public IDeviceData {
 	virtual IDeviceData * New() const override { return new SCabinDeviceData {}; }
 	virtual const SDeviceTypeConfig & GetConfig() const override { return SDeviceType<SCabinDeviceData>::config; }
 
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & layerColors) override;
+	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 };
 
@@ -22,19 +22,20 @@ struct SShellDeviceData : public IDeviceData {
 	virtual IDeviceData * New() const override { return new SShellDeviceData {}; }
 	virtual const SDeviceTypeConfig & GetConfig() const override { return SDeviceType<SShellDeviceData>::config; }
 
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & layerColors) override;
+	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 };
 
 struct SEngineDeviceData : public IDeviceData {
 	static void Register(SDeviceTypeConfig & config) {
 		config.guid = "{9281278C-076B-4E0A-BFCC-E31BCD987513}";
+		config.addPower = 1.f;
 	}
 
 	virtual IDeviceData * New() const override { return new SEngineDeviceData {}; }
 	virtual const SDeviceTypeConfig & GetConfig() const override { return SDeviceType<SEngineDeviceData>::config; }
 
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & layerColors) override;
+	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 
 	static constexpr float smokeMax = .03f;
@@ -44,13 +45,17 @@ struct SEngineDeviceData : public IDeviceData {
 struct SPropellerDeviceData : public IDeviceData {
 	static void Register(SDeviceTypeConfig & config) {
 		config.guid = "{A6E42B77-5B16-42B6-8FF2-429723B1A1AF}";
+		config.maxPower = 4.f;
 	}
 
 	virtual IDeviceData * New() const override { return new SPropellerDeviceData {}; }
 	virtual const SDeviceTypeConfig & GetConfig() const override { return SDeviceType<SPropellerDeviceData>::config; }
 
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & layerColors) override;
+	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
+
+	virtual float PreStep(const SPreStepParams & params) override;
+	virtual void Step(const SStepParams & params) override;
 };
 
 struct SJetPropellerDeviceData : public IDeviceData {
@@ -66,7 +71,7 @@ struct SJetPropellerDeviceData : public IDeviceData {
 	virtual IDeviceData * New() const override { return new SJetPropellerDeviceData {}; }
 	virtual const SDeviceTypeConfig & GetConfig() const override { return SDeviceType<SJetPropellerDeviceData>::config; }
 
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & layerColors) override;
+	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 
 	static constexpr float accumulationMax = 2.5f;
@@ -84,6 +89,6 @@ struct SJetPropellerDeviceData : public IDeviceData {
 //	SJointDeviceData() { device = EType::Joint; }
 //	virtual ~SJointDeviceData() = default;
 //
-//	virtual void InitSprite(CSpriteComponent *, std::vector<Frame::ColorRGB SColorSet::*> &) override {}
+//	virtual void InitSprite(CSprite &, std::vector<Frame::ColorRGB SColorSet::*> &) override {}
 //	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 &, float) override { return {}; }
 //};

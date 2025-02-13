@@ -5,8 +5,8 @@
 #include <FrameRender/Renderer.h>
 
 #include "../Application.h"
+#include "../Devices/IDevicesData.h"
 
-#include "Machine/DeviceComponent.h"
 #include "PhysicsWorldComponent.h"
 
 REGISTER_ENTITY_COMPONENT(CRigidbodyComponent);
@@ -22,6 +22,10 @@ void CRigidbodyComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event)
 		const int color = (m_renderColorAlwaysLight || b2Body_IsAwake(m_bodyId)) ? m_renderColor : 0xB4B4B4;
 
 		for(const auto & shapeId : m_shapes) {
+			if(!b2Shape_IsValid(shapeId)) {
+				continue;
+			}
+
 			b2ShapeType shapeType = b2Shape_GetType(shapeId);
 			switch(shapeType) {
 			case b2ShapeType::b2_polygonShape:
@@ -143,6 +147,29 @@ void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, std::vector<std::pair<b
 						pComp->SetBody(bodyId);
 						for(const auto & shapeDef : shapeDefs) {
 							pComp->GetShapes().push_back(CreateShape(bodyId, shapeDef.first, shapeDef.second));
+						}
+					}
+				}
+			}
+		}
+	);
+}
+
+void CRigidbodyComponent::Physicalize(b2BodyDef bodyDef, std::unordered_set<std::shared_ptr<IDeviceData>> devices) {
+	Frame::EntityId myEntityId = m_pEntity->GetId();
+	CPhysicsWorldComponent::s_physicalizeQueue.push(
+		[myEntityId, bodyDef, devices]() {
+			if(Frame::CEntity * pEntity = Frame::gEntitySystem->GetEntity(myEntityId)) {
+				if(CRigidbodyComponent * pComp = pEntity->GetComponent<CRigidbodyComponent>()) {
+					if(b2BodyId bodyId = b2CreateBody(gWorldId, & bodyDef); b2Body_IsValid(bodyId)) {
+						pComp->SetBody(bodyId);
+						for(const auto & device : devices) {
+							const auto shapeDefs = device->MakeShapeDefs(device->m_positionRelative, device->m_rotationRelative);
+							for(const auto & shapeDef : shapeDefs) {
+								b2ShapeId shape = CreateShape(bodyId, shapeDef.first, shapeDef.second);
+								pComp->GetShapes().push_back(shape);
+								device->m_shapes.push_back(shape);
+							}
 						}
 					}
 				}

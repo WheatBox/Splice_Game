@@ -11,8 +11,10 @@
 
 #include <functional>
 #include <variant>
+#include <memory>
+#include <unordered_set>
 
-class CDeviceComponent;
+struct IDeviceData;
 
 class CRigidbodyComponent : public Frame::IEntityComponent {
 public:
@@ -35,6 +37,7 @@ public:
 
 	void Physicalize(b2BodyDef bodyDef, b2ShapeDef shapeDef, SBox2dShape shape);
 	void Physicalize(b2BodyDef bodyDef, std::vector<std::pair<b2ShapeDef, SBox2dShape>> shapeDefs);
+	void Physicalize(b2BodyDef bodyDef, std::unordered_set<std::shared_ptr<IDeviceData>> devices);
 
 	void SetEnableRendering(bool enable) {
 		bRender = enable;

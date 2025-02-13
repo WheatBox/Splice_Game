@@ -24,7 +24,7 @@ public:
 	virtual void OnShutDown() override;
 
 	bool IsCabin() const {
-		return m_pData && dynamic_cast<SCabinEditorDeviceData *>(m_pData.get());
+		return m_pData && m_pData->GetConfig().guid == GetEditorDeviceConfig<SCabinEditorDeviceData>().guid;
 	}
 
 	const std::shared_ptr<IEditorDeviceData> & GetData() const {
@@ -39,13 +39,13 @@ public:
 		m_colorSet = colorSet;
 		for(size_t i = 0, siz = m_colorUpdatesInSpriteLayers.size(); i < siz; i++) {
 			if(const auto & p = m_colorUpdatesInSpriteLayers[i]; p) {
-				m_pSpriteComponent->GetLayers()[i].SetColor(colorSet.* p);
+				m_pSpriteComponent->sprite.GetLayers()[i].SetColor(colorSet.* p);
 			}
 		}
 	}
 
 	void GetRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const {
-		m_pSpriteComponent->GetAllRenderingInstanceData(buffersToPushBack);
+		m_pSpriteComponent->sprite.GetAllRenderingInstanceData(buffersToPushBack);
 	}
 	void GetConnectorsRenderingInstanceData(std::vector<Frame::CRenderer::SInstanceBuffer> & buffersToPushBack) const;
 
@@ -54,7 +54,7 @@ public:
 		if(!m_pSpriteComponent) {
 			return;
 		}
-		for(auto & layer : m_pSpriteComponent->GetLayers()) {
+		for(auto & layer : m_pSpriteComponent->sprite.GetLayers()) {
 			layer.SetAlpha(alpha);
 		}
 	}

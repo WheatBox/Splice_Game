@@ -8,7 +8,7 @@
 #include <memory>
 
 class CColliderComponent;
-class CSpriteComponent;
+class CSprite;
 
 // 连接其它编辑器装置的 接口 的定义
 // 如果都是一些比较常规的接口（直接的上下左右），可以使用 EasyMakeEditorDeviceInterfaceDefs() 进行创建
@@ -61,7 +61,7 @@ public:
 
 	virtual void DrawPreview(const Frame::Vec2 & pos, const SColorSet & colorSet, float alpha, float scale, float rot) const = 0;
 	virtual void InitCollider(CColliderComponent * outColliderComp, float rot) = 0;
-	virtual void InitSprite(CSpriteComponent * pSpriteComponent, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) = 0;
+	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) = 0;
 };
 
 extern std::unordered_map<Frame::GUID, std::unique_ptr<IEditorDeviceData>> & GetEditorDeviceRegistry();
