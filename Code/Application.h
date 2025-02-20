@@ -55,11 +55,11 @@ private:
 
 #define __MeterToPixelRatio 32.f
 
-static inline float MeterToPixel(float meter) {
+constexpr float MeterToPixel(float meter) {
 	return meter * __MeterToPixelRatio;
 }
-static inline float PixelToMeter(float pixel) {
-	static float ratio = 1.f / __MeterToPixelRatio;
+constexpr float PixelToMeter(float pixel) {
+	constexpr float ratio = 1.f / __MeterToPixelRatio;
 	return pixel * ratio;
 }
 

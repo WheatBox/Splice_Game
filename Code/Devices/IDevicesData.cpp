@@ -2,6 +2,8 @@
 
 #include <FrameCore/Log.h>
 
+#include "../Components/Machine/MachinePartComponent.h"
+
 std::unordered_map<Frame::GUID, std::unique_ptr<IDeviceData>> & GetDeviceRegistry() {
 	static std::unordered_map<Frame::GUID, std::unique_ptr<IDeviceData>> registry {};
 	return registry;
@@ -22,4 +24,22 @@ const std::unique_ptr<IDeviceData> & GetDeviceData(const Frame::GUID & guid) {
 		return errorRes;
 	}
 	return it->second;
+}
+
+Frame::Vec2 IDeviceData::GetPosition() const {
+	if(m_pBelongingMachinePart) {
+		if(CRigidbodyComponent * pRigidbody = m_pBelongingMachinePart->GetRigidbody()) {
+			return pRigidbody->GetPosition() + m_positionRelative.GetRotated(pRigidbody->GetRotation());
+		}
+	}
+	return m_positionRelative;
+}
+
+float IDeviceData::GetRotation() const {
+	if(m_pBelongingMachinePart) {
+		if(CRigidbodyComponent * pRigidbody = m_pBelongingMachinePart->GetRigidbody()) {
+			return pRigidbody->GetRotation() + m_rotationRelative;
+		}
+	}
+	return m_rotationRelative;
 }

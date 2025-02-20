@@ -1,5 +1,7 @@
 ﻿#include "IEditorDevicesData.h"
 
+#include "IDevicesData.h"
+
 #include <FrameCore/Log.h>
 
 std::unordered_map<Frame::GUID, std::unique_ptr<IEditorDeviceData>> & GetEditorDeviceRegistry() {
@@ -27,4 +29,14 @@ const std::unique_ptr<IEditorDeviceData> & GetEditorDeviceData(const Frame::GUID
 		return errorRes;
 	}
 	return it->second;
+}
+
+std::map<int, SDeviceInterfaceDef> IEditorDeviceData::GetInterfaceDefs() const {
+	std::map<int, SDeviceInterfaceDef> map {};
+	auto & deviceDefs = GetDeviceDefs();
+	for(auto & deviceDef : deviceDefs) {
+		const std::map<int, SDeviceInterfaceDef> & interfaceDefs = GetDeviceData(deviceDef.deviceGUID)->GetInterfaceDefs();
+		map.insert(interfaceDefs.begin(), interfaceDefs.end());
+	}
+	return map;
 }

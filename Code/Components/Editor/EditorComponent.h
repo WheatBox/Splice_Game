@@ -2,6 +2,7 @@
 
 #include <FrameEntity/IEntityComponent.h>
 #include <FrameMath/ColorMath.h>
+#include <FrameCore/Log.h>
 
 #include "../../Devices/EditorDevices.h"
 #include "../../Assets.h"

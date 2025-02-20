@@ -68,7 +68,9 @@ void CEditorComponent::Initialize() {
 
 	//__Put(m_editorDeviceComponents, GetCurrentColorSet(), 0.f, 0, 0, true);
 	//DeserializeEditorMachineStr("[{\"connections\":[],\"guidhigh\":11124632734042574262,\"guidlow\":11640985875138584614,\"rot\":0.0,\"x\":0.0,\"y\":0.0}]");
-	DeserializeEditorMachineStr("[{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-4.71238899230957,\"x\":-111.99999237060547,\"y\":112.0},{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-7.853981971740723,\"x\":-112.00003051757813,\"y\":-112.0},{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":-7.693204679526389e-06,\"y\":-224.0},{\"connections\":[{\"ID\":1,\"to\":0,\"toID\":2},{\"ID\":3,\"to\":1,\"toID\":2}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-3.1415927410125732,\"x\":-112.0,\"y\":5.595057700702455e-06},{\"connections\":[{\"ID\":2,\"to\":3,\"toID\":2}],\"guidhigh\":11124632734042574262,\"guidlow\":11640985875138584614,\"rot\":0.0,\"x\":0.0,\"y\":0.0},{\"connections\":[{\"ID\":2,\"to\":4,\"toID\":0}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-0.0,\"x\":112.0,\"y\":0.0},{\"connections\":[],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-4.71238899230957,\"x\":2.098779077641666e-06,\"y\":224.0},{\"connections\":[{\"ID\":1,\"to\":1,\"toID\":3},{\"ID\":0,\"to\":2,\"toID\":2},{\"ID\":2,\"to\":4,\"toID\":1}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-1.5707963705062866,\"x\":-2.7975288503512274e-06,\"y\":-112.0},{\"connections\":[{\"ID\":2,\"to\":2,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":-1.2588880053954199e-05,\"y\":-336.0},{\"connections\":[{\"ID\":2,\"to\":5,\"toID\":3}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-4.71238899230957,\"x\":112.0,\"y\":112.0},{\"connections\":[{\"ID\":3,\"to\":0,\"toID\":1},{\"ID\":2,\"to\":4,\"toID\":3},{\"ID\":0,\"to\":6,\"toID\":0},{\"ID\":1,\"to\":9,\"toID\":3}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-4.71238899230957,\"x\":7.631923608641955e-07,\"y\":112.0},{\"connections\":[{\"ID\":2,\"to\":5,\"toID\":1},{\"ID\":1,\"to\":7,\"toID\":3}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":112.0,\"y\":-112.0},{\"connections\":[{\"ID\":1,\"to\":0,\"toID\":3}],\"guidhigh\":16370282976155157689,\"guidlow\":10090654385005652104,\"rot\":-4.71238899230957,\"x\":-224.0,\"y\":156.00001525878906},{\"connections\":[{\"ID\":2,\"to\":9,\"toID\":1}],\"guidhigh\":16370282976155157689,\"guidlow\":10090654385005652104,\"rot\":-4.71238899230957,\"x\":224.0,\"y\":156.0},{\"connections\":[{\"ID\":0,\"to\":1,\"toID\":1}],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-9.42477798461914,\"x\":-224.00003051757813,\"y\":-111.99998474121094},{\"connections\":[{\"ID\":0,\"to\":11,\"toID\":3}],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-6.2831854820251465,\"x\":224.0,\"y\":-112.00000762939453},{\"connections\":[{\"ID\":2,\"to\":1,\"toID\":0},{\"ID\":3,\"to\":2,\"toID\":1}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-7.853981971740723,\"x\":-112.00006866455078,\"y\":-224.0},{\"connections\":[{\"ID\":2,\"to\":2,\"toID\":3},{\"ID\":3,\"to\":11,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-6.2831854820251465,\"x\":111.99999237060547,\"y\":-224.00001525878906}]");
+	//DeserializeEditorMachineStr("[{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-4.71238899230957,\"x\":-111.99999237060547,\"y\":112.0},{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-7.853981971740723,\"x\":-112.00003051757813,\"y\":-112.0},{\"connections\":[],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":-7.693204679526389e-06,\"y\":-224.0},{\"connections\":[{\"ID\":1,\"to\":0,\"toID\":2},{\"ID\":3,\"to\":1,\"toID\":2}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-3.1415927410125732,\"x\":-112.0,\"y\":5.595057700702455e-06},{\"connections\":[{\"ID\":2,\"to\":3,\"toID\":2}],\"guidhigh\":11124632734042574262,\"guidlow\":11640985875138584614,\"rot\":0.0,\"x\":0.0,\"y\":0.0},{\"connections\":[{\"ID\":2,\"to\":4,\"toID\":0}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-0.0,\"x\":112.0,\"y\":0.0},{\"connections\":[],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-4.71238899230957,\"x\":2.098779077641666e-06,\"y\":224.0},{\"connections\":[{\"ID\":1,\"to\":1,\"toID\":3},{\"ID\":0,\"to\":2,\"toID\":2},{\"ID\":2,\"to\":4,\"toID\":1}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-1.5707963705062866,\"x\":-2.7975288503512274e-06,\"y\":-112.0},{\"connections\":[{\"ID\":2,\"to\":2,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":-1.2588880053954199e-05,\"y\":-336.0},{\"connections\":[{\"ID\":2,\"to\":5,\"toID\":3}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-4.71238899230957,\"x\":112.0,\"y\":112.0},{\"connections\":[{\"ID\":3,\"to\":0,\"toID\":1},{\"ID\":2,\"to\":4,\"toID\":3},{\"ID\":0,\"to\":6,\"toID\":0},{\"ID\":1,\"to\":9,\"toID\":3}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-4.71238899230957,\"x\":7.631923608641955e-07,\"y\":112.0},{\"connections\":[{\"ID\":2,\"to\":5,\"toID\":1},{\"ID\":1,\"to\":7,\"toID\":3}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-1.5707963705062866,\"x\":112.0,\"y\":-112.0},{\"connections\":[{\"ID\":1,\"to\":0,\"toID\":3}],\"guidhigh\":16370282976155157689,\"guidlow\":10090654385005652104,\"rot\":-4.71238899230957,\"x\":-224.0,\"y\":156.00001525878906},{\"connections\":[{\"ID\":2,\"to\":9,\"toID\":1}],\"guidhigh\":16370282976155157689,\"guidlow\":10090654385005652104,\"rot\":-4.71238899230957,\"x\":224.0,\"y\":156.0},{\"connections\":[{\"ID\":0,\"to\":1,\"toID\":1}],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-9.42477798461914,\"x\":-224.00003051757813,\"y\":-111.99998474121094},{\"connections\":[{\"ID\":0,\"to\":11,\"toID\":3}],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-6.2831854820251465,\"x\":224.0,\"y\":-112.00000762939453},{\"connections\":[{\"ID\":2,\"to\":1,\"toID\":0},{\"ID\":3,\"to\":2,\"toID\":1}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-7.853981971740723,\"x\":-112.00006866455078,\"y\":-224.0},{\"connections\":[{\"ID\":2,\"to\":2,\"toID\":3},{\"ID\":3,\"to\":11,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-6.2831854820251465,\"x\":111.99999237060547,\"y\":-224.00001525878906}]");
+	//DeserializeEditorMachineStr("[{\"connections\":[],\"guidhigh\":11124632734042574262,\"guidlow\":11640985875138584614,\"rot\":0.0,\"x\":0.0,\"y\":0.0},{\"connections\":[{\"ID\":2,\"to\":0,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-0.0,\"x\":112.0,\"y\":0.0},{\"connections\":[{\"ID\":1,\"to\":1,\"toID\":0}],\"guidhigh\":5227575970369588085,\"guidlow\":11519966650522680166,\"rot\":-0.0,\"x\":224.0,\"y\":0.0},{\"connections\":[{\"ID\":2,\"to\":0,\"toID\":2}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-3.1415927410125732,\"x\":-112.0,\"y\":5.595057700702455e-06},{\"connections\":[{\"ID\":2,\"to\":2,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-0.0,\"x\":336.0,\"y\":0.0},{\"connections\":[{\"ID\":1,\"to\":3,\"toID\":0}],\"guidhigh\":5227575970369588085,\"guidlow\":11519966650522680166,\"rot\":-3.1415927410125732,\"x\":-224.0,\"y\":1.5386409359052777e-05},{\"connections\":[{\"ID\":0,\"to\":0,\"toID\":3}],\"guidhigh\":4725241458380522226,\"guidlow\":13457049288530237759,\"rot\":-4.71238899230957,\"x\":7.631923608641955e-07,\"y\":112.0},{\"connections\":[{\"ID\":2,\"to\":0,\"toID\":1}],\"guidhigh\":13541370941465250790,\"guidlow\":11506182755973392982,\"rot\":-1.5707963705062866,\"x\":-2.7975288503512274e-06,\"y\":-112.0},{\"connections\":[{\"ID\":2,\"to\":5,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-3.1415927410125732,\"x\":-336.0,\"y\":2.5177760107908398e-05}]");
+	DeserializeEditorMachineStr("[{\"connections\":[],\"guidhigh\":11124632734042574262,\"guidlow\":11640985875138584614,\"rot\":0.0,\"x\":0.0,\"y\":0.0},{\"connections\":[{\"ID\":1,\"to\":0,\"toID\":0}],\"guidhigh\":5227575970369588085,\"guidlow\":11519966650522680166,\"rot\":-0.0,\"x\":112.0,\"y\":0.0},{\"connections\":[{\"ID\":2,\"to\":1,\"toID\":0}],\"guidhigh\":15774089909195984796,\"guidlow\":13193609732936951746,\"rot\":-0.0,\"x\":224.0,\"y\":0.0}]");
 
 	m_pFont = new Frame::CFont { Assets::GetFontFilename(), 16.f };
 
@@ -1360,34 +1362,91 @@ void CEditorComponent::ButtonEnd(const Frame::Vec2 & rightBottom) {
 }
 
 void CEditorComponent::SummonMachine() {
-	auto it = std::find_if(m_editorDeviceComponents.begin(), m_editorDeviceComponents.end(),
-		[](CEditorDeviceComponent * pEDComp) {
-			return pEDComp && pEDComp->IsCabin();
+	CEditorDeviceComponent * pCabinEDComp = nullptr;
+
+	for(const auto & pEDComp : m_editorDeviceComponents) {
+		if(!pCabinEDComp && pEDComp && pEDComp->IsCabin()) {
+			pCabinEDComp = pEDComp;
 		}
-	);
-	if(it == m_editorDeviceComponents.end()) {
+	}
+
+	if(!pCabinEDComp) {
 		return;
 	}
+
+	const Frame::Vec2 cabinPos = pCabinEDComp->GetEntity()->GetPosition();
+	const float cabinRot = pCabinEDComp->GetEntity()->GetRotation();
+
+	SSerializedMachine serializedMachine;
+
+	std::vector<SSerializedJointRelation> & jointRelations = serializedMachine.jointRelations; 
+
+	std::vector<CEditorDeviceComponent *> pair_EDComps;
+	std::vector<SSerializedDevice> & pair_Devices = serializedMachine.devices;
+
+	// It just works. ¯\_(ツ)_/¯
+	for(const auto & pEDCompCurrent : m_editorDeviceComponents) {
+
+		const bool isMachinePartJoint = pEDCompCurrent->GetData()->GetConfig().isMachinePartJoint;
+		SSerializedJointRelation * pCurrJointRelation = isMachinePartJoint ? new SSerializedJointRelation : nullptr;
+
+		const auto & currentDeviceDefs = pEDCompCurrent->GetData()->GetDeviceDefs();
+		for(const auto & currentDeviceDef : currentDeviceDefs) {
+			SSerializedDevice serializedDevice;
+			serializedDevice.guid = currentDeviceDef.deviceGUID;
+			serializedDevice.position = pEDCompCurrent->GetEntity()->GetPosition() + currentDeviceDef.offset - cabinPos;
+			serializedDevice.rotation = pEDCompCurrent->GetEntity()->GetRotation() + currentDeviceDef.rotation - cabinRot;
+
+			for(size_t i = 0, len = pair_Devices.size(); i < len; i++) {
+				const auto & pEDCompBefore = pair_EDComps[i];
+				const auto & deviceBefore = pair_Devices[i];
+
+				for(const auto & interfaceID_of_CurrentDevice : currentDeviceDef.interfaceIDs) {
+					const auto & EDCompInterface_of_CurrentDevice = pEDCompCurrent->m_interfaces.at(interfaceID_of_CurrentDevice);
+
+					if(!EDCompInterface_of_CurrentDevice.to) {
+						continue;
+					}
+
+					if(EDCompInterface_of_CurrentDevice.to->from != pEDCompBefore) {
+						continue;
+					}
+					
+					const auto & interfaceDefs_of_DeviceBefore = GetDeviceData(deviceBefore.guid)->GetInterfaceDefs();
+					for(const auto & [interfaceID_of_DeviceBefore, _] : interfaceDefs_of_DeviceBefore) {
+						if(!pEDCompBefore->m_interfaces.at(interfaceID_of_DeviceBefore).to) {
+							continue;
+						}
+
+						if(pEDCompBefore->m_interfaces.at(interfaceID_of_DeviceBefore).to->from == pEDCompCurrent) {
+							SSerializedDevice::SConnection connection;
+							connection.myInterfaceID = interfaceID_of_CurrentDevice;
+							connection.to = i;
+							connection.toInterfaceID = interfaceID_of_DeviceBefore;
+							serializedDevice.connections.push_back(connection);
+						}
+					}
+				}
+			}
+
+			if(isMachinePartJoint) {
+				pCurrJointRelation->deviceIndices.push_back(pair_Devices.size());
+			}
+
+			pair_EDComps.push_back(pEDCompCurrent);
+			pair_Devices.push_back(serializedDevice);
+		}
+
+		if(isMachinePartJoint) {
+			jointRelations.push_back(* pCurrJointRelation);
+			delete pCurrJointRelation;
+		}
+	}
+
 	if(auto pEnt = Frame::gEntitySystem->SpawnEntity()) {
 		if(auto pComp = pEnt->CreateComponent<CMachineComponent>()) {
 			pComp->Initialize(GetCurrentColorSet());
-
-			// TODO - 多个机器部分的处理
-			nlohmann::json json = nlohmann::json::array();
-
-			nlohmann::json jsonMachinePart = nlohmann::json::array();
-			for(const auto & pEDComp : m_editorDeviceComponents) {
-				for(const auto & def: pEDComp->GetData()->GetConfig().deviceDefs) {
-					SSerializedDevice serializedDevice;
-					serializedDevice.guid = def.deviceGUID;
-					serializedDevice.position = pEDComp->GetEntity()->GetPosition() + def.offset;
-					serializedDevice.rotation = pEDComp->GetEntity()->GetRotation() + def.rotation;
-					jsonMachinePart.push_back(serializedDevice.ToJson());
-				}
-			}
-			json.push_back(jsonMachinePart);
-
-			pComp->Deserialize(json);
+			pComp->Deserialize(serializedMachine.ToJson());
 		}
 	}
 }
@@ -1481,7 +1540,7 @@ nlohmann::json CEditorComponent::SerializeEditorMachine() const {
 	}
 
 	if(!pCabin) {
-		Frame::Log::Log(Frame::Log::ELevel::Error, "Try to serialize editor machine, but cannot find Cabin.");
+		Frame::Log::Log(Frame::Log::ELevel::Error, "CEditorComponent::SerializeEditorMachine(): Try to serialize editor machine, but cannot find Cabin.");
 		return "";
 	}
 
@@ -1502,7 +1561,7 @@ nlohmann::json CEditorComponent::SerializeEditorMachine() const {
 		// 只记录自己与自己之前的装置之间的连接关系，确保每个连接关系只被记录一次
 		for(size_t i = 0, len = v.size(); i < len; i++) {
 			auto pEDCompBeforeThis = v[i].first;
-			for(const auto & interface : pEDComp->m_interfaces) {
+			for(const auto & [ID, interface] : pEDComp->m_interfaces) {
 				if(!interface.to || interface.to->from != pEDCompBeforeThis) {
 					continue;
 				}

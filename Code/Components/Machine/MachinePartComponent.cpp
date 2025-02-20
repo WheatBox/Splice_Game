@@ -30,6 +30,9 @@ void CMachinePartComponent::Initialize(const std::unordered_set<std::shared_ptr<
 		if(!isMainPart && device->GetConfig().guid == GetDeviceConfig<SCabinDeviceData>().guid) {
 			isMainPart = true;
 		}
+		
+		device->m_pBelongingMachinePart = this;
+
 		std::vector<Frame::ColorRGB SColorSet::*> colorUpdatesInSpriteLayers;
 		device->InitSprite(device->m_sprite, colorUpdatesInSpriteLayers);
 		for(size_t i = 0, siz = colorUpdatesInSpriteLayers.size(); i < siz; i++) {
@@ -75,10 +78,6 @@ void CMachinePartComponent::Step(float timeStep, const Frame::Vec2 & targetMovin
 		IDeviceData::SStepParams params;
 		params.timeStep = timeStep;
 		params.power = Frame::Min((powerRatio / totalRatio) * totalPower, pDevice->GetConfig().maxPower);
-		params.pMachinePart = this;
-
-		params.machinePartRot = rot;
-		params.machinePartPos = pos;
 
 		pDevice->Step(params);
 
@@ -111,25 +110,29 @@ void CMachinePartComponent::Render() {
 
 	const auto texId = Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId();
 	const Frame::STextureVertexBuffer & vertBuf = CSprite::GetTextureVertexBufferForInstances();
+	Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticBottomInsBuffers);
 	Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticInsBuffers);
 	Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_dynamicInsBuffers);
 	Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticTopInsBuffers);
+	// TODO - 上面这些做成函数以供 Machine 统一调用，不然的话一个 MachinePart 的 static组 可能会覆盖另一个 MachinePart 的 staticTop组
 
 	Frame::gCamera->PopFromStack();
 }
 
 void CMachinePartComponent::__RegenerateStaticInsBuffers() {
+	m_staticBottomInsBuffers.clear();
 	m_staticInsBuffers.clear();
 	m_staticTopInsBuffers.clear();
 	for(auto & pDevice : devices) {
-		pDevice->m_sprite.GetRenderingInstanceData(m_staticInsBuffers, IDeviceData::staticGroup);
-		pDevice->m_sprite.GetRenderingInstanceData(m_staticTopInsBuffers, IDeviceData::staticTopGroup);
+		pDevice->m_sprite.GetRenderingInstanceData(m_staticBottomInsBuffers, eDSG_StaticBottom);
+		pDevice->m_sprite.GetRenderingInstanceData(m_staticInsBuffers, eDSG_Static);
+		pDevice->m_sprite.GetRenderingInstanceData(m_staticTopInsBuffers, eDSG_StaticTop);
 	}
 }
 
 void CMachinePartComponent::__RegenerateDynamicInsBuffers() {
 	m_dynamicInsBuffers.clear();
 	for(auto & pDevice : devices) {
-		pDevice->m_sprite.GetRenderingInstanceData(m_dynamicInsBuffers, IDeviceData::dynamicGroup);
+		pDevice->m_sprite.GetRenderingInstanceData(m_dynamicInsBuffers, eDSG_Dynamic);
 	}
 }

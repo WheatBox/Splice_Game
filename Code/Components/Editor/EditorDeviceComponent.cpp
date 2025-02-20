@@ -74,23 +74,15 @@ bool CEditorDeviceComponent::Initialize(const Frame::GUID & editorDeviceGUID, fl
 	m_pSpriteComponent->sprite.SetInsBuffersAfterTransform(Frame::Matrix33::CreateTranslation(m_pEntity->GetPosition()) * Frame::Matrix33::CreateRotationZ(m_pEntity->GetRotation()));
 	m_pData->InitSprite(m_pSpriteComponent->sprite, m_colorUpdatesInSpriteLayers);
 
-	for(auto & def : m_pData->GetConfig().interfaceDefs) {
-		SInterface interface;
-		interface.ID = def.ID;
-		interface.from = this;
-		interface.direction = def.direction - m_pEntity->GetRotation();
-		interface.pos = m_pEntity->GetPosition()
-			+ def.offset.GetRotated(m_pEntity->GetRotation())
-			+ Frame::Vec2 { CONNECTOR_LENGTH, 0.f }.GetRotated(-interface.direction)
-			;
-		m_interfaces.push_back(interface);
+	for(auto & [ID, def] : m_pData->GetInterfaceDefs()) {
+		m_interfaces.insert({ ID, { this, ID, def } });
 	}
 
 	return true;
 }
 
 void CEditorDeviceComponent::OnShutDown() {
-	for(auto & interface : m_interfaces) {
+	for(auto & [_, interface] : m_interfaces) {
 		DisconnectInterfaces(& interface);
 	}
 }
@@ -103,7 +95,7 @@ void CEditorDeviceComponent::GetConnectorsRenderingInstanceData(std::vector<Fram
 
 	const Frame::Matrix33 baseTrans = Frame::Matrix33::CreateTranslation(-img->GetOrigin()) * buf.transform;
 
-	for(const auto & interface : m_interfaces) {
+	for(const auto & [_, interface] : m_interfaces) {
 		if(!interface.to) {
 			continue;
 		}

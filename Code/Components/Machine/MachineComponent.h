@@ -118,6 +118,65 @@ struct SSerializedDevice {
 	}
 };
 
-struct SSerializedMachinePart {
+// 一个 SSerializedJointRelation 表示一处关节
+struct SSerializedJointRelation {
+	// 这个数组存储的下标指向其它装置，通过它们获取到的装置将会作为参数
+	// 传递给 根装置（通过 SDeviceTypeConfig::isJointRoot 进行设定） 的 物理关节创建函数
+	std::vector<size_t> deviceIndices;
+
+	nlohmann::json ToJson() const {
+		return deviceIndices;
+	}
+
+	void FromJson(const nlohmann::json & json) {
+		deviceIndices = json.get<std::vector<size_t>>();
+	}
+
+	static SSerializedJointRelation MakeFromJson(const nlohmann::json & json) {
+		SSerializedJointRelation res;
+		res.FromJson(json);
+		return res;
+	}
+};
+
+struct SSerializedMachine {
 	std::vector<SSerializedDevice> devices;
+	std::vector<SSerializedJointRelation> jointRelations;
+
+	nlohmann::json ToJson() const {
+		nlohmann::json jsonDevices = nlohmann::json::array();
+		nlohmann::json jsonJoints = nlohmann::json::array();
+		for(const auto & device : devices) {
+			jsonDevices.push_back(device.ToJson());
+		}
+		for(const auto & joint : jointRelations) {
+			jsonJoints.push_back(joint.ToJson());
+		}
+		return {
+			{ "devices", jsonDevices },
+			{ "joints", jsonJoints }
+		};
+	}
+
+	void FromJson(const nlohmann::json & json) {
+		devices.clear();
+		jointRelations.clear();
+
+		const nlohmann::json jsonDevices = json["devices"];
+		const nlohmann::json jsonJointRelations = json["joints"];
+
+		for(const auto & deviceJson : jsonDevices) {
+			devices.push_back(SSerializedDevice::MakeFromJson(deviceJson));
+		}
+
+		for(const auto & jointRelationJson : jsonJointRelations) {
+			jointRelations.push_back(SSerializedJointRelation::MakeFromJson(jointRelationJson));
+		}
+	}
+
+	static SSerializedMachine MakeFromJson(const nlohmann::json & json) {
+		SSerializedMachine res;
+		res.FromJson(json);
+		return res;
+	}
 };

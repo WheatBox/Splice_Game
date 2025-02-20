@@ -1,38 +1,9 @@
 ﻿#include "Devices.h"
 
-#include "../Assets.h"
-#include "../Components/SpriteComponent.h"
+#include "Utils.h"
+
 #include "../Components/SmokeEmitterComponent.h"
 #include "../Components/Machine/MachinePartComponent.h"
-
-#define __SPRITE_ALPHA 1.f
-
-CSprite::SLayer & AddSpriteLayer(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors, Assets::EDeviceStaticSprite _EDeviceStaticSprite, Frame::ColorRGB SColorSet::* col) {
-	sprite.AddLayer({ Assets::GetStaticSprite(_EDeviceStaticSprite), 0xFFFFFF, __SPRITE_ALPHA });
-	outLayerColors.push_back(col);
-	return sprite.GetLayers().back();
-}
-CSprite::SLayer & AddSpriteLayer(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors, Assets::EDeviceStaticSprite _EDeviceStaticSprite) {
-	return AddSpriteLayer(sprite, outLayerColors, _EDeviceStaticSprite, nullptr);
-}
-CSprite::SLayer & AddSpriteLayer(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors, Assets::EDeviceStaticSprite _EDeviceStaticSprite, Frame::ColorRGB SColorSet::* col, int _CDeviceComponent_InsBufferGroupIndex) {
-	sprite.AddLayer({ Assets::GetStaticSprite(_EDeviceStaticSprite), 0xFFFFFF, __SPRITE_ALPHA }, _CDeviceComponent_InsBufferGroupIndex);
-	outLayerColors.push_back(col);
-	return sprite.GetLayers().back();
-}
-
-#undef __SPRITE_ALPHA
-
-#define ADD_SPRITE_LAYER_1(_EDeviceStaticSprite) AddSpriteLayer(sprite, outLayerColors, _EDeviceStaticSprite)
-#define ADD_SPRITE_LAYER_2(_EDeviceStaticSprite, col) AddSpriteLayer(sprite, outLayerColors, _EDeviceStaticSprite, col)
-#define ADD_SPRITE_LAYER_3(_EDeviceStaticSprite, col, _CDeviceComponent_InsBufferGroupIndex) AddSpriteLayer(sprite, outLayerColors, _EDeviceStaticSprite, col, _CDeviceComponent_InsBufferGroupIndex)
-
-float P2M(float pixel) {
-	return PixelToMeter(pixel);
-}
-Frame::Vec2 P2M(const Frame::Vec2 & pixel) {
-	return PixelToMeterVec2(pixel);
-}
 
 b2ShapeDef __MakeShapeDef(float density, float friction, float restitution) {
 	b2ShapeDef defTemp = b2DefaultShapeDef();
@@ -50,17 +21,14 @@ std::pair<b2ShapeDef, SBox2dShape> MakeShapeDef(float density, float friction, f
 }
 
 template<typename DataT>
-std::pair<b2ShapeDef, SBox2dShape> MakeShapeDefDefaultShell(const Frame::Vec2 & devicePos, float rotation) {
+std::pair<b2ShapeDef, SBox2dShape> MakeShapeDefDefault(const Frame::Vec2 & devicePos, float rotation) {
 	const Frame::Vec2 devicePosMeter = P2M(devicePos);
-	const Frame::Vec2 whHalf = P2M(GetDeviceConfig<DataT>().size * .5f);
+	const Frame::Vec2 whHalf = P2M(48.f /*96.f * .5f*/);
 	const b2Polygon shape = b2MakeOffsetBox(whHalf.x, whHalf.y, { devicePosMeter.x, devicePosMeter.y }, b2MakeRot(rotation));
 	return MakeShapeDef(1.f, .5f, 0.f, shape);
 }
 
-using E = Assets::EDeviceStaticSprite;
-using C = SColorSet;
-
-REGISTER_DEVICE(SCabinDeviceData)
+REGISTER_DEVICE(SCabinDeviceData);
 
 void SCabinDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
 	ADD_SPRITE_LAYER_1(E::cabin_logo_background);
@@ -70,10 +38,15 @@ void SCabinDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB 
 }
 
 std::vector<std::pair<b2ShapeDef, SBox2dShape>> SCabinDeviceData::MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) {
-	return { MakeShapeDefDefaultShell<SCabinDeviceData>(devicePos, rotation) };
+	return { MakeShapeDefDefault<SCabinDeviceData>(devicePos, rotation) };
 }
 
-REGISTER_DEVICE(SShellDeviceData)
+const std::map<int, SDeviceInterfaceDef> & SCabinDeviceData::GetInterfaceDefs() {
+	static std::map<int, SDeviceInterfaceDef> map = EasyMakeDeviceInterfaceDefs(96.f, { 0, 1, 2, 3 }, { 0, 90, 180, 270 });
+	return map;
+}
+
+REGISTER_DEVICE(SShellDeviceData);
 
 void SShellDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
 	ADD_SPRITE_LAYER_2(E::shell_color1, & C::color1);
@@ -82,10 +55,15 @@ void SShellDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB 
 }
 
 std::vector<std::pair<b2ShapeDef, SBox2dShape>> SShellDeviceData::MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) {
-	return { MakeShapeDefDefaultShell<SShellDeviceData>(devicePos, rotation) };
+	return { MakeShapeDefDefault<SShellDeviceData>(devicePos, rotation) };
 }
 
-REGISTER_DEVICE(SEngineDeviceData)
+const std::map<int, SDeviceInterfaceDef> & SShellDeviceData::GetInterfaceDefs() {
+	static std::map<int, SDeviceInterfaceDef> map = EasyMakeDeviceInterfaceDefs(96.f, { 0, 1, 2, 3 }, { 0, 90, 180, 270 });
+	return map;
+}
+
+REGISTER_DEVICE(SEngineDeviceData);
 
 void SEngineDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
 	ADD_SPRITE_LAYER_2(E::engine_color1, & C::color1);
@@ -94,27 +72,32 @@ void SEngineDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB
 }
 
 std::vector<std::pair<b2ShapeDef, SBox2dShape>> SEngineDeviceData::MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) {
-	return { MakeShapeDefDefaultShell<SEngineDeviceData>(devicePos, rotation) };
+	return { MakeShapeDefDefault<SEngineDeviceData>(devicePos, rotation) };
 }
 
-REGISTER_DEVICE(SPropellerDeviceData)
+const std::map<int, SDeviceInterfaceDef> & SEngineDeviceData::GetInterfaceDefs() {
+	static std::map<int, SDeviceInterfaceDef> map = EasyMakeDeviceInterfaceDefs(96.f, { 0, 1, 2, 3 }, { 0, 90, 180, 270 });
+	return map;
+}
+
+REGISTER_DEVICE(SPropellerDeviceData);
 
 void SPropellerDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
 	ADD_SPRITE_LAYER_2(E::propeller_motor_color1, & C::color1);
 	ADD_SPRITE_LAYER_2(E::propeller_motor_color2, & C::color2);
 	ADD_SPRITE_LAYER_1(E::propeller_motor);
 
-	ADD_SPRITE_LAYER_3(E::propeller_blade_color, & C::color2, dynamicGroup)
+	ADD_SPRITE_LAYER_3(E::propeller_blade_color, & C::color2, eDSG_Dynamic)
 		.SetScale({ .3f, 1.f })
 		.SetOffset({ 20.f, 0.f })
 		.SetRotationDegree(30.f);
-	ADD_SPRITE_LAYER_3(E::propeller_blade, nullptr, dynamicGroup)
+	ADD_SPRITE_LAYER_3(E::propeller_blade, nullptr, eDSG_Dynamic)
 		.SetScale({ .3f, 1.f })
 		.SetOffset({ 20.f, 0.f })
 		.SetRotationDegree(30.f);
 
-	ADD_SPRITE_LAYER_3(E::propeller_top_color, & C::color1, staticTopGroup);
-	ADD_SPRITE_LAYER_3(E::propeller_top, nullptr, staticTopGroup);
+	ADD_SPRITE_LAYER_3(E::propeller_top_color, & C::color1, eDSG_StaticTop);
+	ADD_SPRITE_LAYER_3(E::propeller_top, nullptr, eDSG_StaticTop);
 }
 
 std::vector<std::pair<b2ShapeDef, SBox2dShape>> SPropellerDeviceData::MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) {
@@ -128,6 +111,11 @@ std::vector<std::pair<b2ShapeDef, SBox2dShape>> SPropellerDeviceData::MakeShapeD
 	return defs;
 }
 
+const std::map<int, SDeviceInterfaceDef> & SPropellerDeviceData::GetInterfaceDefs() {
+	static std::map<int, SDeviceInterfaceDef> map = EasyMakeDeviceInterfaceDefs({ 96.f, 240.f }, { 0 }, { 180 });
+	return map;
+}
+
 float SPropellerDeviceData::PreStep(const SPreStepParams & params) {
 	const float dotval = params.facingDir.Dot(params.machinePartTargetMovingDir);
 	return dotval >= 0.f ? 0.f : -dotval;
@@ -135,13 +123,13 @@ float SPropellerDeviceData::PreStep(const SPreStepParams & params) {
 
 void SPropellerDeviceData::Step(const SStepParams & params) {
 
-	CRigidbodyComponent * pRigidbody = params.pMachinePart->GetRigidbody();
+	CRigidbodyComponent * pRigidbody = m_pBelongingMachinePart->GetRigidbody();
 	if(!pRigidbody) {
 		return;
 	}
 
-	const float deviceRot = params.DeviceRot(this);
-	const Frame::Vec2 devicePos = params.DevicePos(this);
+	const float deviceRot = GetRotation();
+	const Frame::Vec2 devicePos = GetPosition();
 
 	pRigidbody->ApplyForce(
 		Frame::Vec2 { -1200.f * params.power, 0.f }.GetRotated(deviceRot)
@@ -155,7 +143,7 @@ void SPropellerDeviceData::Step(const SStepParams & params) {
 	}
 }
 
-REGISTER_DEVICE(SJetPropellerDeviceData)
+REGISTER_DEVICE(SJetPropellerDeviceData);
 
 void SJetPropellerDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
 	ADD_SPRITE_LAYER_2(E::jet_propeller_bottom, & C::color1)
@@ -201,26 +189,77 @@ void SJetPropellerDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::Co
 std::vector<std::pair<b2ShapeDef, SBox2dShape>> SJetPropellerDeviceData::MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) {
 	std::vector<std::pair<b2ShapeDef, SBox2dShape>> defs;
 	const Frame::Vec2 devicePosMeter = P2M(devicePos);
-	const Frame::Vec2 whHalf = P2M(GetDeviceConfig<SJetPropellerDeviceData>().size * .5f);
+	const Frame::Vec2 whHalf = P2M(Frame::Vec2 { 184.f, 96.f } * .5f);
 	const b2Polygon shape = b2MakeOffsetBox(whHalf.x, whHalf.y, { devicePosMeter.x, devicePosMeter.y }, b2MakeRot(rotation));
 	defs.push_back(MakeShapeDef(.8f, .5f, 0.f, shape));
 	return defs;
 }
 
-//void SJointDeviceData::InitSprite(CSpriteComponent * pSpriteComponent, CDeviceComponent *, const SColorSet & colorSet) {
-//	AddSpriteLayer(pSpriteComponent, E::joint_bottom, colorSet.color2);
-//	AddSpriteLayer_Part(pSpriteComponent, device, EP::color1, colorSet.color1)
-//		.SetRotationDegree(180.f);
-//	AddSpriteLayer_Part(pSpriteComponent, device, EP::basic)
-//		.SetRotationDegree(180.f);
-//	AddSpriteLayer(pSpriteComponent, E::joint_top_color, colorSet.color2);
-//	AddSpriteLayer(pSpriteComponent, E::joint_top);
-//}
-//
-//std::vector<std::pair<b2ShapeDef, SBox2dShape>> SJointDeviceData::MakeShapeDefs(const Frame::Vec2 & devicePos, float) {
-//	std::vector<std::pair<b2ShapeDef, SBox2dShape>> defs;
-//	const Frame::Vec2 devicePosMeter = P2M(devicePos);
-//	const b2Circle shape { { devicePosMeter.x, devicePosMeter.y }, P2M(36.f) };
-//	defs.push_back(MakeShapeDef(1.f, .5f, 0.f, shape));
-//	return defs;
-//}
+const std::map<int, SDeviceInterfaceDef> & SJetPropellerDeviceData::GetInterfaceDefs() {
+	static std::map<int, SDeviceInterfaceDef> map = EasyMakeDeviceInterfaceDefs({ 184.f, 96.f }, { 0, 1, 2 }, { 180, 90, 270 });
+	static bool inited = false;
+	if(!inited) {
+		inited = true;
+		map[1].offset += { -44.f, 0.f };
+		map[2].offset += { -44.f, 0.f };
+	}
+	return map;
+}
+
+REGISTER_DEVICE(SJointRootDeviceData);
+
+void SJointRootDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet:: *> & outLayerColors) {
+	ADD_SPRITE_LAYER_3(E::joint_bottom, & C::color2, eDSG_StaticBottom);
+	ADD_SPRITE_LAYER_3(E::joint_top_color, & C::color2, eDSG_StaticTop);
+	ADD_SPRITE_LAYER_3(E::joint_top, nullptr, eDSG_StaticTop);
+}
+
+std::vector<std::pair<b2ShapeDef, SBox2dShape>> SJointRootDeviceData::MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) {
+	rotation; // TODO - 细化碰撞体
+	std::vector<std::pair<b2ShapeDef, SBox2dShape>> defs;
+	const Frame::Vec2 devicePosMeter = P2M(devicePos);
+	const b2Circle shape { { devicePosMeter.x, devicePosMeter.y }, P2M(36.f) };
+	defs.push_back(MakeShapeDef(1.f, .5f, 0.f, shape));
+	return defs;
+}
+
+const std::map<int, SDeviceInterfaceDef> & SJointRootDeviceData::GetInterfaceDefs() {
+	static std::map<int, SDeviceInterfaceDef> map = EasyMakeDeviceInterfaceDefs(96.f, {0}, {0});
+	return map;
+}
+
+void SJointRootDeviceData::InitJoint(const std::vector<std::shared_ptr<IDeviceData>> & devices) {
+	for(auto & pDevice : devices) {
+		if(pDevice.get() == this) {
+			continue;
+		}
+		Frame::Vec2 _worldPivot = P2M(GetPosition());
+		b2Vec2 worldPivot { _worldPivot.x, _worldPivot.y };
+		b2RevoluteJointDef jointDef = b2DefaultRevoluteJointDef();
+		jointDef.bodyIdA = m_pBelongingMachinePart->GetRigidbody()->GetBody();
+		jointDef.bodyIdB = pDevice->m_pBelongingMachinePart->GetRigidbody()->GetBody();
+		jointDef.localAnchorA = b2Body_GetLocalPoint(jointDef.bodyIdA, worldPivot);
+		jointDef.localAnchorB = b2Body_GetLocalPoint(jointDef.bodyIdB, worldPivot);
+
+		jointDef.collideConnected = true;
+
+		b2JointId myJointId = b2CreateRevoluteJoint(gWorldId, & jointDef);
+	}
+}
+
+REGISTER_DEVICE(SJointSecondDeviceData);
+
+void SJointSecondDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet:: *> & outLayerColors) {
+	ADD_SPRITE_LAYER_3(E::joint_color, & C::color1, eDSG_Static).SetRotationDegree(180.f);
+	ADD_SPRITE_LAYER_3(E::joint, nullptr, eDSG_Static).SetRotationDegree(180.f);
+}
+
+std::vector<std::pair<b2ShapeDef, SBox2dShape>> SJointSecondDeviceData::MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) {
+	rotation, devicePos; // TODO - 细化碰撞体
+	return {};
+}
+
+const std::map<int, SDeviceInterfaceDef> & SJointSecondDeviceData::GetInterfaceDefs() {
+	static std::map<int, SDeviceInterfaceDef> map = EasyMakeDeviceInterfaceDefs(96.f, {1}, {180});
+	return map;
+}

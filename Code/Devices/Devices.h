@@ -12,6 +12,8 @@ struct SCabinDeviceData : public IDeviceData {
 
 	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
+
+	virtual const std::map<int, SDeviceInterfaceDef> & GetInterfaceDefs() override;
 };
 
 struct SShellDeviceData : public IDeviceData {
@@ -24,6 +26,8 @@ struct SShellDeviceData : public IDeviceData {
 
 	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
+	
+	virtual const std::map<int, SDeviceInterfaceDef> & GetInterfaceDefs() override;
 };
 
 struct SEngineDeviceData : public IDeviceData {
@@ -37,6 +41,8 @@ struct SEngineDeviceData : public IDeviceData {
 
 	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
+
+	virtual const std::map<int, SDeviceInterfaceDef> & GetInterfaceDefs() override;
 
 	static constexpr float smokeMax = .03f;
 	float smoking = 0.f;
@@ -53,6 +59,8 @@ struct SPropellerDeviceData : public IDeviceData {
 
 	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
+
+	virtual const std::map<int, SDeviceInterfaceDef> & GetInterfaceDefs() override;
 
 	virtual float PreStep(const SPreStepParams & params) override;
 	virtual void Step(const SStepParams & params) override;
@@ -74,6 +82,8 @@ struct SJetPropellerDeviceData : public IDeviceData {
 	virtual void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) override;
 	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
 
+	virtual const std::map<int, SDeviceInterfaceDef> & GetInterfaceDefs() override;
+
 	static constexpr float accumulationMax = 2.5f;
 	static constexpr float accumulationShowingMax = 2.f;
 
@@ -85,10 +95,35 @@ struct SJetPropellerDeviceData : public IDeviceData {
 	float smokeRotation2 = 0.f;
 };
 
-//struct SJointDeviceData : public IDeviceDataMachinePartJoint {
-//	SJointDeviceData() { device = EType::Joint; }
-//	virtual ~SJointDeviceData() = default;
-//
-//	virtual void InitSprite(CSprite &, std::vector<Frame::ColorRGB SColorSet::*> &) override {}
-//	virtual std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 &, float) override { return {}; }
-//};
+struct SJointRootDeviceData : public IDeviceData {
+	static void Register(SDeviceTypeConfig & config) {
+		config.guid = "{76EC29AD-0184-408E-B8B0-1A2EFCE020B4}";
+		config.isJoint = true;
+		config.isJointRoot = true;
+	}
+
+	virtual IDeviceData * New() const override { return new SJointRootDeviceData {}; }
+	virtual const SDeviceTypeConfig & GetConfig() const override { return SDeviceType<SJointRootDeviceData>::config; }
+
+	void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet:: *> & outLayerColors) override;
+	std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
+
+	virtual const std::map<int, SDeviceInterfaceDef> & GetInterfaceDefs() override;
+
+	virtual void InitJoint(const std::vector<std::shared_ptr<IDeviceData>> & devices) override;
+};
+
+struct SJointSecondDeviceData : public IDeviceData {
+	static void Register(SDeviceTypeConfig & config) {
+		config.guid = "{C42643C4-946C-4E3E-AC9F-678F4AAD8B1F}";
+		config.isJoint = true;
+	}
+
+	virtual IDeviceData * New() const override { return new SJointSecondDeviceData {}; }
+	virtual const SDeviceTypeConfig & GetConfig() const override { return SDeviceType<SJointSecondDeviceData>::config; }
+
+	void InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet:: *> & outLayerColors) override;
+	std::vector<std::pair<b2ShapeDef, SBox2dShape>> MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) override;
+
+	virtual const std::map<int, SDeviceInterfaceDef> & GetInterfaceDefs() override;
+};

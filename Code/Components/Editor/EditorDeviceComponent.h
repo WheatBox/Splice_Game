@@ -2,10 +2,11 @@
 
 #include <FrameCore/Globals.h>
 #include <FrameInput/Input.h>
+#include <FrameEntity/Entity.h>
+#include <FrameRender/Renderer.h>
 
 #include "../SpriteComponent.h"
 #include "../ColliderComponent.h"
-#include "FrameRender/Renderer.h"
 #include "../../Devices/EditorDevices.h"
 
 class CEditorDeviceComponent final : public Frame::IEntityComponent {
@@ -75,16 +76,27 @@ public:
 
 	// 各参数的具体解释见 CEditorDeviceComponent::Initialize()
 	struct SInterface {
+		SInterface(CEditorDeviceComponent * pEDComp, int _ID, const SDeviceInterfaceDef & def) {
+			auto pEntity = pEDComp->GetEntity();
+			ID = _ID;
+			from = pEDComp;
+			direction = def.direction - pEntity->GetRotation();
+			pos = pEntity->GetPosition()
+				+ def.offset.GetRotated(pEntity->GetRotation())
+				+ Frame::Vec2 { CONNECTOR_LENGTH, 0.f }.GetRotated(-direction)
+				;
+		}
+
 		int ID = -1;
 		CEditorDeviceComponent * from = nullptr; // 该接口属于哪个装置
 		SInterface * to = nullptr; // 该接口连接到的接口
 		Frame::Vec2 pos {};
 		float direction = 0.f;
 	};
-	std::vector<SInterface> m_interfaces;
+	std::map<int, SInterface> m_interfaces;
 
 	void GetAvailableInterfaces(std::vector<SInterface *> * outToPushBack) {
-		for(SInterface & interface : m_interfaces) {
+		for(auto & [_, interface] : m_interfaces) {
 			if(!interface.to) {
 				outToPushBack->push_back(& interface);
 			}
@@ -93,14 +105,14 @@ public:
 
 	static bool ConnectInterfaces(CEditorDeviceComponent * pEDComp1, int interface1ID, CEditorDeviceComponent * pEDComp2, int interface2ID) {
 		SInterface * interface1 = nullptr, * interface2 = nullptr;
-		for(auto & interface : pEDComp1->m_interfaces) {
-			if(interface.ID == interface1ID) {
+		for(auto & [ID, interface] : pEDComp1->m_interfaces) {
+			if(ID == interface1ID) {
 				interface1 = & interface;
 				break;
 			}
 		}
-		for(auto & interface : pEDComp2->m_interfaces) {
-			if(interface.ID == interface2ID) {
+		for(auto & [ID, interface] : pEDComp2->m_interfaces) {
+			if(ID == interface2ID) {
 				interface2 = & interface;
 				break;
 			}

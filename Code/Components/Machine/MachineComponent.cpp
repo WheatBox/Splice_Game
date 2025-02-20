@@ -6,6 +6,8 @@
 
 #include "MachinePartComponent.h"
 #include "../../Application.h"
+#include "../../Devices/Devices.h"
+#include "../PhysicsWorldComponent.h"
 
 #include "../Editor/EditorComponent.h" // 为了 ESC 键返回编辑器的临时测试用途
 
@@ -93,49 +95,105 @@ nlohmann::json CMachineComponent::Serialize() const {
 	return {}; // TODO
 }
 
-// TODO - 跨机器部分的关节类装置的处理
+void __RecurMachinePart(std::shared_ptr<IDeviceData> pDevice, std::unordered_set<std::shared_ptr<IDeviceData>> & devices, std::unordered_set<std::shared_ptr<IDeviceData>> & ignores) {
+	if(!pDevice || ignores.find(pDevice) != ignores.end()) {
+		return;
+	}
+	devices.insert(pDevice);
+	ignores.insert(pDevice);
+	for(auto & [_, interface] : pDevice->m_interfaces) {
+		if(interface.to) {
+			__RecurMachinePart(interface.to->from.lock(), devices, ignores);
+		}
+	}
+}
+
 void CMachineComponent::Deserialize(const nlohmann::json & json) {
+
+	printf("\n%s\n", json.dump().c_str());
 	
 	std::lock_guard<std::mutex> lock { m_stepMutex };
 
-	std::vector<SSerializedMachinePart> machineParts;
-
-	Frame::Vec2 cabinPos;
-	float cabinRot = 0.f;
-
+	SSerializedMachine serializedMachine;
 	// 解析 JSON
 	try {
-		for(const auto & machinePartJson : json) {
-			SSerializedMachinePart machinePart;
-
-			for(const auto & deviceJson : machinePartJson) {
-				SSerializedDevice device = SSerializedDevice::MakeFromJson(deviceJson);
-				if(device.guid == GetDeviceConfig<SCabinDeviceData>().guid) {
-					cabinPos = device.position;
-					cabinRot = device.rotation;
-				}
-				machinePart.devices.push_back(device);
-			}
-
-			machineParts.push_back(machinePart);
-		}
+		serializedMachine.FromJson(json);
 	} catch(const nlohmann::json::exception & e) {
 		Frame::Log::Log(Frame::Log::ELevel::Error, "CMachineComponent::Deserialize(): Illegal JSON: %s", e.what());
 		return;
 	}
 
-	// 召唤！苏醒吧，机器！！！
-	for(const auto & serializedMachinePart : machineParts) {
-		Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity();
-		CMachinePartComponent * pMachinePart = pEntity->CreateComponent<CMachinePartComponent>();
-
-		for(const auto & serializedDevice : serializedMachinePart.devices) {
-			auto pDevice = GetDeviceData(serializedDevice.guid)->NewShared();
-			pDevice->SetRelativePositionRotation(serializedDevice.position - cabinPos, serializedDevice.rotation - cabinRot);
-			pMachinePart->devices.insert(pDevice);
+	Frame::Vec2 cabinPos;
+	float cabinRot = 0.f;
+	for(const auto & serializedDevice : serializedMachine.devices) {
+		if(serializedDevice.guid == GetDeviceConfig<SCabinDeviceData>().guid) {
+			cabinPos = serializedDevice.position;
+			cabinRot = serializedDevice.rotation;
 		}
-		pMachinePart->Initialize(pMachinePart->devices, m_colorSet);
+	}
 
-		m_machineParts.insert(pMachinePart);
+	std::shared_ptr<IDeviceData> pCabin = nullptr;
+
+	std::vector<std::shared_ptr<IDeviceData>> devices; 
+	// 从 json 中解析得到的信息转换为实际的装置数据
+	for(const auto & serializedDevice : serializedMachine.devices) {
+
+		std::shared_ptr<IDeviceData> pDevice = GetDeviceData(serializedDevice.guid)->NewShared();
+		pDevice->SetRelativePositionRotation(serializedDevice.position - cabinPos, serializedDevice.rotation - cabinRot);
+		for(const auto & [interfaceID, interfaceDef] : pDevice->GetInterfaceDefs()) {
+			pDevice->m_interfaces.insert({ interfaceID, { pDevice, interfaceID, interfaceDef }});
+		}
+		for(const auto & connection : serializedDevice.connections) {
+			IDeviceData::ConnectInterfaces(& pDevice->m_interfaces.at(connection.myInterfaceID), & devices[connection.to]->m_interfaces.at(connection.toInterfaceID));
+		}
+
+		if(!pCabin && pDevice->GetConfig().guid == GetDeviceConfig<SCabinDeviceData>().guid) {
+			pCabin = pDevice;
+		}
+
+		devices.push_back(pDevice);
+
+	}
+
+	if(!pCabin) {
+		Frame::Log::Log(Frame::Log::ELevel::Error, "CMachineComponent::Deserialize(): Can not find Cabin!");
+		return;
+	}
+
+	std::unordered_set<std::shared_ptr<IDeviceData>> ignores;
+
+	for(auto & pDevice : devices) {
+		std::unordered_set<std::shared_ptr<IDeviceData>> machinePart;
+
+		__RecurMachinePart(pDevice, machinePart, ignores);
+
+		if(machinePart.empty()) {
+			continue;
+		}
+
+		Frame::CEntity * pEntity = Frame::gEntitySystem->SpawnEntity();
+		CMachinePartComponent * pMachinePartComp = pEntity->CreateComponent<CMachinePartComponent>();
+		pMachinePartComp->devices = machinePart;
+		pMachinePartComp->Initialize(pMachinePartComp->devices, m_colorSet);
+
+		m_machineParts.insert(pMachinePartComp);
+	}
+
+	// 处理所有关节装置，为它们创建物理关节
+	for(const auto & serializedJointRelation : serializedMachine.jointRelations) {
+		std::vector<std::shared_ptr<IDeviceData>> devicesOfCurrentJoint;
+		for(size_t i = 0, len = serializedJointRelation.deviceIndices.size(); i < len; i++) {
+			devicesOfCurrentJoint.push_back(devices[serializedJointRelation.deviceIndices[i]]);
+		}
+		for(size_t i = 0, len = serializedJointRelation.deviceIndices.size(); i < len; i++) {
+			std::shared_ptr<IDeviceData> pRootDevice = devices[serializedJointRelation.deviceIndices[i]];
+			if(pRootDevice->GetConfig().isJointRoot) {
+				CPhysicsWorldComponent::s_physicalizeQueue.push(
+					[pRootDevice, devicesOfCurrentJoint]() {
+						pRootDevice->InitJoint(devicesOfCurrentJoint);
+					}
+				);
+			}
+		}
 	}
 }
