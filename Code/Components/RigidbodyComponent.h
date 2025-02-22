@@ -45,6 +45,9 @@ public:
 	void SetRenderingColor(int rgb) {
 		m_renderColor = rgb;
 	}
+	int GetRenderingColor() const {
+		return m_renderColor;
+	}
 	void SetRenderingColorAlwaysLight(bool enable) {
 		m_renderColorAlwaysLight = enable;
 	}

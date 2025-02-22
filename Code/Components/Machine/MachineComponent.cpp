@@ -59,9 +59,15 @@ void CMachineComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 	{
 		std::lock_guard<std::mutex> lock { m_stepMutex };
 		
+		Frame::gCamera->PushOntoStack();
 		for(auto & pMachinePart : m_machineParts) {
-			pMachinePart->Render();
+			pMachinePart->RenderReady();
 		}
+		for(auto & pMachinePart : m_machineParts) { pMachinePart->Render(eDSG_StaticBottom); }
+		for(auto & pMachinePart : m_machineParts) { pMachinePart->Render(eDSG_Static); }
+		for(auto & pMachinePart : m_machineParts) { pMachinePart->Render(eDSG_Dynamic); }
+		for(auto & pMachinePart : m_machineParts) { pMachinePart->Render(eDSG_StaticTop); }
+		Frame::gCamera->PopFromStack();
 	}
 	break;
 	}
@@ -84,10 +90,11 @@ void CMachineComponent::Step(float timeStep) {
 	std::lock_guard<std::mutex> lock { m_stepMutex };
 	
 	for(auto & pMachinePart : m_machineParts) {
-		if(!pMachinePart->isMainPart) {
-			continue;
+		Frame::Vec2 targetMovingDir {};
+		if(pMachinePart->isMainPart) {
+			targetMovingDir = m_targetMovingDir;
 		}
-		pMachinePart->Step(timeStep, m_targetMovingDir);
+		pMachinePart->Step(timeStep, targetMovingDir);
 	}
 }
 

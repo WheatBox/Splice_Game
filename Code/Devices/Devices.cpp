@@ -209,22 +209,26 @@ const std::map<int, SDeviceInterfaceDef> & SJetPropellerDeviceData::GetInterface
 REGISTER_DEVICE(SJointRootDeviceData);
 
 void SJointRootDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet:: *> & outLayerColors) {
-	ADD_SPRITE_LAYER_3(E::joint_bottom, & C::color2, eDSG_StaticBottom);
-	ADD_SPRITE_LAYER_3(E::joint_top_color, & C::color2, eDSG_StaticTop);
-	ADD_SPRITE_LAYER_3(E::joint_top, nullptr, eDSG_StaticTop);
+	ADD_SPRITE_LAYER_3(E::joint_color, & C::color1, eDSG_Static).SetRotationDegree(180.f);
+	ADD_SPRITE_LAYER_3(E::joint, nullptr, eDSG_Static).SetRotationDegree(180.f);
 }
 
 std::vector<std::pair<b2ShapeDef, SBox2dShape>> SJointRootDeviceData::MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) {
-	rotation; // TODO - 细化碰撞体
 	std::vector<std::pair<b2ShapeDef, SBox2dShape>> defs;
+	
 	const Frame::Vec2 devicePosMeter = P2M(devicePos);
 	const b2Circle shape { { devicePosMeter.x, devicePosMeter.y }, P2M(36.f) };
 	defs.push_back(MakeShapeDef(1.f, .5f, 0.f, shape));
+
+	const Frame::Vec2 center1 = Frame::Vec2 { -46.f, 0.f }.GetRotated(rotation) + devicePos;
+	const b2Polygon shape1 = b2MakeOffsetBox(P2M(4.f), P2M(36.f), { P2M(center1.x), P2M(center1.y) }, b2MakeRot(rotation));
+	defs.push_back(MakeShapeDef(1.f, .5f, 0.f, shape1));
+
 	return defs;
 }
 
 const std::map<int, SDeviceInterfaceDef> & SJointRootDeviceData::GetInterfaceDefs() {
-	static std::map<int, SDeviceInterfaceDef> map = EasyMakeDeviceInterfaceDefs(96.f, {0}, {0});
+	static std::map<int, SDeviceInterfaceDef> map = EasyMakeDeviceInterfaceDefs(96.f, {1}, {180});
 	return map;
 }
 
@@ -250,16 +254,20 @@ void SJointRootDeviceData::InitJoint(const std::vector<std::shared_ptr<IDeviceDa
 REGISTER_DEVICE(SJointSecondDeviceData);
 
 void SJointSecondDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet:: *> & outLayerColors) {
-	ADD_SPRITE_LAYER_3(E::joint_color, & C::color1, eDSG_Static).SetRotationDegree(180.f);
-	ADD_SPRITE_LAYER_3(E::joint, nullptr, eDSG_Static).SetRotationDegree(180.f);
+	ADD_SPRITE_LAYER_3(E::joint_bottom, & C::color2, eDSG_StaticBottom);
+	ADD_SPRITE_LAYER_3(E::joint_top_color, & C::color2, eDSG_StaticTop);
+	ADD_SPRITE_LAYER_3(E::joint_top, nullptr, eDSG_StaticTop);
 }
 
 std::vector<std::pair<b2ShapeDef, SBox2dShape>> SJointSecondDeviceData::MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) {
-	rotation, devicePos; // TODO - 细化碰撞体
-	return {};
+	std::vector<std::pair<b2ShapeDef, SBox2dShape>> defs;
+	const Frame::Vec2 center1 = Frame::Vec2 { 46.f, 0.f }.GetRotated(rotation) + devicePos;
+	const b2Polygon shape1 = b2MakeOffsetBox(P2M(4.f), P2M(36.f), { P2M(center1.x), P2M(center1.y) }, b2MakeRot(rotation));
+	defs.push_back(MakeShapeDef(1.f, .5f, 0.f, shape1));
+	return defs;
 }
 
 const std::map<int, SDeviceInterfaceDef> & SJointSecondDeviceData::GetInterfaceDefs() {
-	static std::map<int, SDeviceInterfaceDef> map = EasyMakeDeviceInterfaceDefs(96.f, {1}, {180});
+	static std::map<int, SDeviceInterfaceDef> map = EasyMakeDeviceInterfaceDefs(96.f, {0}, {0});
 	return map;
 }

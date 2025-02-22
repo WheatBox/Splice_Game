@@ -47,17 +47,14 @@ struct IDeviceData {
 		SInterface(std::shared_ptr<IDeviceData> pDevice, int _ID, const SDeviceInterfaceDef & def) {
 			ID = _ID;
 			from = pDevice;
-			direction = def.direction - pDevice->GetRotation();
-			pos = pDevice->GetPosition()
-				+ def.offset.GetRotated(pDevice->GetRotation())
-				+ Frame::Vec2 { CONNECTOR_LENGTH, 0.f }.GetRotated(-direction)
-				;
+			direction = def.direction;
+			offset = def.offset.GetRotated(pDevice->GetRotation());
 		}
 
 		int ID = -1; // 与编辑器装置的接口ID对应
 		std::weak_ptr<IDeviceData> from; // 该接口属于哪个装置
 		SInterface * to = nullptr; // 该接口连接到的接口
-		Frame::Vec2 pos {};
+		Frame::Vec2 offset {};
 		float direction = 0.f;
 	};
 	std::map<int, SInterface> m_interfaces;

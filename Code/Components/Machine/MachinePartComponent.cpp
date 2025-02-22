@@ -22,9 +22,9 @@ void CMachinePartComponent::Initialize(const std::unordered_set<std::shared_ptr<
 	bodyDef.angularDamping = 1.f;
 
 	m_pRigidbodyComponent->Physicalize(bodyDef, _this_devices);
-	m_pRigidbodyComponent->SetEnableRendering(true);
-	m_pRigidbodyComponent->SetRenderingColor(Frame::ColorHSV { static_cast<uint16>(rand()) % 360u, 100, 100 }.ToRGB());
-	m_pRigidbodyComponent->SetRenderingColorAlwaysLight(true);
+	//m_pRigidbodyComponent->SetEnableRendering(true);
+	//m_pRigidbodyComponent->SetRenderingColor(Frame::ColorHSV { static_cast<uint16>(rand()) % 360u, 100, 100 }.ToRGB());
+	//m_pRigidbodyComponent->SetRenderingColorAlwaysLight(true);
 
 	for(const auto & device : _this_devices) {
 		if(!isMainPart && device->GetConfig().guid == GetDeviceConfig<SCabinDeviceData>().guid) {
@@ -87,7 +87,7 @@ void CMachinePartComponent::Step(float timeStep, const Frame::Vec2 & targetMovin
 	printf("| (%.2f/%.2f)\n", powerUsed, totalPower);
 }
 
-void CMachinePartComponent::Render() {
+void CMachinePartComponent::RenderReady() {
 	for(auto & pDevice : devices) {
 		pDevice->m_sprite.CheckOrUpdateInsBuffers();
 	}
@@ -98,25 +98,44 @@ void CMachinePartComponent::Render() {
 	}
 	__RegenerateDynamicInsBuffers();
 
-	Frame::gCamera->PushOntoStack();
-
 	{ // 统一的 位移、旋转 ，通过镜头变换来做到
 		const float rot = Frame::gCamera->GetRotation() - m_pEntity->GetRotation();
 		const Frame::Vec2 vEntCam = (Frame::gCamera->GetPos() - m_pEntity->GetPosition()).GetRotated(-Frame::gCamera->GetRotation());
 		const Frame::Vec2 camCalib = vEntCam.GetRotated(rot) - vEntCam;
-		Frame::gCamera->SetRotation(rot);
-		Frame::gCamera->SetPos(vEntCam + camCalib);
+
+		m_renderingStuffs.transformCamRot = rot;
+		m_renderingStuffs.transformCamPos = vEntCam + camCalib;
 	}
+	m_renderingStuffs.texId = Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId();\
 
-	const auto texId = Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId();
+#if 0
+	Frame::gCamera->SetRotation(m_renderingStuffs.transformCamRot);
+	Frame::gCamera->SetPos(m_renderingStuffs.transformCamPos);
+	for(auto & pDevice : devices) {
+		for(auto & [ID, interface] : pDevice->m_interfaces) {
+			if(!interface.to) {
+				continue;
+			}
+			float rot = - interface.direction + pDevice->GetRotation();
+			Frame::gRenderer->pShapeRenderer->DrawLineBlended(pDevice->GetPosition(), pDevice->GetPosition() + (Frame::Vec2 { 32.f, 0.f }).GetRotated(rot), m_pRigidbodyComponent->GetRenderingColor(), .3f, 3.f);
+		}
+	}
+#endif
+}
+
+void CMachinePartComponent::Render(EDeviceSpriteGroup eDSG_) const {
+	Frame::gCamera->SetRotation(m_renderingStuffs.transformCamRot);
+	Frame::gCamera->SetPos(m_renderingStuffs.transformCamPos);
+
 	const Frame::STextureVertexBuffer & vertBuf = CSprite::GetTextureVertexBufferForInstances();
-	Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticBottomInsBuffers);
-	Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticInsBuffers);
-	Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_dynamicInsBuffers);
-	Frame::gRenderer->DrawTexturesInstanced(texId, vertBuf, m_staticTopInsBuffers);
-	// TODO - 上面这些做成函数以供 Machine 统一调用，不然的话一个 MachinePart 的 static组 可能会覆盖另一个 MachinePart 的 staticTop组
-
-	Frame::gCamera->PopFromStack();
+	//Frame::STextureVertexBuffer vertBuf = CSprite::GetTextureVertexBufferForInstances();
+	//vertBuf.SetAlphaBlends(.4f);
+	switch(eDSG_) {
+	case eDSG_StaticBottom: Frame::gRenderer->DrawTexturesInstanced(m_renderingStuffs.texId, vertBuf, m_staticBottomInsBuffers); break;
+	case eDSG_Static: Frame::gRenderer->DrawTexturesInstanced(m_renderingStuffs.texId, vertBuf, m_staticInsBuffers); break;
+	case eDSG_Dynamic: Frame::gRenderer->DrawTexturesInstanced(m_renderingStuffs.texId, vertBuf, m_dynamicInsBuffers); break;
+	case eDSG_StaticTop: Frame::gRenderer->DrawTexturesInstanced(m_renderingStuffs.texId, vertBuf, m_staticTopInsBuffers); break;
+	}
 }
 
 void CMachinePartComponent::__RegenerateStaticInsBuffers() {

@@ -30,7 +30,15 @@ public:
 	}
 	
 	void Step(float timeStep, const Frame::Vec2 & targetMovingDir);
-	void Render();
+	void RenderReady();
+	void Render(EDeviceSpriteGroup eDSG_) const;
+private:
+	struct {
+		float transformCamRot;
+		Frame::Vec2 transformCamPos;
+		unsigned int texId;
+	} m_renderingStuffs;
+public:
 
 	std::unordered_set<std::shared_ptr<IDeviceData>> devices;
 	bool isMainPart = false;

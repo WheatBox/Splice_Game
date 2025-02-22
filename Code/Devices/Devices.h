@@ -97,7 +97,7 @@ struct SJetPropellerDeviceData : public IDeviceData {
 
 struct SJointRootDeviceData : public IDeviceData {
 	static void Register(SDeviceTypeConfig & config) {
-		config.guid = "{76EC29AD-0184-408E-B8B0-1A2EFCE020B4}";
+		config.guid = "{C42643C4-946C-4E3E-AC9F-678F4AAD8B1F}";
 		config.isJoint = true;
 		config.isJointRoot = true;
 	}
@@ -115,7 +115,7 @@ struct SJointRootDeviceData : public IDeviceData {
 
 struct SJointSecondDeviceData : public IDeviceData {
 	static void Register(SDeviceTypeConfig & config) {
-		config.guid = "{C42643C4-946C-4E3E-AC9F-678F4AAD8B1F}";
+		config.guid = "{76EC29AD-0184-408E-B8B0-1A2EFCE020B4}";
 		config.isJoint = true;
 	}
 

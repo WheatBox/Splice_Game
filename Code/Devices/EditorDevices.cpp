@@ -153,8 +153,8 @@ void SJointEditorDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::Col
 
 const std::vector<SEditorDeviceDeviceDef> & SJointEditorDeviceData::GetDeviceDefs() const {
 	static std::vector<SEditorDeviceDeviceDef> v = {
-		MakeEditorDeviceDeviceDef<SJointRootDeviceData>({ 0 }),
-		MakeEditorDeviceDeviceDef<SJointSecondDeviceData>({ 1 })
+		MakeEditorDeviceDeviceDef<SJointRootDeviceData>({ 1 }),
+		MakeEditorDeviceDeviceDef<SJointSecondDeviceData>({ 0 })
 	};
 	return v;
 }
