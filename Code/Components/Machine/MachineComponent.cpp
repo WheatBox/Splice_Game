@@ -63,6 +63,7 @@ void CMachineComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		for(auto & pMachinePart : m_machineParts) {
 			pMachinePart->RenderReady();
 		}
+		for(auto & pMachinePart : m_machineParts) { pMachinePart->Render(eDSG_Connector); }
 		for(auto & pMachinePart : m_machineParts) { pMachinePart->Render(eDSG_StaticBottom); }
 		for(auto & pMachinePart : m_machineParts) { pMachinePart->Render(eDSG_Static); }
 		for(auto & pMachinePart : m_machineParts) { pMachinePart->Render(eDSG_Dynamic); }

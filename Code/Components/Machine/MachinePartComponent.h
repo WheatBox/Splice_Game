@@ -46,6 +46,8 @@ public:
 private:
 	CRigidbodyComponent * m_pRigidbodyComponent = nullptr;
 
+	std::vector<Frame::CRenderer::SInstanceBuffer> m_connectorInsBuffers;
+
 	std::vector<Frame::CRenderer::SInstanceBuffer> m_staticBottomInsBuffers;
 	std::vector<Frame::CRenderer::SInstanceBuffer> m_staticInsBuffers;
 	std::vector<Frame::CRenderer::SInstanceBuffer> m_dynamicInsBuffers;

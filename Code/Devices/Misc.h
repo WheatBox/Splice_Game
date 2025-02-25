@@ -29,6 +29,7 @@ enum EDeviceSpriteGroup : int {
 	eDSG_Dynamic,
 	eDSG_StaticTop,
 	eDSG_StaticBottom,
+	eDSG_Connector
 };
 
 // 连接其它装置的 接口 的定义

@@ -34,11 +34,25 @@ void CMachinePartComponent::Initialize(const std::unordered_set<std::shared_ptr<
 		device->m_pBelongingMachinePart = this;
 
 		std::vector<Frame::ColorRGB SColorSet::*> colorUpdatesInSpriteLayers;
+		for(const auto & [ID, interface] : device->m_interfaces) {
+			if(!interface.to) {
+				continue;
+			}
+			if(const int normdir = static_cast<int>(Frame::RadToDeg(interface.direction - device->m_rotationRelative)) % 360; normdir < 5 || normdir >= 185) {
+				continue;
+			}
+			CSprite::SLayer connectorLayer { Assets::GetStaticSprite(Assets::EDeviceStaticSprite::connector), 0xFFFFFF, 1.f };
+			connectorLayer.SetOffset(interface.offset.GetRotated(-device->m_rotationRelative));
+			connectorLayer.SetRotation(interface.direction);
+			device->m_sprite.AddLayer(connectorLayer, eDSG_Connector);
+			colorUpdatesInSpriteLayers.push_back(& SColorSet::connector);
+		}
 		device->InitSprite(device->m_sprite, colorUpdatesInSpriteLayers);
 		for(size_t i = 0, siz = colorUpdatesInSpriteLayers.size(); i < siz; i++) {
 			if(const auto & p = colorUpdatesInSpriteLayers[i]; p) {
 				device->m_sprite.GetLayers()[i].SetColor(colorSet.* p);
 			}
+			//device->m_sprite.GetLayers()[i].SetAlpha(.3f);
 		}
 	}
 }
@@ -106,7 +120,7 @@ void CMachinePartComponent::RenderReady() {
 		m_renderingStuffs.transformCamRot = rot;
 		m_renderingStuffs.transformCamPos = vEntCam + camCalib;
 	}
-	m_renderingStuffs.texId = Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId();\
+	m_renderingStuffs.texId = Assets::GetStaticSprite(Assets::EDeviceStaticSprite::cabin)->GetImage()->GetTextureId();
 
 #if 0
 	Frame::gCamera->SetRotation(m_renderingStuffs.transformCamRot);
@@ -131,6 +145,7 @@ void CMachinePartComponent::Render(EDeviceSpriteGroup eDSG_) const {
 	//Frame::STextureVertexBuffer vertBuf = CSprite::GetTextureVertexBufferForInstances();
 	//vertBuf.SetAlphaBlends(.4f);
 	switch(eDSG_) {
+	case eDSG_Connector: Frame::gRenderer->DrawTexturesInstanced(m_renderingStuffs.texId, vertBuf, m_connectorInsBuffers); break;
 	case eDSG_StaticBottom: Frame::gRenderer->DrawTexturesInstanced(m_renderingStuffs.texId, vertBuf, m_staticBottomInsBuffers); break;
 	case eDSG_Static: Frame::gRenderer->DrawTexturesInstanced(m_renderingStuffs.texId, vertBuf, m_staticInsBuffers); break;
 	case eDSG_Dynamic: Frame::gRenderer->DrawTexturesInstanced(m_renderingStuffs.texId, vertBuf, m_dynamicInsBuffers); break;
@@ -139,10 +154,14 @@ void CMachinePartComponent::Render(EDeviceSpriteGroup eDSG_) const {
 }
 
 void CMachinePartComponent::__RegenerateStaticInsBuffers() {
+	m_connectorInsBuffers.clear();
+
 	m_staticBottomInsBuffers.clear();
 	m_staticInsBuffers.clear();
 	m_staticTopInsBuffers.clear();
 	for(auto & pDevice : devices) {
+		pDevice->m_sprite.GetRenderingInstanceData(m_connectorInsBuffers, eDSG_Connector);
+
 		pDevice->m_sprite.GetRenderingInstanceData(m_staticBottomInsBuffers, eDSG_StaticBottom);
 		pDevice->m_sprite.GetRenderingInstanceData(m_staticInsBuffers, eDSG_Static);
 		pDevice->m_sprite.GetRenderingInstanceData(m_staticTopInsBuffers, eDSG_StaticTop);
