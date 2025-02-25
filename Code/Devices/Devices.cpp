@@ -96,6 +96,9 @@ void SPropellerDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::Color
 		.SetOffset({ 20.f, 0.f })
 		.SetRotationDegree(30.f);
 
+	bladeLayerIndex = sprite.GetLayers().size() - 1;
+	bladeColorLayerIndex = bladeLayerIndex - 1;
+
 	ADD_SPRITE_LAYER_3(E::propeller_top_color, & C::color1, eDSG_StaticTop);
 	ADD_SPRITE_LAYER_3(E::propeller_top, nullptr, eDSG_StaticTop);
 }
@@ -136,10 +139,10 @@ void SPropellerDeviceData::Step(const SStepParams & params) {
 		, devicePos
 	);
 
-	if(m_sprite.GetLayers().size() > 4) {
-		const float rot = m_sprite.GetLayers()[3].GetRotationDegree() + (1000.f + 600.f * params.power) * params.timeStep;
-		m_sprite.GetLayers()[3].SetRotationDegree(rot);
-		m_sprite.GetLayers()[4].SetRotationDegree(rot);
+	if(auto & layers = m_sprite.GetLayers(); layers.size() > bladeLayerIndex) {
+		const float rot = layers[bladeLayerIndex].GetRotationDegree() + (1000.f + 600.f * params.power) * params.timeStep;
+		layers[bladeColorLayerIndex].SetRotationDegree(rot);
+		layers[bladeLayerIndex].SetRotationDegree(rot);
 	}
 }
 

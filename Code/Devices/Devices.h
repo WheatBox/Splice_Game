@@ -64,6 +64,8 @@ struct SPropellerDeviceData : public IDeviceData {
 
 	virtual float PreStep(const SPreStepParams & params) override;
 	virtual void Step(const SStepParams & params) override;
+
+	size_t bladeLayerIndex, bladeColorLayerIndex;
 };
 
 struct SJetPropellerDeviceData : public IDeviceData {
