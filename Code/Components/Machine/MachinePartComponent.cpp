@@ -7,6 +7,8 @@
 #include "../RigidbodyComponent.h"
 #include "../../Assets.h"
 
+#define DEBUG_RIGIDBODY 1
+
 REGISTER_ENTITY_COMPONENT(CMachinePartComponent);
 
 void CMachinePartComponent::Initialize(const std::unordered_set<std::shared_ptr<IDeviceData>> & _this_devices, const SColorSet & colorSet) {
@@ -22,9 +24,11 @@ void CMachinePartComponent::Initialize(const std::unordered_set<std::shared_ptr<
 	bodyDef.angularDamping = 1.f;
 
 	m_pRigidbodyComponent->Physicalize(bodyDef, _this_devices);
-	//m_pRigidbodyComponent->SetEnableRendering(true);
-	//m_pRigidbodyComponent->SetRenderingColor(Frame::ColorHSV { static_cast<uint16>(rand()) % 360u, 100, 100 }.ToRGB());
-	//m_pRigidbodyComponent->SetRenderingColorAlwaysLight(true);
+#if DEBUG_RIGIDBODY
+	m_pRigidbodyComponent->SetEnableRendering(true);
+	m_pRigidbodyComponent->SetRenderingColor(Frame::ColorHSV { static_cast<uint16>(rand()) % 360u, 100, 100 }.ToRGB());
+	m_pRigidbodyComponent->SetRenderingColorAlwaysLight(true);
+#endif
 
 	for(const auto & device : _this_devices) {
 		if(!isMainPart && device->GetConfig().guid == GetDeviceConfig<SCabinDeviceData>().guid) {
@@ -42,7 +46,7 @@ void CMachinePartComponent::Initialize(const std::unordered_set<std::shared_ptr<
 				continue;
 			}
 			CSprite::SLayer connectorLayer { Assets::GetStaticSprite(Assets::EDeviceStaticSprite::connector), 0xFFFFFF, 1.f };
-			connectorLayer.SetOffset(interface.offset.GetRotated(-device->m_rotationRelative));
+			connectorLayer.SetOffset(interface.offset.GetRotated(-device->m_rotationRelative) + Frame::Vec2 { CONNECTOR_HALF_LENGTH, 0.f }.GetRotated(-interface.direction));
 			connectorLayer.SetRotation(interface.direction);
 			device->m_sprite.AddLayer(connectorLayer, eDSG_Connector);
 			colorUpdatesInSpriteLayers.push_back(& SColorSet::connector);
@@ -52,7 +56,9 @@ void CMachinePartComponent::Initialize(const std::unordered_set<std::shared_ptr<
 			if(const auto & p = colorUpdatesInSpriteLayers[i]; p) {
 				device->m_sprite.GetLayers()[i].SetColor(colorSet.* p);
 			}
-			//device->m_sprite.GetLayers()[i].SetAlpha(.3f);
+#if DEBUG_RIGIDBODY
+			device->m_sprite.GetLayers()[i].SetAlpha(.3f);
+#endif
 		}
 	}
 }

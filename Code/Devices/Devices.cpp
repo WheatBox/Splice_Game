@@ -106,10 +106,23 @@ void SPropellerDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::Color
 std::vector<std::pair<b2ShapeDef, SBox2dShape>> SPropellerDeviceData::MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) {
 	std::vector<std::pair<b2ShapeDef, SBox2dShape>> defs;
 	const Frame::Vec2 center1 = Frame::Vec2 { -22.f, 0.f }.GetRotated(rotation) + devicePos;
-	const Frame::Vec2 center2 = Frame::Vec2 { 24.f, 0.f }.GetRotated(rotation) + devicePos;
 	const b2Polygon shape1 = b2MakeOffsetBox(P2M(24.f), P2M(40.f), { P2M(center1.x), P2M(center1.y) }, b2MakeRot(rotation));
-	const b2Polygon shape2 = b2MakeOffsetBox(P2M(36.f), P2M(114.f), { P2M(center2.x), P2M(center2.y) }, b2MakeRot(rotation));
 	defs.push_back(MakeShapeDef(1.f, .5f, 0.f, shape1));
+
+	//const Frame::Vec2 center2 = P2M(Frame::Vec2 { 24.f, 0.f }.GetRotated(rotation) + devicePos);
+	//const b2Polygon shape2 = b2MakeOffsetBox(P2M(36.f), P2M(114.f), { P2M(center2.x), P2M(center2.y) }, b2MakeRot(rotation));
+	//defs.push_back(MakeShapeDef(.3f, .5f, .2f, shape2));
+
+	const Frame::Vec2 center2InMeter = P2M(Frame::Vec2 { 20.f, 0.f }.GetRotated(rotation) + devicePos);
+	b2Vec2 points[8];
+	for(int i = 0; i < 8; i++) {
+		float angle = Frame::pi_f * .25f * i;
+		Frame::Vec2 point = { P2M(44.f * cosf(angle)), P2M(120.f * sinf(angle)) };
+		point.Rotate(rotation);
+		points[i] = { point.x + center2InMeter.x, point.y + center2InMeter.y };
+	}
+	b2Hull hull = b2ComputeHull(points, 8);
+	const b2Polygon shape2 = b2MakePolygon(& hull, 0.f);
 	defs.push_back(MakeShapeDef(.3f, .5f, .2f, shape2));
 	return defs;
 }
