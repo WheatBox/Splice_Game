@@ -68,6 +68,7 @@ void CMachineComponent::ProcessEvent(const Frame::EntityEvent::SEvent & event) {
 		for(auto & pMachinePart : m_machineParts) { pMachinePart->Render(eDSG_Static); }
 		for(auto & pMachinePart : m_machineParts) { pMachinePart->Render(eDSG_Dynamic); }
 		for(auto & pMachinePart : m_machineParts) { pMachinePart->Render(eDSG_StaticTop); }
+		for(auto & pMachinePart : m_machineParts) { pMachinePart->Render(eDSG_DynamicTop); }
 		Frame::gCamera->PopFromStack();
 	}
 	break;

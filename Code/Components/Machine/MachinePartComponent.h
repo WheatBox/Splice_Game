@@ -52,6 +52,7 @@ private:
 	std::vector<Frame::CRenderer::SInstanceBuffer> m_staticInsBuffers;
 	std::vector<Frame::CRenderer::SInstanceBuffer> m_dynamicInsBuffers;
 	std::vector<Frame::CRenderer::SInstanceBuffer> m_staticTopInsBuffers;
+	std::vector<Frame::CRenderer::SInstanceBuffer> m_dynamicTopInsBuffers;
 
 	bool m_bInsBuffersInited = false;
 

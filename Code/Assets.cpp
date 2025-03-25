@@ -33,46 +33,51 @@ namespace Assets {
 		Frame::CTextureAtlas * pDevicesAtlas = new Frame::CTextureAtlas {
 			"Assets/Art/atlas_Devices.png",
 			{ // "image name" : (left top) (right bottom)
-				{ "propeller_blade_color.png", { { 0.003906f, 0.996094f }, { 0.128906f, 0.871094f } } },
-				{ "propeller_blade.png", { { 0.003906f, 0.867188f }, { 0.128906f, 0.742188f } } },
-				{ "jet_propeller_color2.png", { { 0.003906f, 0.738281f }, { 0.128906f, 0.675781f } } },
-				{ "jet_propeller_color1.png", { { 0.003906f, 0.671875f }, { 0.128906f, 0.609375f } } },
-				{ "jet_propeller_bottom.png", { { 0.003906f, 0.605469f }, { 0.128906f, 0.542969f } } },
-				{ "jet_propeller.png", { { 0.003906f, 0.539063f }, { 0.128906f, 0.476563f } } },
-				{ "propeller_motor_color2.png", { { 0.003906f, 0.472656f }, { 0.066406f, 0.347656f } } },
-				{ "propeller_top.png", { { 0.003906f, 0.343750f }, { 0.066406f, 0.218750f } } },
-				{ "propeller_motor.png", { { 0.003906f, 0.214844f }, { 0.066406f, 0.089844f } } },
-				{ "propeller_motor_color1.png", { { 0.070313f, 0.472656f }, { 0.132813f, 0.347656f } } },
-				{ "propeller_top_color.png", { { 0.070313f, 0.343750f }, { 0.132813f, 0.218750f } } },
-				{ "cabin_color2.png", { { 0.003906f, 0.085938f }, { 0.066406f, 0.023438f } } },
-				{ "cabin_color1.png", { { 0.070313f, 0.214844f }, { 0.132813f, 0.152344f } } },
-				{ "cabin.png", { { 0.070313f, 0.148438f }, { 0.132813f, 0.085938f } } },
-				{ "shell_color2.png", { { 0.070313f, 0.082031f }, { 0.132813f, 0.019531f } } },
-				{ "engine_color2.png", { { 0.132813f, 0.996094f }, { 0.195313f, 0.933594f } } },
-				{ "joint.png", { { 0.132813f, 0.929688f }, { 0.195313f, 0.867188f } } },
-				{ "joint_bottom.png", { { 0.132813f, 0.863281f }, { 0.195313f, 0.800781f } } },
-				{ "joint_color.png", { { 0.132813f, 0.796875f }, { 0.195313f, 0.734375f } } },
-				{ "joint_top.png", { { 0.132813f, 0.730469f }, { 0.195313f, 0.667969f } } },
-				{ "joint_top_color.png", { { 0.132813f, 0.664063f }, { 0.195313f, 0.601563f } } },
-				{ "engine_color1.png", { { 0.132813f, 0.597656f }, { 0.195313f, 0.535156f } } },
-				{ "engine.png", { { 0.136719f, 0.531250f }, { 0.199219f, 0.468750f } } },
-				{ "shell_color1.png", { { 0.136719f, 0.464844f }, { 0.199219f, 0.402344f } } },
-				{ "cabin_logo_background.png", { { 0.136719f, 0.398438f }, { 0.199219f, 0.335938f } } },
-				{ "shell.png", { { 0.136719f, 0.332031f }, { 0.199219f, 0.269531f } } },
-				{ "pipe_cross_color.png", { { 0.136719f, 0.265625f }, { 0.160156f, 0.242188f } } },
-				{ "pipe_bend.png", { { 0.136719f, 0.238281f }, { 0.160156f, 0.214844f } } },
-				{ "pipe_bend_color.png", { { 0.136719f, 0.210938f }, { 0.160156f, 0.187500f } } },
-				{ "pipe_junction_color.png", { { 0.136719f, 0.183594f }, { 0.160156f, 0.160156f } } },
-				{ "pipe_junction.png", { { 0.136719f, 0.156250f }, { 0.160156f, 0.132813f } } },
-				{ "pipe_cross.png", { { 0.136719f, 0.128906f }, { 0.160156f, 0.105469f } } },
-				{ "jet_propeller_needle.png", { { 0.003906f, 0.019531f }, { 0.027344f, 0.011719f } } },
-				{ "connector.png", { { 0.136719f, 0.101563f }, { 0.152344f, 0.039063f } } },
-				{ "pipe_interface.png", { { 0.031250f, 0.019531f }, { 0.046875f, 0.003906f } } },
-				{ "pipe.png", { { 0.050781f, 0.019531f }, { 0.066406f, 0.003906f } } },
-				{ "pipe_interface_color.png", { { 0.136719f, 0.035156f }, { 0.152344f, 0.019531f } } },
-				{ "pipe_color.png", { { 0.156250f, 0.101563f }, { 0.171875f, 0.085938f } } },
-				{ "pipe_joint.png", { { 0.156250f, 0.082031f }, { 0.171875f, 0.066406f } } },
-				{ "pipe_joint_color.png", { { 0.156250f, 0.062500f }, { 0.171875f, 0.046875f } } }
+				{ "propeller_blade.png", { { 0.001953f, 0.998047f }, { 0.126953f, 0.873047f } } },
+				{ "propeller_blade_color.png", { { 0.001953f, 0.871094f }, { 0.126953f, 0.746094f } } },
+				{ "jet_propeller_bottom.png", { { 0.001953f, 0.744141f }, { 0.126953f, 0.681641f } } },
+				{ "jet_propeller.png", { { 0.001953f, 0.679688f }, { 0.126953f, 0.617188f } } },
+				{ "jet_propeller_color2.png", { { 0.001953f, 0.615234f }, { 0.126953f, 0.552734f } } },
+				{ "jet_propeller_color1.png", { { 0.001953f, 0.550781f }, { 0.126953f, 0.488281f } } },
+				{ "propeller_motor_color1.png", { { 0.001953f, 0.486328f }, { 0.064453f, 0.361328f } } },
+				{ "propeller_top_color.png", { { 0.001953f, 0.359375f }, { 0.064453f, 0.234375f } } },
+				{ "propeller_top.png", { { 0.001953f, 0.232422f }, { 0.064453f, 0.107422f } } },
+				{ "propeller_motor_color2.png", { { 0.066406f, 0.486328f }, { 0.128906f, 0.361328f } } },
+				{ "propeller_motor.png", { { 0.066406f, 0.359375f }, { 0.128906f, 0.234375f } } },
+				{ "engine_color2.png", { { 0.001953f, 0.105469f }, { 0.064453f, 0.042969f } } },
+				{ "shell.png", { { 0.066406f, 0.232422f }, { 0.128906f, 0.169922f } } },
+				{ "jet_propeller_smoke1.png", { { 0.066406f, 0.167969f }, { 0.128906f, 0.105469f } } },
+				{ "engine_color1.png", { { 0.066406f, 0.103516f }, { 0.128906f, 0.041016f } } },
+				{ "jet_propeller_smoke3.png", { { 0.128906f, 0.998047f }, { 0.191406f, 0.935547f } } },
+				{ "jet_propeller_smoke4.png", { { 0.128906f, 0.933594f }, { 0.191406f, 0.871094f } } },
+				{ "jet_propeller_smoke5.png", { { 0.128906f, 0.869141f }, { 0.191406f, 0.806641f } } },
+				{ "joint.png", { { 0.128906f, 0.804688f }, { 0.191406f, 0.742188f } } },
+				{ "joint_bottom.png", { { 0.128906f, 0.740234f }, { 0.191406f, 0.677734f } } },
+				{ "joint_color.png", { { 0.128906f, 0.675781f }, { 0.191406f, 0.613281f } } },
+				{ "joint_top.png", { { 0.128906f, 0.611328f }, { 0.191406f, 0.548828f } } },
+				{ "joint_top_color.png", { { 0.130859f, 0.546875f }, { 0.193359f, 0.484375f } } },
+				{ "engine.png", { { 0.130859f, 0.482422f }, { 0.193359f, 0.419922f } } },
+				{ "shell_color1.png", { { 0.130859f, 0.417969f }, { 0.193359f, 0.355469f } } },
+				{ "cabin_logo_background.png", { { 0.130859f, 0.353516f }, { 0.193359f, 0.291016f } } },
+				{ "cabin_color1.png", { { 0.130859f, 0.289063f }, { 0.193359f, 0.226563f } } },
+				{ "cabin_color2.png", { { 0.130859f, 0.224609f }, { 0.193359f, 0.162109f } } },
+				{ "jet_propeller_smoke2.png", { { 0.130859f, 0.160156f }, { 0.193359f, 0.097656f } } },
+				{ "cabin.png", { { 0.130859f, 0.095703f }, { 0.193359f, 0.033203f } } },
+				{ "shell_color2.png", { { 0.193359f, 0.998047f }, { 0.255859f, 0.935547f } } },
+				{ "pipe_bend.png", { { 0.001953f, 0.041016f }, { 0.025391f, 0.017578f } } },
+				{ "pipe_bend_color.png", { { 0.027344f, 0.041016f }, { 0.050781f, 0.017578f } } },
+				{ "pipe_junction.png", { { 0.052734f, 0.039063f }, { 0.076172f, 0.015625f } } },
+				{ "pipe_junction_color.png", { { 0.078125f, 0.039063f }, { 0.101563f, 0.015625f } } },
+				{ "pipe_cross.png", { { 0.103516f, 0.039063f }, { 0.126953f, 0.015625f } } },
+				{ "pipe_cross_color.png", { { 0.128906f, 0.031250f }, { 0.152344f, 0.007813f } } },
+				{ "jet_propeller_needle.png", { { 0.001953f, 0.015625f }, { 0.025391f, 0.007813f } } },
+				{ "connector.png", { { 0.193359f, 0.933594f }, { 0.208984f, 0.871094f } } },
+				{ "pipe_joint.png", { { 0.154297f, 0.031250f }, { 0.169922f, 0.015625f } } },
+				{ "pipe.png", { { 0.171875f, 0.031250f }, { 0.187500f, 0.015625f } } },
+				{ "pipe_joint_color.png", { { 0.189453f, 0.031250f }, { 0.205078f, 0.015625f } } },
+				{ "pipe_color.png", { { 0.193359f, 0.869141f }, { 0.208984f, 0.853516f } } },
+				{ "pipe_interface_color.png", { { 0.193359f, 0.851563f }, { 0.208984f, 0.835938f } } },
+				{ "pipe_interface.png", { { 0.193359f, 0.833984f }, { 0.208984f, 0.818359f } } }
 			}
 		};
 		Frame::CTextureAtlas * pOthersAtlas = new Frame::CTextureAtlas {
@@ -134,6 +139,11 @@ namespace Assets {
 		__S_Device(propeller_blade, "propeller_blade.png");
 		__S_Device(propeller_blade_color, "propeller_blade_color.png");
 		__S_Device(jet_propeller, "jet_propeller.png");
+		__S_Device(jet_propeller_smoke1, "jet_propeller_smoke1.png");
+		__S_Device(jet_propeller_smoke2, "jet_propeller_smoke2.png");
+		__S_Device(jet_propeller_smoke3, "jet_propeller_smoke3.png");
+		__S_Device(jet_propeller_smoke4, "jet_propeller_smoke4.png");
+		__S_Device(jet_propeller_smoke5, "jet_propeller_smoke5.png");
 		__S_Device(jet_propeller_color1, "jet_propeller_color1.png");
 		__S_Device(jet_propeller_color2, "jet_propeller_color2.png");
 		__S_Device(jet_propeller_needle, "jet_propeller_needle.png");

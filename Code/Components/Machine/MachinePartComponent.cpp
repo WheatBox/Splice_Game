@@ -7,7 +7,7 @@
 #include "../RigidbodyComponent.h"
 #include "../../Assets.h"
 
-#define DEBUG_RIGIDBODY 1
+#define DEBUG_RIGIDBODY 0
 
 REGISTER_ENTITY_COMPONENT(CMachinePartComponent);
 
@@ -85,6 +85,11 @@ void CMachinePartComponent::Step(float timeStep, const Frame::Vec2 & targetMovin
 			if(float powerRatio = pDevice->PreStep(params); powerRatio > 0.001f) {
 				totalRatio += powerRatio;
 				devicePowerRatios.push_back({ pDevice, powerRatio });
+			} else if(pDevice->GetConfig().alwaysStep) {
+				IDeviceData::SStepParams stepParams;
+				stepParams.timeStep = timeStep;
+				stepParams.power = 0.f;
+				pDevice->Step(stepParams);
 			}
 		}
 	}
@@ -156,6 +161,7 @@ void CMachinePartComponent::Render(EDeviceSpriteGroup eDSG_) const {
 	case eDSG_Static: Frame::gRenderer->DrawTexturesInstanced(m_renderingStuffs.texId, vertBuf, m_staticInsBuffers); break;
 	case eDSG_Dynamic: Frame::gRenderer->DrawTexturesInstanced(m_renderingStuffs.texId, vertBuf, m_dynamicInsBuffers); break;
 	case eDSG_StaticTop: Frame::gRenderer->DrawTexturesInstanced(m_renderingStuffs.texId, vertBuf, m_staticTopInsBuffers); break;
+	case eDSG_DynamicTop: Frame::gRenderer->DrawTexturesInstanced(m_renderingStuffs.texId, vertBuf, m_dynamicTopInsBuffers); break;
 	}
 }
 
@@ -176,7 +182,9 @@ void CMachinePartComponent::__RegenerateStaticInsBuffers() {
 
 void CMachinePartComponent::__RegenerateDynamicInsBuffers() {
 	m_dynamicInsBuffers.clear();
+	m_dynamicTopInsBuffers.clear();
 	for(auto & pDevice : devices) {
 		pDevice->m_sprite.GetRenderingInstanceData(m_dynamicInsBuffers, eDSG_Dynamic);
+		pDevice->m_sprite.GetRenderingInstanceData(m_dynamicTopInsBuffers, eDSG_DynamicTop);
 	}
 }

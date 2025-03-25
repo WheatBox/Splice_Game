@@ -69,13 +69,10 @@ struct SPropellerDeviceData : public IDeviceData {
 };
 
 struct SJetPropellerDeviceData : public IDeviceData {
-	SJetPropellerDeviceData() {
-		smokeRotation1 = Frame::DegToRad(static_cast<float>(rand() % 360));
-		smokeRotation2 = Frame::DegToRad(static_cast<float>(rand() % 360));
-	}
-
 	static void Register(SDeviceTypeConfig & config) {
 		config.guid = "{C29FBB21-3339-4DE5-818F-BA3F9609CB95}";
+		config.maxPower = 2.f;
+		config.alwaysStep = true;
 	}
 
 	virtual IDeviceData * New() const override { return new SJetPropellerDeviceData {}; }
@@ -86,6 +83,9 @@ struct SJetPropellerDeviceData : public IDeviceData {
 
 	virtual const std::map<int, SDeviceInterfaceDef> & GetInterfaceDefs() override;
 
+	virtual float PreStep(const SPreStepParams & params) override;
+	virtual void Step(const SStepParams & params) override;
+
 	static constexpr float accumulationMax = 2.5f;
 	static constexpr float accumulationShowingMax = 2.f;
 
@@ -93,8 +93,10 @@ struct SJetPropellerDeviceData : public IDeviceData {
 	float accumulatingShowing = 0.f;
 	float accumulatingShowingPrev = 0.f;
 
-	float smokeRotation1 = 0.f;
-	float smokeRotation2 = 0.f;
+	float smokeRotation1 = 0.f; // 公转
+	float smokeRotation2 = 0.f; // 自转
+
+	int smokeLayerIndexBegin = 0, smokeLayerIndexEnd = 0, needleLayerIndex = 0;
 };
 
 struct SJointRootDeviceData : public IDeviceData {

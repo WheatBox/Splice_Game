@@ -19,7 +19,8 @@ struct SDeviceTypeConfig {
 	Frame::GUID guid;
 
 	float addPower = 0.f; // 给发动机之类的装置准备的
-	float maxPower = 0.f;
+	float maxPower = 0.f; // 最大动力值，如果设为 0.f，那么 PreStep 函数不会被执行
+	bool alwaysStep = false; // 即使没有动力也会执行 Step 函数
 
 	bool isJoint = false; // 关节
 	bool isJointRoot = false; // 关节根装置（将会执行 物理关节创建函数 的装置）

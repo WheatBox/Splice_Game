@@ -1,6 +1,7 @@
 ﻿#include "Devices.h"
 
 #include "Utils.h"
+#include "../Utility.h"
 
 #include "../Components/SmokeEmitterComponent.h"
 #include "../Components/Machine/MachinePartComponent.h"
@@ -162,44 +163,27 @@ void SPropellerDeviceData::Step(const SStepParams & params) {
 REGISTER_DEVICE(SJetPropellerDeviceData);
 
 void SJetPropellerDeviceData::InitSprite(CSprite & sprite, std::vector<Frame::ColorRGB SColorSet::*> & outLayerColors) {
-	ADD_SPRITE_LAYER_2(E::jet_propeller_bottom, & C::color1)
-		/*.SetExtraFunction( // TODO
-			[pDeviceComponent](float frameTime) {
-				auto pNode = pDeviceComponent->GetNode();
-				if(!pNode || !pNode->pDeviceData) {
-					return;
-				}
+	smokeRotation1 = Frame::DegToRad(static_cast<float>(rand() % 360));
+	smokeRotation2 = Frame::DegToRad(static_cast<float>(rand() % 360));
 
-				auto pEntity = pDeviceComponent->GetEntity();
-				SJetPropellerDeviceData * pData = reinterpret_cast<SJetPropellerDeviceData *>(pNode->pDeviceData);
+	ADD_SPRITE_LAYER_2(E::jet_propeller_bottom, & C::color1);
 
-				const Frame::Vec2 entPos = pEntity->GetPosition();
-				const float entRot = pEntity->GetRotation();
+	smokeLayerIndexBegin = static_cast<int>(sprite.GetLayers().size());
+	constexpr E smokes[] = { E::jet_propeller_smoke1, E::jet_propeller_smoke2, E::jet_propeller_smoke3, E::jet_propeller_smoke4, E::jet_propeller_smoke5 };
+	ADD_SPRITE_LAYER_3(smokes[rand() % 5], nullptr, eDSG_Dynamic).SetScale({ .75f }).SetAlpha(0.f);
+	ADD_SPRITE_LAYER_3(smokes[rand() % 5], nullptr, eDSG_Dynamic).SetScale({ .75f }).SetAlpha(0.f);
+	ADD_SPRITE_LAYER_3(smokes[rand() % 5], nullptr, eDSG_Dynamic).SetScale({ .75f }).SetAlpha(0.f);
+	ADD_SPRITE_LAYER_3(smokes[rand() % 5], nullptr, eDSG_Dynamic).SetScale({ .75f }).SetAlpha(0.f);
+	ADD_SPRITE_LAYER_3(smokes[rand() % 5], nullptr, eDSG_Dynamic).SetScale({ .75f }).SetAlpha(0.f);
+	smokeLayerIndexEnd = static_cast<int>(sprite.GetLayers().size());
 
-				const Frame::Vec2 pos = entPos - Frame::Vec2 { 32.f, 0.f }.GetRotated(entRot);
-				const float alpha = Frame::Min(1.f, pData->accumulatingShowing / pData->accumulationShowingMax) * .35f;
-
-				pData->smokeRotation1 += frameTime * (40.f + 30000.f * (pData->accumulatingShowing - pData->accumulatingShowingPrev));
-				pData->smokeRotation2 += frameTime * (80.f + 60000.f * (pData->accumulatingShowing - pData->accumulatingShowingPrev));
-
-				Frame::gRenderer->DrawSpriteBlended(Assets::GetStaticSprite(Assets::EDeviceStaticSprite::jet_propeller_bottom)->GetImage(),
-					entPos, 0xFFFFFF, alpha * 2.5f, 1.f, entRot
-				);
-				for(int i = 0; i < CSmokeEmitterComponent::SSmokeParticle::spritesCount; i++) {
-					Frame::gRenderer->DrawSpriteBlended(
-						Assets::GetStaticSprite(CSmokeEmitterComponent::SSmokeParticle::sprites[i])->GetImage(),
-						pos + Frame::Vec2 { 16.f, 0.f }.GetRotatedDegree(static_cast<float>(i * (360 / CSmokeEmitterComponent::SSmokeParticle::spritesCount)) + pData->smokeRotation1), 0xFFFFFF, alpha,
-						{ .75f }, Frame::DegToRad(pData->smokeRotation2)
-					);
-				}
-			}
-		)*/;
-	ADD_SPRITE_LAYER_2(E::jet_propeller_color1, & C::color1);
-	ADD_SPRITE_LAYER_2(E::jet_propeller_color2, & C::color2);
-	ADD_SPRITE_LAYER_1(E::jet_propeller);
-	ADD_SPRITE_LAYER_1(E::jet_propeller_needle)
+	ADD_SPRITE_LAYER_3(E::jet_propeller_color1, & C::color1, eDSG_StaticTop);
+	ADD_SPRITE_LAYER_3(E::jet_propeller_color2, & C::color2, eDSG_StaticTop);
+	ADD_SPRITE_LAYER_3(E::jet_propeller, nullptr, eDSG_StaticTop);
+	ADD_SPRITE_LAYER_3(E::jet_propeller_needle, nullptr, eDSG_DynamicTop)
 		.SetOffset({ 32.f, -20.f })
 		.SetRotationDegree(45.f);
+	needleLayerIndex = static_cast<int>(sprite.GetLayers().size() - 1);
 }
 
 std::vector<std::pair<b2ShapeDef, SBox2dShape>> SJetPropellerDeviceData::MakeShapeDefs(const Frame::Vec2 & devicePos, float rotation) {
@@ -220,6 +204,70 @@ const std::map<int, SDeviceInterfaceDef> & SJetPropellerDeviceData::GetInterface
 		map[2].offset += { -44.f, 0.f };
 	}
 	return map;
+}
+
+float SJetPropellerDeviceData::PreStep(const SPreStepParams & params) {
+	const float dotval = params.facingDir.Dot(params.machinePartTargetMovingDir);
+	return dotval >= 0.f ? 0.f : -dotval;
+}
+
+void SJetPropellerDeviceData::Step(const SStepParams & params) {
+	CRigidbodyComponent * pRigidbody = m_pBelongingMachinePart->GetRigidbody();
+	if(!pRigidbody) {
+		return;
+	}
+
+	const float rot = GetRotation();
+	const Frame::Vec2 pos = GetPosition();
+
+	if(accumulating < 0.f) {
+		accumulating += params.timeStep * 1.f;
+		if(accumulating > 0.f) {
+			accumulating = 0.f;
+		}
+	} else {
+		accumulating += params.timeStep * params.power;
+	}
+	if(accumulating >= accumulationMax) {
+		pRigidbody->ApplyLinearImpulse(
+			Frame::Vec2 { -6000.f, 0.f }.GetRotated(rot)
+			, pos
+		);
+		accumulating = -.5f;
+	}
+	accumulatingShowingPrev = accumulatingShowing;
+	accumulatingShowing = Lerp(accumulatingShowing, Frame::Max(accumulating, 0.f), params.timeStep * 10.f);
+
+	const float alpha = Frame::Min(1.f, accumulatingShowing / accumulationShowingMax) * .35f;
+	smokeRotation1 += params.timeStep * (40.f + 30000.f * (accumulatingShowing - accumulatingShowingPrev));
+	smokeRotation2 += params.timeStep * (80.f + 60000.f * (accumulatingShowing - accumulatingShowingPrev));
+	for(int i = smokeLayerIndexBegin; i < smokeLayerIndexEnd; i++) {
+		auto & layer = m_sprite.GetLayers()[i];
+		layer.SetOffset(Frame::Vec2 { -32.f, 0 } - Frame::Vec2 { 16.f, 0.f }.GetRotatedDegree(static_cast<float>((i - smokeLayerIndexBegin) * (360 / (smokeLayerIndexEnd - smokeLayerIndexBegin))) + smokeRotation1));
+		layer.SetRotationDegree(smokeRotation2);
+		layer.SetAlpha(alpha);
+	}
+
+	{
+		const float needleRot = Frame::DegToRad(45.f)
+			+ Frame::DegToRad(270.f) * Frame::Clamp(accumulatingShowing, 0.f, accumulationShowingMax) / accumulationShowingMax
+			+ (accumulatingShowing <= accumulationShowingMax ? 0.f : Frame::DegToRad(12.f) * -std::sin(30.f * (accumulationShowingMax - accumulatingShowing)))
+			;
+		m_sprite.GetLayers()[needleLayerIndex].SetRotation(needleRot);
+	}
+
+	if(accumulatingShowing > .002f && accumulating < 0.f) {
+		for(int i = 0; i < 4; i++) {
+			CSmokeEmitterComponent::SSmokeParticle particle {
+				pos + Frame::Vec2 { 96.f, 0.f }.GetRotated(rot),
+				1.f, 0xFFFFFF, Frame::Vec2 { 4000.f, 0.f }.GetRotated(rot + Frame::DegToRad(static_cast<float>(rand() % 41 - 20)))
+			};
+			particle.alpha *= -accumulating * 3.f;
+			particle.scaleAdd *= 5.f;
+			particle.alphaAdd *= 1.5f;
+			CSmokeEmitterComponent::SummonSmokeParticle(particle);
+		}
+	}
 }
 
 REGISTER_DEVICE(SJointRootDeviceData);

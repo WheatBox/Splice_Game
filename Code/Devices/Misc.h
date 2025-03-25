@@ -28,6 +28,7 @@ enum EDeviceSpriteGroup : int {
 	eDSG_Static = 0,
 	eDSG_Dynamic,
 	eDSG_StaticTop,
+	eDSG_DynamicTop,
 	eDSG_StaticBottom,
 	eDSG_Connector
 };
